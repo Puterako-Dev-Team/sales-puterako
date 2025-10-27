@@ -10,6 +10,14 @@ use Illuminate\Support\Facades\Log;
 
 class JasaController extends Controller
 {
+    private function getBpjskPercent($total)
+    {
+        if ($total <= 100_000_000) return 0.0024;
+        if ($total <= 500_000_000) return 0.0019;
+        if ($total <= 1_000_000_000) return 0.0015;
+        if ($total <= 5_000_000_000) return 0.0012;
+        return 0.0010;
+    }
     public function save(Request $request)
     {
         $data = $request->all();
@@ -41,9 +49,28 @@ class JasaController extends Controller
 
             $profitValueToStore = round($afterProfit, 2);
             $pphValueToStore    = round($afterPph, 2);
-            $grandTotalPembulatan = array_sum(array_map(function($section) {
+            $grandTotalPembulatan = array_sum(array_map(function ($section) {
                 return intval($section['pembulatan'] ?? 0);
             }, $sections));
+
+            $penawaran = \App\Models\Penawaran::find($penawaranId);
+            $totalPenawaran = $penawaran ? floatval($penawaran->total) : 0;
+
+            // Hitung BPJS Konstruksi
+            $bpjskPercent = $this->getBpjskPercent($totalPenawaran);
+            $bpjskValue = ($totalPenawaran + $grandTotalPembulatan) * $bpjskPercent;
+
+            Log::debug('BPJS debug', [
+                'totalPenawaran' => $totalPenawaran,
+                'grandTotalPembulatan' => $grandTotalPembulatan,
+                'sum_for_bpjsk' => ($totalPenawaran + $grandTotalPembulatan),
+                'bpjskPercent_decimal' => $bpjskPercent,
+                'bpjskPercent_saved' => $bpjskPercent * 100,
+                'bpjskValue_calculated' => $bpjskValue,
+                'grandTotalJasaFinal' => $grandTotalPembulatan + $bpjskValue
+            ]);
+            // Update grand total jasa
+            $grandTotalJasaFinal = $grandTotalPembulatan + $bpjskValue;
 
             // jika header jasa sudah ada -> update, jika tidak -> create
             $existingJasa = Jasa::where('id_penawaran', $penawaranId)->first();
@@ -55,11 +82,13 @@ class JasaController extends Controller
                     'profit_value'   => $profitValueToStore,
                     'pph_percent'    => $pphPercent,
                     'pph_value'      => $pphValueToStore,
-                    'bpjsk_percent'  => 0,
-                    'bpjsk_value'    => 0,
-                    'grand_total'    => $grandTotalPembulatan,
+                    'bpjsk_percent'  => $bpjskPercent * 100,
+                    'bpjsk_value'    => $bpjskValue,
+                    'grand_total'    => $grandTotalJasaFinal,
                     'ringkasan'      => $ringkasan,
                 ]);
+                Log::debug('Existing Jasa updated - after', ['after' => $existingJasa->fresh()->toArray()]);
+
 
                 $jasa = $existingJasa;
             } else {
@@ -69,9 +98,9 @@ class JasaController extends Controller
                     'profit_value'   => $profitValueToStore,
                     'pph_percent'    => $pphPercent,
                     'pph_value'      => $pphValueToStore,
-                    'bpjsk_percent'  => 0,
-                    'bpjsk_value'    => 0,
-                    'grand_total'    => $grandTotalPembulatan,
+                    'bpjsk_percent'  => $bpjskPercent * 100,
+                    'bpjsk_value'    => $bpjskValue,
+                    'grand_total'    => $grandTotalJasaFinal,
                     'ringkasan'      => $ringkasan,
                 ]);
                 Log::debug('Created Jasa header', ['id_jasa' => $jasa->id_jasa]);

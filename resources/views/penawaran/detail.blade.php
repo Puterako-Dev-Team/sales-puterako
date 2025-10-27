@@ -253,9 +253,23 @@
                                 <div class="text-gray-600">PPH Total</div>
                                 <div>Rp <span id="jasaOverallPph">0</span></div>
                             </div> --}}
+
                             <div class="flex justify-between ">
-                                <div class="text-gray-700 font-bold">Grand Total Jasa</div>
+                                <div class="text-gray-700 font-bold">Total Jasa Awal</div>
                                 <div class="font-bold text-green-600">Rp <span id="jasaOverallGrand">0</span></div>
+                            </div>
+                            <!-- Tambahkan di bawah sini -->
+                            <div class="flex justify-between mt-2">
+                                <div class="text-gray-700 font-semibold">BPJS Konstruksi
+                                    ({{ number_format($jasa->bpjsk_percent ?? 0, 2, ',', '.') }}%)</div>
+                                <div class="font-semibold text-blue-700">Rp
+                                    {{ number_format($jasa->bpjsk_value ?? 0, 0, ',', '.') }}</div>
+                            </div>
+                            <div class="flex justify-between mt-2">
+                                <div class="text-gray-700 font-semibold">Total Jasa Setelah BPJS</div>
+                                <div class="font-bold text-green-600">Rp <span>
+                                        {{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</div>
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -1012,14 +1026,14 @@
                                 title: 'Unit',
                                 width: 100,
                                 type: 'numeric',
-                                
+
                             },
                             {
                                 title: 'Total',
                                 width: 120,
                                 type: 'numeric',
                                 readOnly: true,
-                               
+
                             },
                         ],
                         tableOverflow: true,
@@ -1477,20 +1491,20 @@
                                 width: 150,
                                 type: 'numeric',
                                 readOnly: true,
-    
+
                             },
                             {
                                 title: 'Harga Total',
                                 width: 150,
                                 type: 'numeric',
                                 readOnly: true,
-                                
+
                             },
                             {
                                 title: 'HPP',
                                 width: 100,
                                 type: 'numeric',
-                               
+
                             },
                             {
                                 title: 'Mitra',
@@ -1501,7 +1515,7 @@
                                 title: 'Added Cost',
                                 width: 120,
                                 type: 'numeric',
-                               
+
                             }
 
                         ],
