@@ -19,7 +19,8 @@ class JasaDetail extends Model
         'unit',
         'total',
         'profit',
-        'pph'
+        'pph',
+        'pembulatan',
     ];
 
     public function penawaran()

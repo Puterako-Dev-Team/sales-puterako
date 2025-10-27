@@ -795,6 +795,8 @@
                         const namaSectionInput = sectionElement.querySelector('.nama-section-input');
                         const addRowBtn = sectionElement.querySelector('.add-row-btn');
                         const deleteSectionBtn = sectionElement.querySelector('.delete-section-btn');
+                        const pembulatanInput = sectionElement.querySelector('.pembulatan-input');
+                        pembulatanInput.addEventListener('input', updateJasaOverallSummary);
 
                         if (enable) {
                             spreadsheetWrapper.classList.remove('spreadsheet-disabled');
@@ -890,6 +892,11 @@
                                         placeholder="Ex: Pekerjaan Instalasi" 
                                         value="${sectionData && sectionData.nama_section ? sectionData.nama_section : ''}">
                                 </div>
+                                <div class="flex items-center ml-4">
+                                    <label class="block text-sm font-semibold mr-2">Pembulatan:</label>
+                                    <input type="number" class="pembulatan-input border rounded px-3 py-1 w-24" 
+                                        min="0" step="1" value="${sectionData && typeof sectionData.pembulatan !== 'undefined' ? sectionData.pembulatan : 0}">
+                                    </div>
                                 <div class="flex gap-2">
                                     <button class="flex items-center add-row-btn bg-[#02ADB8] text-white px-3 py-1 rounded hover:bg-blue-700 transition text-sm">
                                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Tambah Baris
@@ -916,6 +923,7 @@
                                     <div class="text-right font-semibold">Subtotal: Rp <span id="${sectionId}-subtotal">0</span></div>
                                     <div class="text-sm">Profit: Rp <span class="${sectionId}-profit-val">0</span></div>
                                     <div class="text-sm">PPH: Rp <span class="${sectionId}-pph-val">0</span></div>
+                                    <div class="text-sm">Pembulatan: Rp <span class="${sectionId}-pembulatan-val">0</span></div>
                                 </div>
                             </div>
                         </div>`;
@@ -1080,34 +1088,24 @@
                 }
 
                 function updateJasaOverallSummary() {
-                    let totalJasa = 0;
-                    let totalPphNominal = 0;
                     let totalGrand = 0;
-
                     jasaSections.forEach(section => {
-                        const sectionEl = document.getElementById(section.id);
-                        if (!sectionEl) return;
-                        const subtotal = parseNumber((sectionEl.querySelector(`#${section.id}-subtotal`)
-                            .textContent || '0').replace(/\./g, '')) || 0;
+                        const sectionElement = document.getElementById(section.id);
+                        if (!sectionElement) return;
+                        const pembulatanInput = sectionElement.querySelector('.pembulatan-input');
+                        console.log(`[${section.id}] Pembulatan input value:`, pembulatanInput.value); // LOG
 
-                        const profitPercent = parseNumber(jasaProfit) || 0;
-                        const pphPercent = parseNumber(jasaPph) || 0;
+                        const pembulatan = parseInt(pembulatanInput.value) || 0;
+                        console.log(`[${section.id}] Parsed pembulatan:`, pembulatan); // LOG
 
-                        const afterProfit = profitPercent > 0 ? (subtotal / (1 - (profitPercent / 100))) :
-                            subtotal;
-                        const afterPph = pphPercent > 0 ? (afterProfit / (1 - (pphPercent / 100))) :
-                            afterProfit;
+                        totalGrand += pembulatan;
 
-                        // PPH nominal untuk section ini = afterPph - afterProfit
-                        const pphNominal = Math.round(afterPph - afterProfit);
-
-                        totalJasa += subtotal;
-                        totalPphNominal += pphNominal;
-                        totalGrand += Math.round(afterPph);
+                        // Update pembulatan text per section
+                        const pembulatanSpan = sectionElement.querySelector(`.${section.id}-pembulatan-val`);
+                        if (pembulatanSpan) pembulatanSpan.textContent = pembulatan.toLocaleString('id-ID');
                     });
-
+                    console.log('Grand Total Jasa:', totalGrand); // LOG
                     const overallGrandEl = document.getElementById('jasaOverallGrand');
-
                     if (overallGrandEl) overallGrandEl.textContent = totalGrand.toLocaleString('id-ID');
                 }
 
@@ -1153,6 +1151,7 @@
                     const allSectionsData = jasaSections.map(section => {
                         const sectionElement = document.getElementById(section.id);
                         const namaSectionInput = sectionElement.querySelector('.nama-section-input');
+                        const pembulatanInput = sectionElement.querySelector('.pembulatan-input');
                         const rawData = section.spreadsheet.getData();
 
                         const data = rawData.map(row => ({
@@ -1163,10 +1162,12 @@
                             orang: parseNumber(row[4]),
                             unit: parseNumber(row[5]),
                             total: parseNumber(row[6]),
+                            id_jasa_detail: row[7] || null
                         }));
 
                         return {
                             nama_section: namaSectionInput.value,
+                            pembulatan: parseInt(pembulatanInput.value) || 0,
                             data: dedupeSectionData({
                                 nama_section: namaSectionInput.value,
                                 data
@@ -1599,8 +1600,10 @@
 
                 // Event listener untuk perubahan PPN
                 document.getElementById('ppnInput').addEventListener('input', updateTotalKeseluruhan);
-                document.getElementById('isBestPrice').addEventListener('change', updateTotalKeseluruhan);
-                document.getElementById('bestPriceInput').addEventListener('input', updateTotalKeseluruhan);
+                document
+                    .getElementById('isBestPrice').addEventListener('change', updateTotalKeseluruhan);
+                document.getElementById(
+                    'bestPriceInput').addEventListener('input', updateTotalKeseluruhan);
 
                 function setBestPriceInputState() {
                     const chk = document.getElementById('isBestPrice');

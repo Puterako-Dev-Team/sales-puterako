@@ -41,7 +41,9 @@ class JasaController extends Controller
 
             $profitValueToStore = round($afterProfit, 2);
             $pphValueToStore    = round($afterPph, 2);
-            $grandTotal         = round($afterPph, 2);
+            $grandTotalPembulatan = array_sum(array_map(function($section) {
+                return intval($section['pembulatan'] ?? 0);
+            }, $sections));
 
             // jika header jasa sudah ada -> update, jika tidak -> create
             $existingJasa = Jasa::where('id_penawaran', $penawaranId)->first();
@@ -55,7 +57,7 @@ class JasaController extends Controller
                     'pph_value'      => $pphValueToStore,
                     'bpjsk_percent'  => 0,
                     'bpjsk_value'    => 0,
-                    'grand_total'    => $grandTotal,
+                    'grand_total'    => $grandTotalPembulatan,
                     'ringkasan'      => $ringkasan,
                 ]);
 
@@ -69,7 +71,7 @@ class JasaController extends Controller
                     'pph_value'      => $pphValueToStore,
                     'bpjsk_percent'  => 0,
                     'bpjsk_value'    => 0,
-                    'grand_total'    => $grandTotal,
+                    'grand_total'    => $grandTotalPembulatan,
                     'ringkasan'      => $ringkasan,
                 ]);
                 Log::debug('Created Jasa header', ['id_jasa' => $jasa->id_jasa]);
@@ -80,6 +82,7 @@ class JasaController extends Controller
 
             foreach ($sections as $section) {
                 $namaSection = $section['nama_section'] ?? '';
+                $pembulatan = $section['pembulatan'] ?? 0;
                 foreach ($section['data'] as $row) {
                     // Skip empty rows
                     if (empty($row['deskripsi']) && empty($row['no'])) {
@@ -101,6 +104,7 @@ class JasaController extends Controller
                         'total'         => $row['total'] ?? 0,
                         'profit'        => $profitPercent,
                         'pph'           => $pphPercent,
+                        'pembulatan'   => $pembulatan,
                     ];
 
                     if ($idJasaDetail) {
@@ -156,7 +160,7 @@ class JasaController extends Controller
                 'profit_value' => $profitValueToStore,
                 'pph_percent' => $pphPercent,
                 'pph_value' => $pphValueToStore,
-                'grand_total' => $grandTotal,
+                'grand_total' => $grandTotalPembulatan,
                 'processed_ids' => $processedIds,
                 'deleted_count' => $deleted ?? 0
             ]);

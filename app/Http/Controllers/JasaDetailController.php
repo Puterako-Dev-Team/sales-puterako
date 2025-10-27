@@ -21,6 +21,7 @@ class JasaDetailController extends Controller
         })->map(function ($items, $key) {
             return [
                 'nama_section' => $key,
+                'pembulatan' => $items->first()->pembulatan ?? 0,
                 'data' => $items->map(function ($d) {
                     return [
                         'no' => $d->no,
