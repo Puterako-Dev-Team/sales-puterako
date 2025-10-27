@@ -421,12 +421,12 @@
                                     <table class="w-full border-collapse border border-gray-300 text-sm">
                                         <thead class="bg-gray-100">
                                             <tr>
-                                                <th class="border border-gray-300 px-3 py-2 text-center  w-12">No</th>
-                                                <th class="border border-gray-300 px-3 py-2 text-center ">Tipe</th>
-                                                <th class="border border-gray-300 px-3 py-2 text-center ">Deskripsi</th>
+                                                <th class="border border-gray-300 px-3 py-2 text-center w-12">No</th>
+                                                <th class="border border-gray-300 px-3 py-2 text-center">Tipe</th>
+                                                <th class="border border-gray-300 px-3 py-2 text-center">Deskripsi</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-16">Qty</th>
-                                                <th class="border border-gray-300 px-3 py-2 text-center  w-20">Satuan</th>
-                                                <th class="border border-gray-300 px-3 py-2 text-center  w-32">Harga Satuan
+                                                <th class="border border-gray-300 px-3 py-2 text-center w-20">Satuan</th>
+                                                <th class="border border-gray-300 px-3 py-2 text-center w-32">Harga Satuan
                                                 </th>
                                                 <th class="border border-gray-300 px-3 py-2 text-right w-32">Harga Total
                                                 </th>
@@ -437,13 +437,15 @@
                                                 $subtotal = 0;
                                                 $rowNum = 1;
                                             @endphp
-                                            {{-- Group by area --}}
                                             @foreach (collect($sectionGroup)->groupBy('area') as $area => $areaRows)
-                                                <tr>
-                                                    <td colspan="7"
-                                                        style="background:#67BC4B;font-weight:bold; color: white; text-align: center; padding: 8px;">
-                                                        {{ $area }}</td>
-                                                </tr>
+                                                @if ($area)
+                                                    <tr>
+                                                        <td colspan="7"
+                                                            style="background:#67BC4B;font-weight:bold; color: white; text-align: center; padding: 8px;">
+                                                            {{ $area }}
+                                                        </td>
+                                                    </tr>
+                                                @endif
                                                 @foreach ($areaRows as $section)
                                                     @foreach ($section['data'] as $row)
                                                         @php $subtotal += $row['harga_total']; @endphp
@@ -454,7 +456,6 @@
                                                                 {{ $row['tipe'] }}</td>
                                                             <td class="border border-gray-300 px-3 py-2">
                                                                 {{ $row['deskripsi'] }}</td>
-                                                            </td>
                                                             <td class="border border-gray-300 px-3 py-2 text-center">
                                                                 {{ number_format($row['qty'], 0) }}</td>
                                                             <td class="border border-gray-300 px-3 py-2">
@@ -468,46 +469,57 @@
                                                 @endforeach
                                             @endforeach
                                         </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colspan="6" class="text-center font-bold bg-gray-50">Subtotal</td>
+                                                <td class="border border-gray-300 px-3 py-2 text-right font-bold">
+                                                    {{ number_format($subtotal, 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+                                        </tfoot>
                                     </table>
                                 </div>
                             </div>
-
-                            <!-- Tabel Jasa Detail (tetap tampil di bawah) -->
-                            <!-- Tabel Jasa (Ringkasan) -->
-                            <div class="mb-8 break-inside-avoid">
-                                <h3 class="font-bold text-lg mb-3">
-                                    {{ convertToRoman($sectionNumber + 1) }}. Biaya Quotation Jasa
-                                </h3>
-                                <table class="w-full border-collapse border border-gray-300 text-sm">
-                                    <thead class="bg-gray-100">
-                                        <tr>
-                                            <th class="border border-gray-300 px-3 py-2 text-center w-12">No</th>
-                                            <th class="border border-gray-300 px-3 py-2 text-center">Deskripsi</th>
-                                            <th class="border border-gray-300 px-3 py-2 text-center w-16">Qty</th>
-                                            <th class="border border-gray-300 px-3 py-2 text-center w-20">Satuan</th>
-                                            <th class="border border-gray-300 px-3 py-2 text-center w-32">Harga Satuan</th>
-                                            <th class="border border-gray-300 px-3 py-2 text-right w-32">Harga Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td class="border border-gray-300 px-3 py-2 text-center">1</td>
-                                            <td class="border border-gray-300 px-3 py-2">
-                                                {{ $jasa->ringkasan ?? '' }}
-                                            </td>
-                                            <td class="border border-gray-300 px-3 py-2 text-center">1</td>
-                                            <td class="border border-gray-300 px-3 py-2 text-center">Lot</td>
-                                            <td class="border border-gray-300 px-3 py-2 text-right">
-                                                {{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
-                                            </td>
-                                            <td class="border border-gray-300 px-3 py-2 text-right">
-                                                {{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
                         @endforeach
+
+                        <!-- Tabel Jasa Detail (hanya sekali di bawah semua section) -->
+                        <div class="mb-8 break-inside-avoid">
+                            <h3 class="font-bold text-lg mb-3">
+                                {{ convertToRoman($sectionNumber + 1) }}. Biaya Quotation Jasa
+                            </h3>
+                            <table class="w-full border-collapse border border-gray-300 text-sm">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="border border-gray-300 px-3 py-2 text-center w-12">No</th>
+                                        <th class="border border-gray-300 px-3 py-2 text-center">Deskripsi</th>
+                                        <th class="border border-gray-300 px-3 py-2 text-center w-16">Qty</th>
+                                        <th class="border border-gray-300 px-3 py-2 text-center w-20">Satuan</th>
+                                        <th class="border border-gray-300 px-3 py-2 text-center w-32">Harga Satuan</th>
+                                        <th class="border border-gray-300 px-3 py-2 text-right w-32">Harga Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="border border-gray-300 px-3 py-2 text-center">1</td>
+                                        <td class="border border-gray-300 px-3 py-2">{{ $jasa->ringkasan ?? '' }}</td>
+                                        <td class="border border-gray-300 px-3 py-2 text-center">1</td>
+                                        <td class="border border-gray-300 px-3 py-2 text-center">Lot</td>
+                                        <td class="border border-gray-300 px-3 py-2 text-right">
+                                            {{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
+                                        <td class="border border-gray-300 px-3 py-2 text-right">
+                                            {{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="5" class="text-center font-bold bg-gray-50">Subtotal</td>
+                                        <td class="border border-gray-300 px-3 py-2 text-right font-bold">
+                                            {{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
 
                         <!-- Summary -->
                         <div class="mt-8 flex justify-end">
@@ -516,7 +528,8 @@
                                     <tr>
                                         <td class="py-2 font-semibold">Total</td>
                                         <td class="py-2 text-right">Rp
-                                            {{ number_format($penawaran->total ?? 0, 0, ',', '.') }}</td>
+                                            {{ number_format(($penawaran->total ?? 0) + ($jasa->grand_total ?? 0), 0, ',', '.') }}
+                                        </td>
                                     </tr>
 
                                     @if ($penawaran->is_best_price)
@@ -527,16 +540,25 @@
                                         </tr>
                                     @endif
 
+                                    @php
+                                        $baseAmount =
+                                            $penawaran->is_best_price && $penawaran->best_price > 0
+                                                ? $penawaran->best_price
+                                                : ($penawaran->total ?? 0) + ($jasa->grand_total ?? 0);
+                                        $ppnPersen = $penawaran->ppn_persen ?? 11;
+                                        $ppnNominal = ($baseAmount * $ppnPersen) / 100;
+                                        $grandTotal = $baseAmount + $ppnNominal;
+                                    @endphp
+
                                     <tr>
-                                        <td class="py-2 font-semibold">PPN
-                                            {{ number_format((float) ($penawaran->ppn_persen ?? 11), 0, ',', '.') }}%</td>
-                                        <td class="py-2 text-right">Rp
-                                            {{ number_format($penawaran->ppn_nominal ?? 0, 0, ',', '.') }}</td>
+                                        <td class="py-2 font-semibold">PPN {{ number_format($ppnPersen, 0, ',', '.') }}%
+                                        </td>
+                                        <td class="py-2 text-right">Rp {{ number_format($ppnNominal, 0, ',', '.') }}</td>
                                     </tr>
                                     <tr class="border-t-2 border-gray-400">
                                         <td class="py-2 font-bold text-lg">Grand Total</td>
                                         <td class="py-2 text-right font-bold text-lg">
-                                            Rp {{ number_format($penawaran->grand_total ?? 0, 0, ',', '.') }}
+                                            Rp {{ number_format($grandTotal, 0, ',', '.') }}
                                         </td>
                                     </tr>
                                 </table>
