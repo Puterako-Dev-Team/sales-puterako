@@ -20,7 +20,8 @@ class PenawaranDetail extends Model
         'harga_total',
         'hpp',
         'profit',
-        'is_mitra'
+        'is_mitra',
+        'added_cost',
     ];
 
     public function penawaran()

@@ -62,6 +62,7 @@ class PenawaranController extends Controller
                         'harga_total' => $d->harga_total,
                         'hpp' => $d->hpp,
                         'is_mitra' => $d->is_mitra,
+                        'added_cost' => $d->added_cost,
                     ];
                 })->toArray()
             ];
@@ -125,8 +126,8 @@ class PenawaranController extends Controller
                         'profit' => $profit,
                         'nama_section' => $namaSection,
                         'area' => $area,
-                        'is_mitra' => isset($row['is_mitra']) ? (int)$row['is_mitra'] : 0, // Tambahkan ini
-
+                        'is_mitra' => isset($row['is_mitra']) ? (int)$row['is_mitra'] : 0,
+                        'added_cost' => $row['added_cost'] ?? 0, 
                     ];
 
                     if (isset($existingDetails[$key])) {

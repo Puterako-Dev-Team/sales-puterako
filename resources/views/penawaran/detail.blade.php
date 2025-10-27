@@ -461,9 +461,11 @@
                                                             <td class="border border-gray-300 px-3 py-2">
                                                                 {{ $row['satuan'] }}</td>
                                                             <td class="border border-gray-300 px-3 py-2 text-right">
-                                                                {{ number_format($row['harga_satuan'], 0, ',', '.') }}</td>
+                                                                Rp {{ number_format($row['harga_satuan'], 0, ',', '.') }}
+                                                            </td>
                                                             <td class="border border-gray-300 px-3 py-2 text-right">
-                                                                {{ number_format($row['harga_total'], 0, ',', '.') }}</td>
+                                                                Rp {{ number_format($row['harga_total'], 0, ',', '.') }}
+                                                            </td>
                                                         </tr>
                                                     @endforeach
                                                 @endforeach
@@ -473,7 +475,7 @@
                                             <tr>
                                                 <td colspan="6" class="text-center font-bold bg-gray-50">Subtotal</td>
                                                 <td class="border border-gray-300 px-3 py-2 text-right font-bold">
-                                                    {{ number_format($subtotal, 0, ',', '.') }}
+                                                    Rp {{ number_format($subtotal, 0, ',', '.') }}
                                                 </td>
                                             </tr>
                                         </tfoot>
@@ -505,16 +507,16 @@
                                         <td class="border border-gray-300 px-3 py-2 text-center">1</td>
                                         <td class="border border-gray-300 px-3 py-2 text-center">Lot</td>
                                         <td class="border border-gray-300 px-3 py-2 text-right">
-                                            {{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
+                                            Rp {{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
                                         <td class="border border-gray-300 px-3 py-2 text-right">
-                                            {{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
+                                            Rp {{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
                                     <tr>
                                         <td colspan="5" class="text-center font-bold bg-gray-50">Subtotal</td>
                                         <td class="border border-gray-300 px-3 py-2 text-right font-bold">
-                                            {{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}
+                                            Rp {{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}
                                         </td>
                                     </tr>
                                 </tfoot>
@@ -1009,13 +1011,15 @@
                             {
                                 title: 'Unit',
                                 width: 100,
-                                type: 'numeric'
+                                type: 'numeric',
+                                
                             },
                             {
                                 title: 'Total',
                                 width: 120,
                                 type: 'numeric',
-                                readOnly: true
+                                readOnly: true,
+                               
                             },
                         ],
                         tableOverflow: true,
@@ -1270,6 +1274,13 @@
                 // =====================================================
 
                 function recalculateRow(spreadsheet, rowIndex, changedCol = null, newValue = null) {
+                    console.log('recalculateRow called', {
+                        rowIndex,
+                        changedCol,
+                        newValue,
+                        row: spreadsheet.getRowData(rowIndex)
+                    });
+
                     const profitRaw = parseNumber(document.getElementById('profitInput').value) || 0;
                     let profitDecimal = profitRaw;
                     if (profitRaw > 1) profitDecimal = profitRaw / 100;
@@ -1277,7 +1288,8 @@
                     const row = spreadsheet.getRowData(rowIndex);
                     let hpp = parseNumber(row[7]);
                     let qty = parseNumber(row[3]);
-                    let isMitra = row[8] ? true : false; // Kolom ke-8 (index 8) untuk Mitra
+                    let isMitra = row[8] ? true : false;
+                    let addedCost = parseNumber(row[9]) || 0;
 
                     let hargaSatuan = 0;
                     let total = 0;
@@ -1287,9 +1299,11 @@
                         total = 0;
                     } else if (profitDecimal > 0) {
                         hargaSatuan = Math.ceil((hpp / profitDecimal) / 1000) * 1000;
+                        hargaSatuan += addedCost;
                         total = qty * hargaSatuan;
                     } else {
                         hargaSatuan = Math.ceil(hpp / 1000) * 1000;
+                        hargaSatuan += addedCost;
                         total = qty * hargaSatuan;
                     }
 
@@ -1309,6 +1323,7 @@
                             const hpp = parseNumber(row[7]);
                             const qty = parseNumber(row[3]);
                             const isMitra = row[8] ? true : false;
+                            const addedCost = parseNumber(row[9]) || 0;
 
                             let hargaSatuan = 0;
                             let total = 0;
@@ -1318,9 +1333,11 @@
                                 total = 0;
                             } else if (profitDecimal > 0) {
                                 hargaSatuan = Math.ceil((hpp / profitDecimal) / 1000) * 1000;
+                                hargaSatuan += addedCost;
                                 total = qty * hargaSatuan;
                             } else {
                                 hargaSatuan = Math.ceil(hpp / 1000) * 1000;
+                                hargaSatuan += addedCost;
                                 total = qty * hargaSatuan;
                             }
 
@@ -1390,10 +1407,11 @@
                         row.harga_satuan || 0,
                         row.harga_total || 0,
                         row.hpp || 0,
-                        row.is_mitra ? true : false
+                        row.is_mitra ? true : false,
+                        row.added_cost || 0
                     ]) : [
-                        ['', '', '', 0, '', 0, 0, 0, false],
-                        ['', '', '', 0, '', 0, 0, 0, false],
+                        ['', '', '', 0, '', 0, 0, 0, false, 0],
+                        ['', '', '', 0, '', 0, 0, 0, false, 0],
                     ];
 
                     const sectionHTML = `
@@ -1458,24 +1476,34 @@
                                 title: 'Harga Satuan',
                                 width: 150,
                                 type: 'numeric',
-                                readOnly: true
+                                readOnly: true,
+    
                             },
                             {
                                 title: 'Harga Total',
                                 width: 150,
                                 type: 'numeric',
-                                readOnly: true
+                                readOnly: true,
+                                
                             },
                             {
                                 title: 'HPP',
                                 width: 100,
-                                type: 'numeric'
+                                type: 'numeric',
+                               
                             },
                             {
                                 title: 'Mitra',
                                 width: 80,
                                 type: 'checkbox'
-                            } // Tambah ini
+                            },
+                            {
+                                title: 'Added Cost',
+                                width: 120,
+                                type: 'numeric',
+                               
+                            }
+
                         ],
                         tableOverflow: true,
                         tableWidth: '100%',
@@ -1488,15 +1516,15 @@
                                 rowIndex,
                                 value,
                                 columnName: ['No', 'Tipe', 'Deskripsi', 'QTY', 'Satuan',
-                                    'Harga Satuan', 'Harga Total', 'HPP', 'Mitra'
+                                    'Harga Satuan', 'Harga Total', 'HPP', 'Mitra', 'Added Cost'
                                 ][colIndex]
                             });
 
-                            if (colIndex == 3 || colIndex == 7 || colIndex == 8) {
+                            if (colIndex == 3 || colIndex == 7 || colIndex == 8 || colIndex == 9) {
                                 console.log('✨ Triggering recalculateRow with new value:', value);
                                 recalculateRow(spreadsheet, rowIndex, colIndex, value);
                             } else {
-                                console.log('⏭️ Skip calculation (column not QTY/HPP/Mitra)');
+                                console.log('⏭️ Skip calculation (column not QTY/HPP/Mitra/Added Cost)');
                             }
                         }
                     });
@@ -1729,7 +1757,8 @@
                                 harga_satuan: parseNumber(row[5]),
                                 harga_total: parseNumber(row[6]),
                                 hpp: parseNumber(row[7]),
-                                is_mitra: row[8] ? 1 : 0
+                                is_mitra: row[8] ? 1 : 0,
+                                added_cost: parseNumber(row[9]) || 0
                             }))
                         };
                     });
