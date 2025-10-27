@@ -71,7 +71,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 10px;
-            margin-bottom: 0;
+            margin-bottom: 10px;
         }
 
         table th,
@@ -137,9 +137,23 @@
 
         /* Harga Total */
 
-        table tbody tr.subtotal td {
+        table tbody tr.area-header td {
+            background-color: #67BC4B;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+        }
+
+        table tfoot tr td {
             background-color: #f5f5f5;
             font-weight: bold;
+            text-align: center;
+        }
+
+        table tfoot tr td:last-child {
+            text-align: right;
         }
 
         .pre-wrap {
@@ -275,6 +289,10 @@
             thead {
                 display: table-header-group;
             }
+
+            tfoot {
+                display: table-footer-group;
+            }
         }
     </style>
 </head>
@@ -284,8 +302,6 @@
         <img src="{{ public_path('assets/banner.png') }}" alt="Kop Perusahaan">
     </div>
     <div class="container">
-        <!-- Header -->
-
         <!-- Info Penawaran -->
         <div class="info-section">
             <p><strong>Surabaya,
@@ -308,9 +324,6 @@
 
         <!-- Sections -->
         @php
-            // $groupedSections = collect($sections)->groupBy('nama_section');
-            $sectionNumber = 0;
-
             function convertToRoman($num)
             {
                 $map = [
@@ -337,12 +350,14 @@
                 }
                 return $result;
             }
+            
+            $sectionNumber = 1;
         @endphp
 
-        @php $sectionNumber = 1; @endphp
-        @php $sectionNumber = 1; @endphp
         @foreach ($groupedSections as $namaSection => $areas)
-            <h3>{{ convertToRoman($sectionNumber) }}. {{ $namaSection }}</h3>
+            <h3 style="font-weight: bold; font-size: 12px; margin-bottom: 6px; margin-top: 10px;">
+                {{ convertToRoman($sectionNumber) }}. {{ $namaSection }}
+            </h3>
             <table>
                 <thead>
                     <tr>
@@ -356,13 +371,17 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @php $subtotal = 0; @endphp
                     @foreach ($areas as $area => $rows)
-                        <tr>
-                            <td colspan="7"
-                                style="background:#67BC4B;font-weight:bold; color: white; text-align: center; padding: 8px; font-size: 12px;">
-                                {{ $area }}</td>
-                        </tr>
+                        @if ($area && $area !== '' && $area !== '-' && trim($area) !== '')
+                            <tr class="area-header">
+                                <td colspan="7">{{ $area }}</td>
+                            </tr>
+                        @endif
                         @foreach ($rows as $row)
+                            @php 
+                                $subtotal += $row->harga_total; 
+                            @endphp
                             <tr>
                                 <td>{{ $row->no }}</td>
                                 <td>{{ $row->tipe }}</td>
@@ -371,16 +390,14 @@
                                 <td>{{ $row->satuan }}</td>
                                 <td>
                                     @if (!empty($row->is_mitra))
-                                        <span style="color:#3498db;font-weight:bold; font-style: italic;">by
-                                            Mitra</span>
+                                        <span style="color:#3498db;font-weight:bold; font-style: italic;">by Mitra</span>
                                     @else
                                         {{ number_format($row->harga_satuan, 0, ',', '.') }}
                                     @endif
                                 </td>
                                 <td>
                                     @if (!empty($row->is_mitra))
-                                        <span style="color:#3498db;font-weight:bold; font-style: italic;">by
-                                            Mitra</span>
+                                        <span style="color:#3498db;font-weight:bold; font-style: italic;">by Mitra</span>
                                     @else
                                         {{ number_format($row->harga_total, 0, ',', '.') }}
                                     @endif
@@ -389,12 +406,20 @@
                         @endforeach
                     @endforeach
                 </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="6">Subtotal</td>
+                        <td>{{ number_format($subtotal, 0, ',', '.') }}</td>
+                    </tr>
+                </tfoot>
             </table>
             @php $sectionNumber++; @endphp
         @endforeach
 
-        <!-- Tabel Quotation Jasa, di luar loop section material -->
-        <h3>{{ convertToRoman($sectionNumber) }}. Biaya Quotation Jasa</h3>
+        <!-- Tabel Quotation Jasa -->
+        <h3 style="font-weight: bold; font-size: 12px; margin-bottom: 6px; margin-top: 10px;">
+            {{ convertToRoman($sectionNumber) }}. Biaya Quotation Jasa
+        </h3>
         <table>
             <thead>
                 <tr>
@@ -418,15 +443,30 @@
                     <td>{{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
                 </tr>
             </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="6">Subtotal</td>
+                    <td>{{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
+                </tr>
+            </tfoot>
         </table>
 
         <!-- Summary -->
+        @php
+            $baseAmount = $penawaran->is_best_price && $penawaran->best_price > 0
+                ? $penawaran->best_price
+                : ($penawaran->total ?? 0) + ($jasa->grand_total ?? 0);
+            $ppnPersen = $penawaran->ppn_persen ?? 11;
+            $ppnNominal = ($baseAmount * $ppnPersen) / 100;
+            $grandTotal = $baseAmount + $ppnNominal;
+        @endphp
+        
         <div class="summary clearfix">
             <div class="summary-inner">
                 <table class="summary-table">
                     <tr>
                         <td>Total</td>
-                        <td>Rp {{ number_format($penawaran->total ?? 0, 0, ',', '.') }}</td>
+                        <td>Rp {{ number_format(($penawaran->total ?? 0) + ($jasa->grand_total ?? 0), 0, ',', '.') }}</td>
                     </tr>
 
                     @if ($penawaran->is_best_price)
@@ -437,12 +477,12 @@
                     @endif
 
                     <tr>
-                        <td>PPN {{ number_format((float) ($penawaran->ppn_persen ?? 11), 0, ',', '.') }}%</td>
-                        <td>Rp {{ number_format($penawaran->ppn_nominal ?? 0, 0, ',', '.') }}</td>
+                        <td>PPN {{ number_format($ppnPersen, 0, ',', '.') }}%</td>
+                        <td>Rp {{ number_format($ppnNominal, 0, ',', '.') }}</td>
                     </tr>
                     <tr class="grand-total">
                         <td>Grand Total</td>
-                        <td><span>Rp {{ number_format($penawaran->grand_total ?? 0, 0, ',', '.') }}</span></td>
+                        <td><span>Rp {{ number_format($grandTotal, 0, ',', '.') }}</span></td>
                     </tr>
                 </table>
             </div>
@@ -460,7 +500,7 @@
                     @endforeach
                 </ol>
             @else
-                <p class="text-gray-500 text-sm">Belum ada catatan penawaran.</p>
+                <p style="color: #666; font-size: 10px;">Belum ada catatan penawaran.</p>
             @endif
         </div>
 
