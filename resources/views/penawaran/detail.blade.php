@@ -142,7 +142,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Best Price toggle + input -->
+                                {{-- <!-- Best Price toggle + input -->
                                 <div class="flex items-center gap-4 mt-3">
                                     <label class="flex items-center gap-2">
                                         <input type="checkbox" id="isBestPrice"
@@ -156,7 +156,7 @@
                                             value="{{ number_format($penawaran->best_price ?? 0, 2, ',', '.') }}">
                                         <span class="ml-2 text-sm text-gray-600">Rp</span>
                                     </div>
-                                </div>
+                                </div> --}}
 
                                 <!-- Total -->
                                 <div class="flex justify-between items-center text-lg font-semibold">
@@ -531,6 +531,34 @@
                                             {{ number_format(($penawaran->total ?? 0) + ($jasa->grand_total ?? 0), 0, ',', '.') }}
                                         </td>
                                     </tr>
+                                    <!-- Best Price toggle + input -->
+                                    <div class="flex items-center gap-4 mt-3">
+                                        <label class="flex items-center gap-2">
+                                            <input type="checkbox" id="isBestPrice"
+                                                {{ $penawaran->is_best_price ?? false ? 'checked' : '' }} />
+                                            <span class="text-sm font-medium">Best Price</span>
+                                        </label>
+
+                                        <form method="POST"
+                                            action="{{ route('penawaran.saveBestPrice', ['id' => $penawaran->id_penawaran]) }}"
+                                            class="flex items-center ml-4">
+                                            @csrf
+                                            <span class="ml-2 text-sm text-gray-600">Rp</span>
+                                            <input type="text" name="best_price" id="bestPriceInput"
+                                                class="border rounded px-3 py-2 bg-white w-40 text-right" placeholder="0"
+                                                value="{{ $penawaran->is_best_price ? $penawaran->best_price : 0 }}">
+                                            <button type="submit"
+                                                class="ml-4 bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 transition font-semibold shadow-md">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                    class="lucide lucide-circle-check-big-icon lucide-circle-check-big">
+                                                    <path d="M21.801 10A10 10 0 1 1 17 3.335" />
+                                                    <path d="m9 11 3 3L22 4" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
 
                                     @if ($penawaran->is_best_price)
                                         <tr>

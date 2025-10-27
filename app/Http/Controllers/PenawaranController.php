@@ -271,4 +271,17 @@ class PenawaranController extends Controller
 
         return redirect()->back()->with('success', 'Notes berhasil disimpan.');
     }
+
+    public function saveBestPrice(Request $request, $id)
+    {
+        $isBest = $request->has('is_best_price') ? 1 : 0;
+        $bestPrice = $isBest ? ($request->best_price ?? 0) : 0;
+
+        $penawaran = \App\Models\Penawaran::findOrFail($id);
+        $penawaran->best_price = $bestPrice;
+        $penawaran->is_best_price = $isBest;
+        $penawaran->save();
+
+        return redirect()->back()->with('success', 'Best Price berhasil disimpan.');
+    }
 }

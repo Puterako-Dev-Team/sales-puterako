@@ -21,6 +21,7 @@ Route::prefix('penawaran')->group(function () {
     Route::get('/preview', [PenawaranController::class, 'preview'])->name('penawaran.preview');
     Route::get('/export-pdf', [PenawaranController::class, 'exportPdf'])->name('penawaran.exportPdf');
     Route::post('/{id}/save-notes', [PenawaranController::class, 'saveNotes'])->name('penawaran.saveNotes');
+    Route::post('/{id}/save-best-price', [PenawaranController::class, 'saveBestPrice'])->name('penawaran.saveBestPrice');
 });
 
 Route::prefix('jasa')->group(function () {
