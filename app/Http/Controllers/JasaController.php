@@ -28,6 +28,18 @@ class JasaController extends Controller
         $profitPercent = floatval($data['profit'] ?? 0);
         $pphPercent = floatval($data['pph'] ?? 0);
         $ringkasan = $data['ringkasan'] ?? null;
+        $version = $data['version'] ?? 1;
+
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $penawaranId)->where('version', $version)->first();
+        if (!$versionRow) {
+            $versionRow = \App\Models\PenawaranVersion::create([
+                'penawaran_id' => $penawaranId,
+                'version' => 1,
+                'notes' => 'Penawaran Awal',
+                'status' => 'draft'
+            ]);
+        }
+        $version_id = $versionRow->id;
 
         if (!$penawaranId) {
             return response()->json(['error' => 'penawaran_id required'], 400);
@@ -102,6 +114,7 @@ class JasaController extends Controller
                     'bpjsk_value'    => $bpjskValue,
                     'grand_total'    => $grandTotalJasaFinal,
                     'ringkasan'      => $ringkasan,
+                    'version_id'     => $version_id,
                 ]);
                 Log::debug('Created Jasa header', ['id_jasa' => $jasa->id_jasa]);
             }
@@ -123,6 +136,7 @@ class JasaController extends Controller
                     $attrs = [
                         'id_penawaran'  => $penawaranId,
                         'id_jasa'       => $jasa->id_jasa,
+                        'version_id'    => $version_id,
                         'nama_section'  => $namaSection,
                         'no'            => $row['no'] ?? null,
                         'deskripsi'     => $row['deskripsi'] ?? null,

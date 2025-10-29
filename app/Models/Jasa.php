@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,7 @@ class Jasa extends Model
         'bpjsk_value',
         'grand_total',
         'ringkasan',
+        'version_id',
     ];
 
     public function penawaran()
@@ -27,5 +29,9 @@ class Jasa extends Model
     public function details()
     {
         return $this->hasMany(JasaDetail::class, 'id_jasa');
+    }
+    public function version()
+    {
+        return $this->belongsTo(PenawaranVersion::class, 'version_id');
     }
 }

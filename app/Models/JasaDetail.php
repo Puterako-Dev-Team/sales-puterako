@@ -21,6 +21,7 @@ class JasaDetail extends Model
         'profit',
         'pph',
         'pembulatan',
+        'version_id',
     ];
 
     public function penawaran()
@@ -30,5 +31,9 @@ class JasaDetail extends Model
     public function jasa()
     {
         return $this->belongsTo(Jasa::class, 'id_jasa');
+    }
+    public function version()
+    {
+        return $this->belongsTo(PenawaranVersion::class, 'version_id');
     }
 }

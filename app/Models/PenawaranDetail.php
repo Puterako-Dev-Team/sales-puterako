@@ -22,10 +22,16 @@ class PenawaranDetail extends Model
         'profit',
         'is_mitra',
         'added_cost',
+        'version_id',
     ];
 
     public function penawaran()
     {
         return $this->belongsTo(Penawaran::class, 'id_penawaran');
+    }
+
+    public function version()
+    {
+        return $this->belongsTo(PenawaranVersion::class, 'version_id');
     }
 }

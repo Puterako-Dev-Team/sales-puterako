@@ -40,6 +40,29 @@
         <span class="mx-2">/</span>
         <span class="font-semibold">Detail Penawaran</span>
     </div>
+    <?php
+    $versions = \App\Models\PenawaranVersion::where('penawaran_id', $penawaran->id_penawaran)->orderBy('version')->get();
+    $activeVersion = request('version') ?? ($versions->max('version') ?? 1); ?>
+
+    <div class="mb-4 flex items-center gap-2">
+        <label class="font-semibold">Lihat Versi:</label>
+        <form method="GET" action="{{ route('penawaran.show') }}">
+            <input type="hidden" name="id" value="{{ $penawaran->id_penawaran }}">
+            <select name="version" onchange="this.form.submit()" class="border rounded px-3 py-2">
+                @foreach ($versions as $v)
+                    <option value="{{ $v->version }}" {{ $v->version == $activeVersion ? 'selected' : '' }}>
+                        Rev {{ $v->version }} {{ $v->notes ? '- ' . $v->notes : '' }}
+                    </option>
+                @endforeach
+            </select>
+        </form>
+    </div>
+    <form method="POST" action="{{ route('penawaran.createRevision', ['id' => $penawaran->id_penawaran]) }}">
+        @csrf
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-semibold ml-2">
+            + Buat Revisi Baru
+        </button>
+    </form>
 
     <div class="container mx-auto p-8">
         <div class="bg-white shadow rounded-lg p-6 mb-6">
@@ -1262,7 +1285,8 @@
                                     .value) || 0,
                                 pph: parseNumber(document.getElementById('jasaPphInput').value) ||
                                     0,
-                                sections: allSectionsData
+                                sections: allSectionsData,
+                                version: {{ $activeVersion ? $activeVersion : 1 }}
                             })
                         })
                         .then(res => res.json())
@@ -1794,7 +1818,8 @@
                                     0,
                                 best_price: parseNumber(document.getElementById('bestPriceInput')
                                     .value) || 0,
-                                sections: allSectionsData
+                                sections: allSectionsData,
+                                version: {{ $activeVersion ? $activeVersion : 1 }}
                             })
                         })
                         .then(async res => {

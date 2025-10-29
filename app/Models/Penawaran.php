@@ -17,9 +17,9 @@ class Penawaran extends Model
         'tiket',
         'is_best_price',
         'best_price',
-        'total',           
-        'ppn_persen',      
-        'ppn_nominal',     
+        'total',
+        'ppn_persen',
+        'ppn_nominal',
         'grand_total',
         'note'
     ];
@@ -29,7 +29,12 @@ class Penawaran extends Model
         return $this->hasMany(PenawaranDetail::class, 'id_penawaran');
     }
     public function jasaDetails()
-{
-    return $this->hasMany(JasaDetail::class, 'id_penawaran');
-}
+    {
+        return $this->hasMany(JasaDetail::class, 'id_penawaran');
+    }
+
+    public function versions()
+    {
+        return $this->hasMany(PenawaranVersion::class, 'penawaran_id');
+    }
 }
