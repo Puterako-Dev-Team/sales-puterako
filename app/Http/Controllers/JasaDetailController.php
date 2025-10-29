@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -9,21 +10,31 @@ class JasaDetailController extends Controller
 {
     public function show(Request $request)
     {
-        $id = $request->query('id');
-        $penawaran = \App\Models\Penawaran::find($id);
+        $penawaranId = $request->query('id');
+        $version = $request->query('version', 1);
 
-        $details = $penawaran ? $penawaran->jasaDetails()->get() : collect();
-        $profit = $details->first()->profit ?? 0;
-        $pph = $details->first()->pph ?? 0;
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $penawaranId)
+            ->where('version', $version)->first();
 
-        $sections = $details->groupBy(function ($item) {
-            return $item->nama_section;
-        })->map(function ($items, $key) {
+        if (!$versionRow) {
+            return response()->json([
+                'sections' => [],
+                'profit' => 0,
+                'pph' => 0
+            ]);
+        }
+
+        $details = JasaDetail::where('version_id', $versionRow->id)->get();
+        $profit = $versionRow->jasa_profit_percent ?? 0;
+        $pph = $versionRow->jasa_pph_percent ?? 0;
+
+        $sections = $details->groupBy('nama_section')->map(function ($items, $key) {
             return [
                 'nama_section' => $key,
                 'pembulatan' => $items->first()->pembulatan ?? 0,
                 'data' => $items->map(function ($d) {
                     return [
+                        'id_jasa_detail' => $d->id_jasa_detail,
                         'no' => $d->no,
                         'deskripsi' => $d->deskripsi,
                         'vol' => $d->vol,
@@ -47,27 +58,34 @@ class JasaDetailController extends Controller
     {
         $data = $request->all();
         $penawaranId = $data['penawaran_id'] ?? null;
+        $version = $data['version'] ?? 1;
         $sections = $data['sections'] ?? [];
         $profit = $data['profit'] ?? 0;
         $pph = $data['pph'] ?? 0;
 
-        if (!$penawaranId) {
-            return response()->json(['error' => 'Penawaran ID tidak ditemukan'], 400);
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $penawaranId)
+            ->where('version', $version)->first();
+
+        if (!$versionRow) {
+            return response()->json(['error' => 'Version not found'], 400);
         }
+        $version_id = $versionRow->id;
 
-        $existingDetails = JasaDetail::where('id_penawaran', $penawaranId)->get()->keyBy(function ($item) {
-            return $item->no . '|' . $item->nama_section;
-        });
-
-        $newKeys = [];
+        $processedIds = [];
 
         foreach ($sections as $section) {
             $namaSection = $section['nama_section'] ?? null;
+            $pembulatan = $section['pembulatan'] ?? 0;
             foreach ($section['data'] as $row) {
-                $key = ($row['no'] ?? '') . '|' . $namaSection;
-                $newKeys[] = $key;
+                if (empty($row['deskripsi']) && empty($row['no'])) continue;
 
+                $idJasaDetail = $row['id_jasa_detail'] ?? null;
                 $values = [
+                    'id_penawaran' => $penawaranId,
+                    'version_id' => $version_id,
+                    'nama_section' => $namaSection,
+                    'pembulatan' => $pembulatan,
+                    'no' => $row['no'] ?? null,
                     'deskripsi' => $row['deskripsi'] ?? null,
                     'vol' => $row['vol'] ?? null,
                     'hari' => $row['hari'] ?? null,
@@ -76,22 +94,27 @@ class JasaDetailController extends Controller
                     'total' => $row['total'] ?? null,
                     'profit' => $profit,
                     'pph' => $pph,
-                    'nama_section' => $namaSection,
                 ];
 
-                if (isset($existingDetails[$key])) {
-                    $existingDetails[$key]->update($values);
+                if ($idJasaDetail) {
+                    $detail = JasaDetail::find($idJasaDetail);
+                    if ($detail) {
+                        $detail->update($values);
+                        $processedIds[] = $idJasaDetail;
+                    } else {
+                        $detail = JasaDetail::create($values);
+                        $processedIds[] = $detail->getKey();
+                    }
                 } else {
-                    JasaDetail::create(array_merge($values, [
-                        'id_penawaran' => $penawaranId,
-                        'no' => $row['no'] ?? null,
-                    ]));
+                    $detail = JasaDetail::create($values);
+                    $processedIds[] = $detail->getKey();
                 }
             }
         }
 
-        JasaDetail::where('id_penawaran', $penawaranId)
-            ->whereNotIn(DB::raw("CONCAT(no, '|', nama_section)"), $newKeys)
+        // Hapus JasaDetail yang tidak ada di payload untuk versi ini
+        JasaDetail::where('version_id', $version_id)
+            ->whereNotIn(JasaDetail::query()->getModel()->getKeyName(), $processedIds)
             ->delete();
 
         return response()->json(['success' => true]);
