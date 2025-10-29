@@ -12,6 +12,7 @@ class PenawaranVersion extends Model
         'version',
         'notes',
         'status',
+        
     ];
     public function details()
     {

@@ -160,7 +160,7 @@
                                     <div class="flex items-center gap-2">
                                         <input type="number" id="ppnInput"
                                             class="border rounded px-3 py-2 bg-white w-24 text-right" min="0"
-                                            step="0.01" value="{{ $penawaran->ppn_persen ?? 11 }}">
+                                            step="0.01" value="{{ $ppn_persen ?? 11 }}">
                                         <span class="text-sm text-gray-600">%</span>
                                     </div>
                                 </div>
@@ -567,25 +567,24 @@
                                     <tr>
                                         <td class="py-2 font-semibold">Total</td>
                                         <td class="py-2 text-right">Rp
-                                            {{ number_format(($penawaran->total ?? 0) + ($jasa->grand_total ?? 0), 0, ',', '.') }}
-                                        </td>
+                                            {{ number_format($grandTotal, 0, ',', '.') }} </td>
                                     </tr>
                                     <!-- Best Price toggle + input -->
                                     <div class="flex items-center gap-4 mt-3">
                                         <label class="flex items-center gap-2">
                                             <input type="checkbox" id="isBestPrice"
-                                                {{ $penawaran->is_best_price ?? false ? 'checked' : '' }} />
+                                                {{ $isBest ?? false ? 'checked' : '' }} />
                                             <span class="text-sm font-medium">Best Price</span>
                                         </label>
 
                                         <form method="POST"
-                                            action="{{ route('penawaran.saveBestPrice', ['id' => $penawaran->id_penawaran]) }}"
+                                            action="{{ route('penawaran.saveBestPrice', ['id' => $penawaran->id_penawaran, 'version' => $activeVersion]) }}"
                                             class="flex items-center ml-4">
                                             @csrf
                                             <span class="ml-2 text-sm text-gray-600">Rp</span>
                                             <input type="text" name="best_price" id="bestPriceInput"
                                                 class="border rounded px-3 py-2 bg-white w-40 text-right" placeholder="0"
-                                                value="{{ $penawaran->is_best_price ? $penawaran->best_price : 0 }}">
+                                                value="{{ $isBest ? $bestPrice : 0 }}">
                                             <button type="submit"
                                                 class="ml-4 bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 transition font-semibold shadow-md">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
@@ -599,24 +598,13 @@
                                         </form>
                                     </div>
 
-                                    @if ($penawaran->is_best_price)
+                                    @if ($isBest)
                                         <tr>
                                             <td class="py-2 font-semibold">Best Price</td>
-                                            <td class="py-2 text-right">Rp
-                                                {{ number_format($penawaran->best_price ?? 0, 0, ',', '.') }}</td>
+                                            <td class="py-2 text-right">Rp {{ number_format($bestPrice, 0, ',', '.') }}
+                                            </td>
                                         </tr>
                                     @endif
-
-                                    @php
-                                        $baseAmount =
-                                            $penawaran->is_best_price && $penawaran->best_price > 0
-                                                ? $penawaran->best_price
-                                                : ($penawaran->total ?? 0) + ($jasa->grand_total ?? 0);
-                                        $ppnPersen = $penawaran->ppn_persen ?? 11;
-                                        $ppnNominal = ($baseAmount * $ppnPersen) / 100;
-                                        $grandTotal = $baseAmount + $ppnNominal;
-                                    @endphp
-
                                     <tr>
                                         <td class="py-2 font-semibold">PPN {{ number_format($ppnPersen, 0, ',', '.') }}%
                                         </td>
@@ -625,7 +613,7 @@
                                     <tr class="border-t-2 border-gray-400">
                                         <td class="py-2 font-bold text-lg">Grand Total</td>
                                         <td class="py-2 text-right font-bold text-lg">
-                                            Rp {{ number_format($grandTotal, 0, ',', '.') }}
+                                            Rp {{ number_format($grandTotalWithPpn, 0, ',', '.') }}
                                         </td>
                                     </tr>
                                 </table>

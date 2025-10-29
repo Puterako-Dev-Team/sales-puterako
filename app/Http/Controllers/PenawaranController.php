@@ -40,21 +40,32 @@ class PenawaranController extends Controller
 
         $penawaran = \App\Models\Penawaran::find($id);
 
-        // Ambil versi aktif: dari parameter, atau versi terbesar
-        if ($version) {
-            $activeVersion = $version;
-        } else {
-            $activeVersion = \App\Models\PenawaranVersion::where('penawaran_id', $id)->max('version');
-        }
-
+        // Ambil versi aktif
+        $activeVersion = $version ?? \App\Models\PenawaranVersion::where('penawaran_id', $id)->max('version');
         $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)->where('version', $activeVersion)->first();
         $activeVersionId = $versionRow ? $versionRow->id : null;
+
         $details = PenawaranDetail::where('version_id', $activeVersionId)
-            ->orderBy('id_penawaran_detail', 'asc') 
+            ->orderBy('id_penawaran_detail', 'asc')
             ->get();
         $profit = $details->first()->profit ?? 0;
         $jasa = $versionRow ? $versionRow->jasa : null;
         $jasaDetails = $versionRow ? $versionRow->jasaDetails : collect();
+
+        $totalPenawaran = $details->sum('harga_total');
+        $grandTotalJasa = $jasa ? $jasa->grand_total : 0;
+
+        $grandTotal = $totalPenawaran + $grandTotalJasa;
+
+
+        // Ambil field dinamis dari versionRow
+        $ppnPersen = $versionRow->ppn_persen ?? 11;
+        $isBest = $versionRow->is_best_price ?? false;
+        $bestPrice = $versionRow->best_price ?? 0;
+        $baseAmount = ($isBest && $bestPrice > 0) ? $bestPrice : ($totalPenawaran + $grandTotalJasa);
+
+        $ppnNominal = ($baseAmount * $ppnPersen) / 100;
+        $grandTotalWithPpn = $baseAmount + $ppnNominal;
 
         $sections = $details->groupBy(function ($item) {
             return $item->area . '|' . $item->nama_section;
@@ -80,7 +91,23 @@ class PenawaranController extends Controller
             ];
         })->values()->toArray();
 
-        return view('penawaran.detail', compact('penawaran', 'sections', 'profit', 'jasaDetails', 'jasa', 'activeVersion', 'versionRow'));
+        return view('penawaran.detail', compact(
+            'penawaran',
+            'sections',
+            'profit',
+            'jasaDetails',
+            'jasa',
+            'activeVersion',
+            'versionRow',
+            'totalPenawaran',
+            'grandTotalJasa',
+            'grandTotal',
+            'ppnPersen',
+            'ppnNominal',
+            'grandTotalWithPpn',
+            'isBest',
+            'bestPrice'
+        ));
     }
 
     public function save(Request $request)
@@ -181,14 +208,13 @@ class PenawaranController extends Controller
             $ppnNominal = ($baseAmount * $ppnPersen) / 100;
             $grandTotal = $baseAmount + $ppnNominal;
 
-            \App\Models\Penawaran::where('id_penawaran', $penawaranId)->update([
-                'total' => $totalKeseluruhan,
-                'ppn_persen' => $ppnPersen,
-                'ppn_nominal' => $ppnNominal,
-                'grand_total' => $grandTotal,
-                'is_best_price' => $isBest,
-                'best_price' => $bestPrice
-            ]);
+            // Update ke penawaran_versions (bukan penawarans)
+            $versionRow->ppn_persen = $ppnPersen;
+            $versionRow->is_best_price = $isBest;
+            $versionRow->best_price = $bestPrice;
+            $versionRow->ppn_nominal = $ppnNominal;
+            $versionRow->grand_total = $grandTotal;
+            $versionRow->save();
 
             Log::debug('Penawaran saved', ['id_penawaran' => $penawaranId, 'total' => $totalKeseluruhan]);
 
@@ -208,14 +234,34 @@ class PenawaranController extends Controller
     public function preview(Request $request)
     {
         $id = $request->query('id');
+        $version = $request->query('version');
+
         $penawaran = \App\Models\Penawaran::find($id);
 
         if (!$penawaran) {
             return redirect()->route('penawaran.list')->with('error', 'Penawaran tidak ditemukan');
         }
 
-        $details = $penawaran->details()->get();
-        $jasaDetails = \App\Models\JasaDetail::where('id_penawaran', $penawaran->id_penawaran)->get();
+        // Ambil versi aktif
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)->where('version', $version)->first();
+        $activeVersionId = $versionRow ? $versionRow->id : null;
+
+        // Ambil detail dan jasa sesuai versi aktif
+        $details = PenawaranDetail::where('version_id', $activeVersionId)->get();
+        $totalPenawaran = $details->sum('harga_total');
+
+        $jasa = $versionRow ? $versionRow->jasa : null;
+        $grandTotalJasa = $jasa ? $jasa->grand_total : 0;
+
+        // Hitung grand total dinamis
+        $grandTotal = $totalPenawaran + $grandTotalJasa;
+        $ppnPersen = $versionRow->ppn_persen ?? 11;
+        $isBest = $versionRow->is_best_price ?? false;
+        $bestPrice = $versionRow->best_price ?? 0;
+        $baseAmount = ($isBest && $bestPrice > 0) ? $bestPrice : ($totalPenawaran + $grandTotalJasa);
+
+        $ppnNominal = ($baseAmount * $ppnPersen) / 100;
+        $grandTotalWithPpn = $baseAmount + $ppnNominal;
 
         $sections = $details->groupBy(function ($item) {
             return $item->area . '|' . $item->nama_section;
@@ -240,14 +286,26 @@ class PenawaranController extends Controller
             ];
         })->values()->toArray();
 
-        return view('penawaran.preview', compact('penawaran', 'sections', 'jasaDetails'));
+        $jasaDetails = $versionRow ? $versionRow->jasaDetails : collect();
+
+        return view('penawaran.preview', compact(
+            'penawaran',
+            'sections',
+            'jasaDetails',
+            'jasa',
+            'totalPenawaran',
+            'grandTotalJasa',
+            'grandTotal'
+        ));
     }
 
     public function exportPdf(Request $request)
     {
         $id = $request->query('id');
         $penawaran = \App\Models\Penawaran::find($id);
-        $details = $penawaran ? $penawaran->details()->get() : collect();
+        $version = $request->query('version');
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)->where('version', $version)->first();
+        $details = PenawaranDetail::where('version_id', $versionRow->id)->get();
 
 
         // Grouping section, sama seperti preview
