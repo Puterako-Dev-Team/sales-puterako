@@ -44,9 +44,9 @@
     $versions = \App\Models\PenawaranVersion::where('penawaran_id', $penawaran->id_penawaran)->orderBy('version')->get();
     $activeVersion = request('version') ?? ($versions->max('version') ?? 1); ?>
 
-    <div class="mb-4 flex items-center gap-2">
-        <label class="font-semibold">Lihat Versi:</label>
-        <form method="GET" action="{{ route('penawaran.show') }}">
+    <div class="flex items-center justify-end gap-4 mx-auto p-8 container">
+        <form method="GET" action="{{ route('penawaran.show') }}" class="flex items-center gap-2">
+            <label class="font-semibold">Lihat Versi:</label>
             <input type="hidden" name="id" value="{{ $penawaran->id_penawaran }}">
             <select name="version" onchange="this.form.submit()" class="border rounded px-3 py-2">
                 @foreach ($versions as $v)
@@ -56,15 +56,15 @@
                 @endforeach
             </select>
         </form>
+        <form method="POST" action="{{ route('penawaran.createRevision', ['id' => $penawaran->id_penawaran]) }}">
+            @csrf
+            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-blue-700 font-semibold">
+                + Buat Revisi Baru
+            </button>
+        </form>
     </div>
-    <form method="POST" action="{{ route('penawaran.createRevision', ['id' => $penawaran->id_penawaran]) }}">
-        @csrf
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-semibold ml-2">
-            + Buat Revisi Baru
-        </button>
-    </form>
 
-    <div class="container mx-auto p-8">
+    <div class="container mx-auto p-8 -mt-12">
         <div class="bg-white shadow rounded-lg p-6 mb-6">
             <h2 class="text-xl font-bold mb-4">Detail Penawaran</h2>
             <div class="grid grid-cols-2 gap-4 text-sm">
@@ -182,27 +182,27 @@
                                 </div> --}}
 
                                 <!-- Total -->
-                                <div class="flex justify-between items-center text-lg font-semibold">
+                                <div class="flex justify-between items-center text-md font-semibold">
                                     <span>Total:</span>
                                     <span>Rp <span id="totalKeseluruhan">0</span></span>
                                 </div>
 
                                 <!-- Best Price display (hidden by default; JS toggles) -->
                                 <div id="bestPriceDisplayRow"
-                                    class="flex justify-between items-center text-lg font-semibold" style="display:none;">
+                                    class="flex justify-between items-center text-md font-semibold" style="display:none;">
                                     <span>Best Price:</span>
                                     <span>Rp <span id="bestPriceDisplay">0</span></span>
                                 </div>
 
                                 <!-- PPN Nominal -->
-                                <div class="flex justify-between items-center text-lg font-semibold">
+                                <div class="flex justify-between items-center text-md font-semibold">
                                     <span>PPN (<span id="ppnPersenDisplay">11</span>%):</span>
                                     <span>Rp <span id="ppnNominal">0</span></span>
                                 </div>
 
                                 <!-- Grand Total -->
                                 <div
-                                    class="flex justify-between items-center text-xl font-bold pt-3 border-t-2 border-gray-400">
+                                    class="flex justify-between items-center text-md font-bold pt-3 border-t-2 border-gray-400">
                                     <span>Grand Total:</span>
                                     <span>Rp <span id="grandTotal">0</span></span>
                                 </div>
@@ -277,23 +277,30 @@
                                 <div>Rp <span id="jasaOverallPph">0</span></div>
                             </div> --}}
 
-                            <div class="flex justify-between ">
-                                <div class="text-gray-700 font-bold">Total Jasa Awal</div>
-                                <div class="font-bold text-green-600">Rp <span id="jasaOverallGrand">0</span></div>
-                            </div>
-                            <!-- Tambahkan di bawah sini -->
-                            <div class="flex justify-between mt-2">
-                                <div class="text-gray-700 font-semibold">BPJS Konstruksi
-                                    {{ number_format($versionRow->jasa_bpjsk_percent ?? 0, 2, ',', '.') }}
-                                    <div class="font-semibold text-blue-700">Rp
-                                        {{ number_format($versionRow->jasa_bpjsk_value ?? 0, 0, ',', '.') }}
+                            <div class="w-full lg:w-72 mb-4">
+                                <div class="bg-white text-sm">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div class="font-bold text-md">Total Jasa Awal</div>
+                                        <div class="font-bold text-green-600 text-md">Rp <span
+                                                id="jasaOverallGrand">0</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="flex justify-between mt-2">
-                                    <div class="text-gray-700 font-semibold">Total Jasa Setelah BPJS</div>
-                                    <div class="font-bold text-green-600">Rp <span>
-                                            {{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</div>
-                                    </span>
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div>
+                                            <span class="font-semibold text-md">BPJS Konstruksi</span>
+                                            <span class="ml-1 text-md">(
+                                                {{ number_format($versionRow->jasa_bpjsk_percent ?? 0, 2, ',', '.') }} %
+                                                )</span>
+                                        </div>
+                                        <div class="font-semibold text-blue-700 text-md">Rp
+                                            {{ number_format($versionRow->jasa_bpjsk_value ?? 0, 0, ',', '.') }}</div>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="font-bold text-md">Total Jasa Setelah BPJS</div>
+                                        <div class="font-bold text-green-600 text-md">Rp
+                                            <span>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -590,20 +597,29 @@
                                     <tr>
                                         <td class="py-2 font-semibold">Total</td>
                                         <td class="py-2 text-right">Rp
-                                            {{ number_format($grandTotal, 0, ',', '.') }} </td>
+                                            {{ number_format(
+                                                isset($versionRow->jasa_grand_total) && $versionRow->jasa_grand_total > 0
+                                                    ? $grandTotal + $versionRow->jasa_grand_total
+                                                    : $grandTotal,
+                                                0,
+                                                ',',
+                                                '.',
+                                            ) }}
+                                        </td>
                                     </tr>
                                     <!-- Best Price toggle + input -->
                                     <div class="flex items-center gap-4 mt-3">
-                                        <label class="flex items-center gap-2">
-                                            <input type="checkbox" id="isBestPrice"
-                                                {{ $isBest ?? false ? 'checked' : '' }} />
-                                            <span class="text-sm font-medium">Best Price</span>
-                                        </label>
 
                                         <form method="POST"
                                             action="{{ route('penawaran.saveBestPrice', ['id' => $penawaran->id_penawaran, 'version' => $activeVersion]) }}"
                                             class="flex items-center ml-4">
                                             @csrf
+                                            <input type="hidden" name="version" value="{{ $activeVersion }}">
+                                            <label class="flex items-center gap-2">
+                                                <input type="checkbox" name="is_best_price" id="isBestPrice"
+                                                    value="1" {{ $isBest ?? false ? 'checked' : '' }} />
+                                                <span class="text-sm font-medium">Best Price</span>
+                                            </label>
                                             <span class="ml-2 text-sm text-gray-600">Rp</span>
                                             <input type="text" name="best_price" id="bestPriceInput"
                                                 class="border rounded px-3 py-2 bg-white w-40 text-right" placeholder="0"
@@ -633,13 +649,33 @@
                                         <td class="py-2 font-semibold">PPN
                                             {{ number_format($ppnPersen, 0, ',', '.') }}%
                                         </td>
-                                        <td class="py-2 text-right">Rp {{ number_format($ppnNominal, 0, ',', '.') }}
+                                        <td class="py-2 text-right">Rp
+                                            {{ number_format(
+                                                $isBest && $bestPrice > 0
+                                                    ? $bestPrice * ($ppnPersen / 100)
+                                                    : (isset($versionRow->jasa_grand_total) && $versionRow->jasa_grand_total > 0
+                                                        ? ($grandTotal + $versionRow->jasa_grand_total) * ($ppnPersen / 100)
+                                                        : $grandTotal * ($ppnPersen / 100)),
+                                                0,
+                                                ',',
+                                                '.',
+                                            ) }}
                                         </td>
                                     </tr>
                                     <tr class="border-t-2 border-gray-400">
                                         <td class="py-2 font-bold text-lg">Grand Total</td>
                                         <td class="py-2 text-right font-bold text-lg">
-                                            Rp {{ number_format($grandTotalWithPpn, 0, ',', '.') }}
+                                            Rp
+                                            {{ number_format(
+                                                $isBest && $bestPrice > 0
+                                                    ? $bestPrice * (1 + $ppnPersen / 100)
+                                                    : (isset($versionRow->jasa_grand_total) && $versionRow->jasa_grand_total > 0
+                                                        ? ($grandTotal + $versionRow->jasa_grand_total) * (1 + $ppnPersen / 100)
+                                                        : $grandTotal * (1 + $ppnPersen / 100)),
+                                                0,
+                                                ',',
+                                                '.',
+                                            ) }}
                                         </td>
                                     </tr>
                                 </table>
@@ -650,11 +686,12 @@
                         <form method="POST"
                             action="{{ route('jasa.saveRingkasan', ['id_penawaran' => $penawaran->id_penawaran]) }}">
                             @csrf
+                            <input type="hidden" name="version" value="{{ $activeVersion }}">
                             <label for="ringkasan" class="font-bold mb-2 block">Ringkasan Jasa:</label>
-                            <textarea class="border rounded w-full p-3 text-sm mb-2" name="ringkasan" id="ringkasan"
+                            <textarea rows="7" class="border rounded w-full p-3 text-sm mb-2" name="ringkasan" id="ringkasan"
                                 placeholder="Masukkan Ringkasan Jasa">{{ old('ringkasan', $versionRow->jasa_ringkasan ?? '') }}</textarea>
                             <button type="submit"
-                                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition font-semibold shadow-md">
+                                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition font-semibold shadow-md">
                                 Simpan Ringkasan Jasa
                             </button>
                         </form>
@@ -989,7 +1026,7 @@
             </div>
             <div class="flex items-center ml-4">
                 <label class="block text-sm font-semibold mr-2">Pembulatan:</label>
-                <input type="number" class="pembulatan-input border rounded px-3 py-1 w-24" 
+                <input type="number" class="pembulatan-input border rounded px-3 py-1 w-48" 
                     min="0" step="1" value="${sectionData && typeof sectionData.pembulatan !== 'undefined' ? sectionData.pembulatan : 0}">
             </div>
             <div class="flex gap-2">

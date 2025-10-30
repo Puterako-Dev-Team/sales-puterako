@@ -358,15 +358,23 @@ class PenawaranController extends Controller
 
     public function saveBestPrice(Request $request, $id)
     {
+        $version = $request->input('version', 1);
         $isBest = $request->has('is_best_price') ? 1 : 0;
-        $bestPrice = $isBest ? ($request->best_price ?? 0) : 0;
+        $bestPrice = $request->input('best_price', 0);
 
-        $penawaran = \App\Models\Penawaran::findOrFail($id);
-        $penawaran->best_price = $bestPrice;
-        $penawaran->is_best_price = $isBest;
-        $penawaran->save();
+        // Cari versi aktif
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)
+            ->where('version', $version)
+            ->first();
 
-        return redirect()->back()->with('success', 'Best Price berhasil disimpan.');
+        if ($versionRow) {
+            $versionRow->is_best_price = $isBest;
+            $versionRow->best_price = $bestPrice;
+            $versionRow->save();
+            return redirect()->back()->with('success', 'Best Price berhasil disimpan ke versi penawaran.');
+        }
+
+        return redirect()->back()->with('error', 'Data versi penawaran tidak ditemukan.');
     }
 
     public function createRevision($id)

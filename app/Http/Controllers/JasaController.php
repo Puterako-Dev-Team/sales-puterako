@@ -175,12 +175,19 @@ class JasaController extends Controller
         $request->validate([
             'ringkasan' => 'nullable|string'
         ]);
-        $jasa = \App\Models\Jasa::where('id_penawaran', $id_penawaran)->first();
-        if ($jasa) {
-            $jasa->ringkasan = $request->ringkasan;
-            $jasa->save();
-            return back()->with('success', 'Ringkasan jasa berhasil disimpan.');
+
+        // Cari versi aktif dari request (atau default ke versi 1)
+        $version = $request->input('version', 1);
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id_penawaran)
+            ->where('version', $version)
+            ->first();
+
+        if ($versionRow) {
+            $versionRow->jasa_ringkasan = $request->ringkasan;
+            $versionRow->save();
+            return back()->with('success', 'Ringkasan jasa berhasil disimpan ke versi penawaran.');
         }
-        return back()->with('error', 'Data jasa tidak ditemukan.');
+
+        return back()->with('error', 'Data versi penawaran tidak ditemukan.');
     }
 }
