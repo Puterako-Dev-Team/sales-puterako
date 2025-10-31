@@ -395,12 +395,20 @@ class PenawaranController extends Controller
         // Copy versi sebelumnya
         $oldVersion = \App\Models\PenawaranVersion::where('penawaran_id', $id)->where('version', $lastVersion)->first();
 
-        // Buat versi baru
+        // Buat versi baru, COPY semua field jasa dari versi lama
         $newVersionRow = \App\Models\PenawaranVersion::create([
-            'penawaran_id' => $id,
-            'version' => $newVersion,
-            'notes' => 'Revisi baru',
-            'status' => 'draft'
+            'penawaran_id'        => $id,
+            'version'             => $newVersion,
+            'notes'               => 'Revisi baru',
+            'status'              => 'draft',
+            'jasa_ringkasan'      => $oldVersion->jasa_ringkasan ?? null,
+            'jasa_profit_percent' => $oldVersion->jasa_profit_percent ?? 0,
+            'jasa_profit_value'   => $oldVersion->jasa_profit_value ?? 0,
+            'jasa_pph_percent'    => $oldVersion->jasa_pph_percent ?? 0,
+            'jasa_pph_value'      => $oldVersion->jasa_pph_value ?? 0,
+            'jasa_bpjsk_percent'  => $oldVersion->jasa_bpjsk_percent ?? 0,
+            'jasa_bpjsk_value'    => $oldVersion->jasa_bpjsk_value ?? 0,
+            'jasa_grand_total'    => $oldVersion->jasa_grand_total ?? 0,
         ]);
 
         // Copy penawaran_detail
@@ -440,7 +448,7 @@ class PenawaranController extends Controller
                 'grand_total'    => $oldJasa->grand_total,
             ]);
 
-            // Pastikan copy JasaDetail dengan query langsung agar tidak tergantung relasi
+            // Copy JasaDetail dengan query langsung
             $oldJasaDetails = \App\Models\JasaDetail::where('version_id', $oldVersion->id)->get();
             foreach ($oldJasaDetails as $jasaDetail) {
                 \App\Models\JasaDetail::create([
