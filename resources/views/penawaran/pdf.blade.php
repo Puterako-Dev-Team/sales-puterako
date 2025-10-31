@@ -11,11 +11,34 @@
             box-sizing: border-box;
         }
 
+        .pdf-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            text-align: center;
+            z-index: 10;
+            width: 100%; 
+        }
+
+        .pdf-header img {
+            width: 100%; 
+            max-width: 100%;
+            max-height: 100px;
+            object-fit: cover;
+            display: block;
+            margin: 0 auto;
+            padding: 0;
+        }
+
         body {
             font-family: Arial, sans-serif;
             font-size: 11px;
             line-height: 1.4;
             color: #000;
+            margin-top: 120px;
+            margin-bottom: 50px;
         }
 
         .container {
@@ -265,7 +288,10 @@
 
         /* Page Break */
         @page {
-            margin: 1cm;
+            margin-top: 120px;
+            margin-bottom: 1cm;
+            margin-left: 0;
+            margin-right: 0;
         }
 
         @media print {
@@ -298,8 +324,8 @@
 </head>
 
 <body>
-    <div class="header">
-        <img src="{{ public_path('assets/banner.png') }}" alt="Kop Perusahaan">
+    <div class="pdf-header">
+        <img src="{{ public_path('assets/banner.png') }}" alt="Kop Perusahaan" style="max-height:100px;">
     </div>
     <div class="container">
         <!-- Info Penawaran -->
