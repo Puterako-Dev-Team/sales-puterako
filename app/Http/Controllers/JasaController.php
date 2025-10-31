@@ -87,7 +87,7 @@ class JasaController extends Controller
 
             // Simpan ke tabel jasa (per versi)
             $jasa = Jasa::updateOrCreate(
-                ['id_penawaran' => $penawaranId],
+                ['id_penawaran' => $penawaranId, 'version_id' => $version_id],
                 [
                     'profit_percent' => $profitPercent,
                     'profit_value'   => $profitValueToStore,
@@ -97,6 +97,7 @@ class JasaController extends Controller
                     'bpjsk_value'    => $bpjskValue,
                     'grand_total'    => $grandTotalJasaFinal,
                     'ringkasan'      => $ringkasan,
+                    'version_id'     => $version_id
                 ]
             );
 

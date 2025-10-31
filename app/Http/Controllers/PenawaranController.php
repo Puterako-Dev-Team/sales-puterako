@@ -439,7 +439,10 @@ class PenawaranController extends Controller
                 'bpjsk_value'    => $oldJasa->bpjsk_value,
                 'grand_total'    => $oldJasa->grand_total,
             ]);
-            foreach ($oldJasa->details as $jasaDetail) {
+
+            // Pastikan copy JasaDetail dengan query langsung agar tidak tergantung relasi
+            $oldJasaDetails = \App\Models\JasaDetail::where('version_id', $oldVersion->id)->get();
+            foreach ($oldJasaDetails as $jasaDetail) {
                 \App\Models\JasaDetail::create([
                     'version_id'    => $newVersionRow->id,
                     'id_jasa'       => $newJasa->id_jasa,
@@ -457,8 +460,6 @@ class PenawaranController extends Controller
                 ]);
             }
         }
-
-
 
         return redirect()->route('penawaran.show', ['id' => $id, 'version' => $newVersion]);
     }
