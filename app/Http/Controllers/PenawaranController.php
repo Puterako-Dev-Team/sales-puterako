@@ -305,8 +305,13 @@ class PenawaranController extends Controller
         $penawaran = \App\Models\Penawaran::find($id);
         $version = $request->query('version');
         $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)->where('version', $version)->first();
-        $details = PenawaranDetail::where('version_id', $versionRow->id)->get();
 
+        // Tambahkan pengecekan jika versionRow null
+        if (!$versionRow) {
+            return redirect()->route('penawaran.list')->with('error', 'Versi penawaran tidak ditemukan');
+        }
+
+        $details = PenawaranDetail::where('version_id', $versionRow->id)->get();
 
         // Grouping section, sama seperti preview
         $sections = $details->groupBy(function ($item) {
@@ -336,9 +341,11 @@ class PenawaranController extends Controller
             $groupedSections[$section][$area][] = $row;
         }
 
-        $jasa = \App\Models\Jasa::where('id_penawaran', $penawaran->id_penawaran)->first();
+        // Ambil jasa sesuai versi
+        $jasa = \App\Models\Jasa::where('version_id', $versionRow->id)->first();
 
-        $pdf = Pdf::loadView('penawaran.pdf', compact('penawaran', 'groupedSections', 'jasa'));
+        // Kirim versionRow dan details ke PDF agar template bisa akses data versi
+        $pdf = Pdf::loadView('penawaran.pdf', compact('penawaran', 'groupedSections', 'jasa', 'versionRow', 'details'));
         $safeNoPenawaran = str_replace(['/', '\\'], '-', $penawaran->no_penawaran);
         return $pdf->download('Penawaran-' . $safeNoPenawaran . '.pdf');
     }

@@ -390,7 +390,7 @@
 
                     <!-- Action Buttons -->
                     <div class="mb-4 text-right no-print">
-                        <a href="{{ route('penawaran.exportPdf', ['id' => $penawaran->id_penawaran]) }}" target="_blank"
+                        <a href="{{ route('penawaran.exportPdf', ['id' => $penawaran->id_penawaran, 'version' => $activeVersion]) }}" target="_blank"
                             class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition font-semibold shadow-md">
                             <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">

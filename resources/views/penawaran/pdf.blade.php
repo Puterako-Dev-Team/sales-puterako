@@ -322,6 +322,18 @@
                 perincian sebagai berikut:</p>
         </div>
 
+        @php
+            // Ambil data dari versionRow
+            $ppnPersen = $versionRow->ppn_persen ?? 11;
+            $isBest = $versionRow->is_best_price ?? false;
+            $bestPrice = $versionRow->best_price ?? 0;
+            $totalPenawaran = $details->sum('harga_total');
+            $grandTotalJasa = $jasa->grand_total ?? 0;
+            $baseAmount = $isBest && $bestPrice > 0 ? $bestPrice : $totalPenawaran + $grandTotalJasa;
+            $ppnNominal = ($baseAmount * $ppnPersen) / 100;
+            $grandTotal = $baseAmount + $ppnNominal;
+        @endphp
+
         <!-- Sections -->
         @php
             function convertToRoman($num)
@@ -350,7 +362,6 @@
                 }
                 return $result;
             }
-            
             $sectionNumber = 1;
         @endphp
 
@@ -379,8 +390,8 @@
                             </tr>
                         @endif
                         @foreach ($rows as $row)
-                            @php 
-                                $subtotal += $row->harga_total; 
+                            @php
+                                $subtotal += $row->harga_total;
                             @endphp
                             <tr>
                                 <td>{{ $row->no }}</td>
@@ -390,14 +401,16 @@
                                 <td>{{ $row->satuan }}</td>
                                 <td>
                                     @if (!empty($row->is_mitra))
-                                        <span style="color:#3498db;font-weight:bold; font-style: italic;">by Mitra</span>
+                                        <span style="color:#3498db;font-weight:bold; font-style: italic;">by
+                                            Mitra</span>
                                     @else
                                         {{ number_format($row->harga_satuan, 0, ',', '.') }}
                                     @endif
                                 </td>
                                 <td>
                                     @if (!empty($row->is_mitra))
-                                        <span style="color:#3498db;font-weight:bold; font-style: italic;">by Mitra</span>
+                                        <span style="color:#3498db;font-weight:bold; font-style: italic;">by
+                                            Mitra</span>
                                     @else
                                         {{ number_format($row->harga_total, 0, ',', '.') }}
                                     @endif
@@ -436,46 +449,35 @@
                 <tr>
                     <td>1</td>
                     <td>Jasa</td>
-                    <td>{{ $jasa->ringkasan ?? '-' }}</td>
+                    <td>{{ $versionRow->jasa_ringkasan ?? '' }}</td>
                     <td>1</td>
                     <td>Lot</td>
-                    <td>{{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
-                    <td>{{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
+                    <td>Rp {{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
+                    <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
                 </tr>
             </tbody>
             <tfoot>
                 <tr>
                     <td colspan="6">Subtotal</td>
-                    <td>{{ number_format($jasa->grand_total ?? 0, 0, ',', '.') }}</td>
+                    <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
                 </tr>
             </tfoot>
         </table>
 
         <!-- Summary -->
-        @php
-            $baseAmount = $penawaran->is_best_price && $penawaran->best_price > 0
-                ? $penawaran->best_price
-                : ($penawaran->total ?? 0) + ($jasa->grand_total ?? 0);
-            $ppnPersen = $penawaran->ppn_persen ?? 11;
-            $ppnNominal = ($baseAmount * $ppnPersen) / 100;
-            $grandTotal = $baseAmount + $ppnNominal;
-        @endphp
-        
         <div class="summary clearfix">
             <div class="summary-inner">
                 <table class="summary-table">
                     <tr>
                         <td>Total</td>
-                        <td>Rp {{ number_format(($penawaran->total ?? 0) + ($jasa->grand_total ?? 0), 0, ',', '.') }}</td>
+                        <td>Rp {{ number_format($totalPenawaran + $grandTotalJasa, 0, ',', '.') }}</td>
                     </tr>
-
-                    @if ($penawaran->is_best_price)
+                    @if ($isBest)
                         <tr>
                             <td>Best Price</td>
-                            <td>Rp {{ number_format($penawaran->best_price ?? 0, 0, ',', '.') }}</td>
+                            <td>Rp {{ number_format($bestPrice, 0, ',', '.') }}</td>
                         </tr>
                     @endif
-
                     <tr>
                         <td>PPN {{ number_format($ppnPersen, 0, ',', '.') }}%</td>
                         <td>Rp {{ number_format($ppnNominal, 0, ',', '.') }}</td>
