@@ -65,8 +65,10 @@ class JasaController extends Controller
                 return intval($section['pembulatan'] ?? 0);
             }, $sections));
 
-            $penawaran = \App\Models\Penawaran::find($penawaranId);
-            $totalPenawaran = $penawaran ? floatval($penawaran->total) : 0;
+            // $penawaran = \App\Models\Penawaran::find($penawaranId);
+            // $totalPenawaran = $penawaran ? floatval($penawaran->total) : 0;
+
+            $totalPenawaran = floatval($versionRow->penawaran_total_awal ?? 0);
 
             // Hitung BPJS Konstruksi
             $bpjskPercent = $this->getBpjskPercent($totalPenawaran);
@@ -75,6 +77,7 @@ class JasaController extends Controller
             $grandTotalJasaFinal = $grandTotalPembulatan + $bpjskValue;
 
             // Simpan summary jasa ke penawaran_versions
+            $versionRow->jasa_total_awal      = $totalAwal;
             $versionRow->jasa_profit_percent = $profitPercent;
             $versionRow->jasa_profit_value   = $profitValueToStore;
             $versionRow->jasa_pph_percent    = $pphPercent;

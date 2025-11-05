@@ -200,6 +200,9 @@ class PenawaranController extends Controller
                 ->whereNotIn(DB::raw("CONCAT(no, '|', IFNULL(area, ''), '|', IFNULL(nama_section, ''))"), $newKeys)
                 ->delete();
 
+            // Hitung total awal penawaran
+            $versionRow->penawaran_total_awal = $totalKeseluruhan;
+
 
             $isBest = !empty($data['is_best_price']) ? 1 : 0;
             $bestPrice = isset($data['best_price']) ? floatval($data['best_price']) : 0;
