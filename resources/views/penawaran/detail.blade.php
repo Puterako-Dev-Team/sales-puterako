@@ -22,7 +22,6 @@
 
         /* Style untuk disabled state */
         .spreadsheet-disabled {
-            pointer-events: none;
             opacity: 0.7;
         }
 
@@ -58,7 +57,7 @@
         </form>
         <form method="POST" action="{{ route('penawaran.createRevision', ['id' => $penawaran->id_penawaran]) }}">
             @csrf
-            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-blue-700 font-semibold">
+            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-semibold">
                 + Buat Revisi Baru
             </button>
         </form>

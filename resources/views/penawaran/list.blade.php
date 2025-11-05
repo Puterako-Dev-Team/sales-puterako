@@ -26,7 +26,7 @@
         <div class="bg-white shadow rounded-lg">
             <table class="min-w-full text-sm">
                 <thead>
-                    <tr class="bg-green-100 text-gray-800">
+                    <tr class="bg-green-500 text-white">
                         <th class="px-2 py-2 font-semibold text-center">ID</th>
                         <th class="px-2 py-2 font-semibold text-center">No Penawaran</th>
                         <th class="px-2 py-2 font-semibold text-center">Perihal</th>
@@ -64,7 +64,7 @@
                                         </button>
                                     @else
                                         <a href="{{ route('penawaran.show', ['id' => $p->id_penawaran]) }}"
-                                            class="bg-blue-500 text-white px-2 py-2 rounded hover:bg-blue-700 transition"
+                                            class="bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 transition"
                                             title="Lihat Detail">
                                             <x-lucide-file-text class="w-5 h-5 inline" />
                                         </a>
@@ -147,7 +147,7 @@
                 </div>
                 <div class="absolute bottom-0 left-0 w-full p-4 bg-white border-t">
                     <button type="submit"
-                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition w-full text-sm">
+                        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition w-full text-sm">
                         Simpan
                     </button>
                 </div>
