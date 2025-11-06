@@ -686,14 +686,19 @@
                                     <tr>
                                         <td class="py-2 font-semibold">Total</td>
                                         <td class="py-2 text-right">Rp
-                                            {{ number_format(
-                                                isset($versionRow->jasa_grand_total) && $versionRow->jasa_grand_total > 0
-                                                    ? $grandTotal + $versionRow->jasa_grand_total
-                                                    : $grandTotal,
-                                                0,
-                                                ',',
-                                                '.',
-                                            ) }}
+                                            @php
+                                                // Hitung total dari section penawaran
+                                                $totalPenawaran = 0;
+                                                foreach($sections as $section) {
+                                                    foreach($section['data'] as $row) {
+                                                        $totalPenawaran += $row['harga_total'];
+                                                    }
+                                                }
+                                                
+                                                // Total keseluruhan = total penawaran + jasa grand total
+                                                $totalKeseluruhan = $totalPenawaran + ($versionRow->jasa_grand_total ?? 0);
+                                            @endphp
+                                            {{ number_format($totalKeseluruhan, 0, ',', '.') }}
                                         </td>
                                     </tr>
                                     <!-- Best Price toggle + input -->
@@ -735,36 +740,22 @@
                                         </tr>
                                     @endif
                                     <tr>
-                                        <td class="py-2 font-semibold">PPN
-                                            {{ number_format($ppnPersen, 0, ',', '.') }}%
-                                        </td>
+                                        <td class="py-2 font-semibold">PPN {{ number_format($ppnPersen, 0, ',', '.') }}%</td>
                                         <td class="py-2 text-right">Rp
-                                            {{ number_format(
-                                                $isBest && $bestPrice > 0
-                                                    ? $bestPrice * ($ppnPersen / 100)
-                                                    : (isset($versionRow->jasa_grand_total) && $versionRow->jasa_grand_total > 0
-                                                        ? ($grandTotal + $versionRow->jasa_grand_total) * ($ppnPersen / 100)
-                                                        : $grandTotal * ($ppnPersen / 100)),
-                                                0,
-                                                ',',
-                                                '.',
-                                            ) }}
+                                            @php
+                                                $baseAmountForPPN = $isBest && $bestPrice > 0 ? $bestPrice : $totalKeseluruhan;
+                                                $ppnNominal = ($baseAmountForPPN * $ppnPersen) / 100;
+                                            @endphp
+                                            {{ number_format($ppnNominal, 0, ',', '.') }}
                                         </td>
                                     </tr>
                                     <tr class="border-t-2 border-gray-400">
                                         <td class="py-2 font-bold text-lg">Grand Total</td>
-                                        <td class="py-2 text-right font-bold text-lg">
-                                            Rp
-                                            {{ number_format(
-                                                $isBest && $bestPrice > 0
-                                                    ? $bestPrice * (1 + $ppnPersen / 100)
-                                                    : (isset($versionRow->jasa_grand_total) && $versionRow->jasa_grand_total > 0
-                                                        ? ($grandTotal + $versionRow->jasa_grand_total) * (1 + $ppnPersen / 100)
-                                                        : $grandTotal * (1 + $ppnPersen / 100)),
-                                                0,
-                                                ',',
-                                                '.',
-                                            ) }}
+                                        <td class="py-2 text-right font-bold text-lg">Rp
+                                            @php
+                                                $grandTotalFinal = $baseAmountForPPN + $ppnNominal;
+                                            @endphp
+                                            {{ number_format($grandTotalFinal, 0, ',', '.') }}
                                         </td>
                                     </tr>
                                 </table>

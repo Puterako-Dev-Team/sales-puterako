@@ -49,9 +49,8 @@ class JasaController extends Controller
             // Hitung total awal dari semua section/row
             $totalAwal = 0;
             foreach ($sections as $section) {
-                foreach ($section['data'] as $row) {
-                    $totalAwal += floatval($row['total'] ?? 0);
-                }
+                $pembulatan = intval($section['pembulatan'] ?? 0);
+                $totalAwal += $pembulatan; // ✅ gunakan pembulatan yang sudah dibulatkan
             }
 
             // Formula inverse profit & pph
