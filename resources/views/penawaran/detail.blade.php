@@ -76,15 +76,17 @@
 
         <!-- Pindahkan button status keluar dari form -->
         <div class="flex gap-2 -mt-4">
-            <button type="button" onclick="openStatusModal('success')"
-                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-semibold">
-                <x-lucide-badge-check class="w-6 h-6 inline-block mr-1" />
-                Tandai Selesai
+            <button type="button" onclick="openStatusModal('draft')"
+                class="bg-blue-500 text-white px-2 py-2 rounded hover:bg-blue-600 font-semibold">
+                <x-lucide-file-edit class="w-6 h-6 inline-block" />
             </button>
             <button type="button" onclick="openStatusModal('lost')"
-                class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 font-semibold">
-                <x-lucide-badge-x class="w-6 h-6 inline-block mr-1" />
-                Tandai Lost
+                class="bg-red-500 text-white px-2 py-2 rounded hover:bg-red-600 font-semibold">
+                <x-lucide-badge-x class="w-6 h-6 inline-block" />
+            </button>
+            <button type="button" onclick="openStatusModal('success')"
+                class="bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 font-semibold">
+                <x-lucide-badge-check class="w-6 h-6 inline-block" />
             </button>
         </div>
     </div>
@@ -781,9 +783,9 @@
                             <form method="POST" action="{{ route('penawaran.saveNotes', $penawaran->id_penawaran) }}">
                                 @csrf
                                 <input type="hidden" name="version" value="{{ $activeVersion }}">
-                                <textarea name="note" class="w-full border rounded px-3 py-2" 
-                                        placeholder="Masukkan catatan untuk versi ini...">{{ $versionRow->notes ?? '' }}</textarea>
-                                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-2">
+                                <textarea rows="7" name="note" class="w-full border rounded px-3 py-2" 
+                                        placeholder="Masukkan catatan untuk versi {{ $activeVersion }} ini...">{{ old('note', $versionRow->notes ?? '') }}</textarea>
+                                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mt-2">
                                     Simpan Notes
                                 </button>
                             </form>
@@ -843,7 +845,12 @@
                     statusInput.value = status;
                     noteInput.value = '';
 
-                    if (status === 'success') {
+                    if (status === 'draft') {
+                        modalTitle.textContent = 'Tandai Penawaran Draft';
+                        submitBtn.textContent = 'Tandai Draft';
+                        submitBtn.className = 'px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600';
+                        noteInput.placeholder = 'Masukkan catatan untuk draft...';
+                    } else if (status === 'success') {
                         modalTitle.textContent = 'Tandai Penawaran Selesai';
                         submitBtn.textContent = 'Tandai Selesai';
                         submitBtn.className = 'px-4 py-2 text-white bg-green-500 rounded hover:bg-green-600';

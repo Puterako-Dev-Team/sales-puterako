@@ -414,6 +414,7 @@ class PenawaranController extends Controller
         $newVersionRow = \App\Models\PenawaranVersion::create([
             'penawaran_id'        => $id,
             'version'             => $newVersion,
+            'notes'               => $oldVersion->notes ?? null,
             'status'              => 'draft',
             'jasa_ringkasan'      => $oldVersion->jasa_ringkasan ?? null,
             'jasa_profit_percent' => $oldVersion->jasa_profit_percent ?? 0,
@@ -489,7 +490,7 @@ class PenawaranController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:success,lost',
+            'status' => 'required|in:draft,success,lost',
             'note' => 'nullable|string|max:1000'
         ]);
 
