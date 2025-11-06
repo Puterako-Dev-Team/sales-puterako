@@ -474,4 +474,23 @@ class PenawaranController extends Controller
 
         return redirect()->route('penawaran.show', ['id' => $id, 'version' => $newVersion]);
     }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:success,lost',
+            'note' => 'nullable|string|max:1000'
+        ]);
+
+        $penawaran = \App\Models\Penawaran::findOrFail($id);
+        $penawaran->status = $request->status;
+
+        if ($request->note) {
+            $penawaran->note = $request->note;
+        }
+
+        $penawaran->save();
+
+        return redirect()->back()->with('success', 'Status penawaran berhasil diupdate');
+    }
 }

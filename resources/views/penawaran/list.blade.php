@@ -33,6 +33,7 @@
                         <th class="px-2 py-2 font-semibold text-center">Nama Perusahaan</th>
                         <th class="px-2 py-2 font-semibold text-center">PIC Perusahaan</th>
                         <th class="px-2 py-2 font-semibold text-center">PIC Admin</th>
+                        <th class="px-2 py-2 font-semibold text-center">Status</th>
                         <th class="px-2 py-2 font-semibold text-center">Aksi</th>
                     </tr>
                 </thead>
@@ -45,6 +46,25 @@
                             <td class="px-2 py-2">{{ $p->nama_perusahaan }}</td>
                             <td class="px-2 py-2">{{ $p->pic_perusahaan }}</td>
                             <td class="px-2 py-2">{{ $p->pic_admin }}</td>
+                            <td class="px-2 py-2">
+                                @if($p->status === 'draft')
+                                    <span class="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full">
+                                        Draft
+                                    </span>
+                                @elseif($p->status === 'lost')
+                                    <span class="inline-block px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded-full">
+                                        Lost
+                                    </span>
+                                @elseif($p->status === 'success')
+                                    <span class="inline-block px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
+                                        Success
+                                    </span>
+                                @else
+                                    <span class="inline-block px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-800 rounded-full">
+                                        {{ $p->status }}
+                                    </span>
+                                @endif
+                            </td>
                             <td class="px-2 py-2 text-center">
                                 <div class="flex gap-1 justify-center">
                                     @if ($p->tiket)

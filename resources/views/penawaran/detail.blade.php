@@ -1,5 +1,10 @@
 @extends('layouts.app')
-
+@if (session('success'))
+    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4 mx-auto container"
+        role="alert">
+        <span class="block sm:inline">{{ session('success') }}</span>
+    </div>
+@endif
 @section('content')
     <style>
         /* Custom styling untuk jspreadsheet */
@@ -32,7 +37,7 @@
     </style>
 
     <div class="flex items-center p-8 text-gray-600 -mb-8">
-        <a href="{{ route('penawaran.list') }}" class="flex items-center hover:text-blue-600">
+        <a href="{{ route('penawaran.list') }}" class="flex items-center hover:text-green-600">
             <x-lucide-arrow-left class="w-5 h-5 mr-2" />
             List Penawaran
         </a>
@@ -48,19 +53,78 @@
             <label class="font-semibold">Lihat Versi:</label>
             <input type="hidden" name="id" value="{{ $penawaran->id_penawaran }}">
             <select name="version" onchange="this.form.submit()" class="border rounded px-3 py-2">
-                @foreach ($versions as $v)
-                    <option value="{{ $v->version }}" {{ $v->version == $activeVersion ? 'selected' : '' }}>
-                        Rev {{ $v->version }} {{ $v->notes ? '- ' . $v->notes : '' }}
-                    </option>
-                @endforeach
+                @if($versions->isEmpty())
+                    <option value="">Belum ada versi</option>
+                @else
+                    @foreach ($versions as $v)
+                        <option value="{{ $v->version }}" {{ $v->version == $activeVersion ? 'selected' : '' }}>
+                            Rev {{ $v->version }} {{ $v->notes ? '- ' . $v->notes : '' }}
+                        </option>
+                    @endforeach
+                @endif
             </select>
         </form>
+
+        <!-- Form terpisah untuk button buat revisi -->
         <form method="POST" action="{{ route('penawaran.createRevision', ['id' => $penawaran->id_penawaran]) }}">
             @csrf
-            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-semibold">
-                + Buat Revisi Baru
+            <button type="submit" class="bg-[#02ADB8] text-white px-4 py-2 rounded hover:bg-green-600 font-semibold">
+                + Tambah Revisi
             </button>
         </form>
+
+
+        <!-- Pindahkan button status keluar dari form -->
+        <div class="flex gap-2 -mt-4">
+            <button type="button" onclick="openStatusModal('success')"
+                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-semibold">
+                <x-lucide-badge-check class="w-6 h-6 inline-block mr-1" />
+                Tandai Selesai
+            </button>
+            <button type="button" onclick="openStatusModal('lost')"
+                class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 font-semibold">
+                <x-lucide-badge-x class="w-6 h-6 inline-block mr-1" />
+                Tandai Lost
+            </button>
+        </div>
+    </div>
+    <!-- Modal untuk update status -->
+    <div id="statusModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-96 max-w-md mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-lg font-semibold">Update Status Penawaran</h3>
+                <button type="button" onclick="closeStatusModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="statusForm" method="POST" action="{{ route('penawaran.updateStatus', $penawaran->id_penawaran) }}">
+                @csrf
+                <input type="hidden" id="statusInput" name="status" value="">
+
+                <div class="mb-4">
+                    <label for="noteInput" class="block text-sm font-medium text-gray-700 mb-2">
+                        Catatan Status:
+                    </label>
+                    <textarea id="noteInput" name="note" rows="4"
+                        class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Masukkan catatan untuk perubahan status..."></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeStatusModal()"
+                        class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                        Batal
+                    </button>
+                    <button type="submit" id="submitBtn" class="px-4 py-2 text-white rounded hover:opacity-90">
+                        Update Status
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <div class="container mx-auto p-8 -mt-12">
@@ -70,6 +134,31 @@
                 <div>
                     <div class="font-semibold">No Penawaran</div>
                     <div>{{ $penawaran->no_penawaran }}</div>
+                </div>
+                <div>
+                    <div class="font-semibold">Status</div>
+                    <div class="py-2">
+                        @if ($penawaran->status === 'draft')
+                            <span
+                                class="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full">
+                                Draft
+                            </span>
+                        @elseif($penawaran->status === 'lost')
+                            <span class="inline-block px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded-full">
+                                Lost
+                            </span>
+                        @elseif($penawaran->status === 'success')
+                            <span
+                                class="inline-block px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
+                                Success
+                            </span>
+                        @else
+                            <span
+                                class="inline-block px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-800 rounded-full">
+                                {{ $penawaran->status }}
+                            </span>
+                        @endif
+                    </div>
                 </div>
                 <div>
                     <div class="font-semibold">Perihal</div>
@@ -90,7 +179,7 @@
             <div class="flex border-b mb-4">
                 <button
                     class="tab-btn px-4 py-2 font-semibold text-green-600 border-b-2 border-green-600 focus:outline-none"
-                    data-tab="penawaran">Penawaran & Jasa</button>
+                    data-tab="penawaran">Penawaran</button>
                 <button class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:text-green-600 focus:outline-none"
                     data-tab="Jasa">Rincian Jasa</button>
                 <button class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:text-green-600 focus:outline-none"
@@ -143,7 +232,7 @@
                         <!-- Button Tambah Section -->
                         <div class="mb-4 mt-6">
                             <button id="addSectionBtn"
-                                class="bg-[#02ADB8] text-white px-4 py-2 rounded hover:bg-blue-700 transition text-sm font-semibold shadow-md">
+                                class="bg-[#02ADB8] text-white px-4 py-2 rounded hover:shadow-lg transition text-sm font-semibold shadow-md">
                                 Tambah Section Baru
                             </button>
                         </div>
@@ -389,7 +478,8 @@
 
                     <!-- Action Buttons -->
                     <div class="mb-4 text-right no-print">
-                        <a href="{{ route('penawaran.exportPdf', ['id' => $penawaran->id_penawaran, 'version' => $activeVersion]) }}" target="_blank"
+                        <a href="{{ route('penawaran.exportPdf', ['id' => $penawaran->id_penawaran, 'version' => $activeVersion]) }}"
+                            target="_blank"
                             class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition font-semibold shadow-md">
                             <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
@@ -752,6 +842,45 @@
             <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
             <script src="https://jsuites.net/v4/jsuites.js"></script>
             <script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
+
+            <script>
+                function openStatusModal(status) {
+                    const modal = document.getElementById('statusModal');
+                    const modalTitle = document.getElementById('modalTitle');
+                    const statusInput = document.getElementById('statusInput');
+                    const submitBtn = document.getElementById('submitBtn');
+                    const noteInput = document.getElementById('noteInput');
+
+                    statusInput.value = status;
+                    noteInput.value = '';
+
+                    if (status === 'success') {
+                        modalTitle.textContent = 'Tandai Penawaran Selesai';
+                        submitBtn.textContent = 'Tandai Selesai';
+                        submitBtn.className = 'px-4 py-2 text-white bg-green-500 rounded hover:bg-green-600';
+                        noteInput.placeholder = 'Masukkan catatan penyelesaian penawaran...';
+                    } else if (status === 'lost') {
+                        modalTitle.textContent = 'Tandai Penawaran Gagal';
+                        submitBtn.textContent = 'Tandai Gagal';
+                        submitBtn.className = 'px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600';
+                        noteInput.placeholder = 'Masukkan alasan penawaran gagal...';
+                    }
+
+                    modal.classList.remove('hidden');
+                }
+
+                function closeStatusModal() {
+                    const modal = document.getElementById('statusModal');
+                    modal.classList.add('hidden');
+                }
+
+                // Close modal when clicking outside
+                document.getElementById('statusModal').addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeStatusModal();
+                    }
+                });
+            </script>
 
             <script>
                 document.addEventListener("DOMContentLoaded", function() {
@@ -1343,6 +1472,7 @@
                     // FUNGSI PENAWARAN
                     // =====================================================
 
+
                     function recalculateRow(spreadsheet, rowIndex, changedCol = null, newValue = null) {
                         console.log('recalculateRow called', {
                             rowIndex,
@@ -1496,7 +1626,7 @@
                                 </div>
                             </div>
                             <div class="flex gap-2 items-center">
-                            <button class="flex items-center add-row-btn bg-[#02ADB8] text-white px-3 py-1 rounded hover:bg-blue-700 transition text-sm">
+                            <button class="flex items-center add-row-btn bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition text-sm">
                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Tambah Baris
                             </button>
                             <button class="flex items-center delete-row-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700 transition text-sm">

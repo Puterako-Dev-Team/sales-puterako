@@ -21,7 +21,8 @@ class Penawaran extends Model
         'ppn_persen',
         'ppn_nominal',
         'grand_total',
-        'note'
+        'note',
+        'status',
     ];
 
     public function details()
