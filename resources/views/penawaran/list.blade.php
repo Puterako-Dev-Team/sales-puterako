@@ -47,20 +47,24 @@
                             <td class="px-2 py-2">{{ $p->pic_perusahaan }}</td>
                             <td class="px-2 py-2">{{ $p->pic_admin }}</td>
                             <td class="px-2 py-2">
-                                @if($p->status === 'draft')
-                                    <span class="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full">
+                                @if ($p->status === 'draft')
+                                    <span
+                                        class="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full">
                                         Draft
                                     </span>
                                 @elseif($p->status === 'lost')
-                                    <span class="inline-block px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded-full">
+                                    <span
+                                        class="inline-block px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded-full">
                                         Lost
                                     </span>
                                 @elseif($p->status === 'success')
-                                    <span class="inline-block px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
+                                    <span
+                                        class="inline-block px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
                                         Success
                                     </span>
                                 @else
-                                    <span class="inline-block px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-800 rounded-full">
+                                    <span
+                                        class="inline-block px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-800 rounded-full">
                                         {{ $p->status }}
                                     </span>
                                 @endif
@@ -159,11 +163,16 @@
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">PIC Admin</label>
                     <input type="text" name="pic_admin" class="w-full border rounded px-3 py-2 text-sm"
-                        value="Admin Dummy" required>
+                        value="{{ Auth::user()->name }}" required>
                 </div>
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">No Penawaran</label>
-                    <input type="text" name="no_penawaran" class="w-full border rounded px-3 py-2 text-sm" required>
+                    <div class="flex items-center space-x-2">
+                        <span
+                            class="text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded border">PIB/SS-SBY/JK/{{ Auth::id() }}-</span>
+                        <input type="text" name="no_penawaran_suffix" class="flex-1 border rounded px-3 py-2 text-sm"
+                            placeholder="VII/2025" required>
+                    </div>
                 </div>
                 <div class="absolute bottom-0 left-0 w-full p-4 bg-white border-t">
                     <button type="submit"

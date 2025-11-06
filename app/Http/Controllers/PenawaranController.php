@@ -7,6 +7,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class PenawaranController extends Controller
 {
@@ -18,7 +19,27 @@ class PenawaranController extends Controller
 
     public function store(Request $request)
     {
-        \App\Models\Penawaran::create($request->all());
+        $data = $request->all();
+        
+        // Generate full no_penawaran dari suffix yang diinput user
+        if ($request->has('no_penawaran_suffix')) {
+            $userId = Auth::id();
+            
+            // Ambil nomor urut terakhir dari database
+            $lastPenawaran = \App\Models\Penawaran::orderBy('id_penawaran', 'desc')->first();
+            $nextSequence = $lastPenawaran ? ($lastPenawaran->id_penawaran + 1) : 1;
+            
+            // Format nomor dengan padding 0 di depan (minimal 3 digit)
+            $paddedSequence = str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
+            
+            // Format: PIB/SS-SBY/JK/{user_id}-{padded_sequence}/{user_input}
+            $data['no_penawaran'] = "PIB/SS-SBY/JK/{$userId}-{$paddedSequence}/{$request->no_penawaran_suffix}";
+            
+            // Hapus field suffix karena tidak ada di database
+            unset($data['no_penawaran_suffix']);
+        }
+        
+        \App\Models\Penawaran::create($data);
         return redirect()->route('penawaran.list');
     }
 
@@ -305,52 +326,90 @@ class PenawaranController extends Controller
     public function exportPdf(Request $request)
     {
         $id = $request->query('id');
-        $penawaran = \App\Models\Penawaran::find($id);
         $version = $request->query('version');
-        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)->where('version', $version)->first();
+        
+        $penawaran = \App\Models\Penawaran::findOrFail($id);
+        
+        // Ambil versi aktif
+        $activeVersion = $version ?? \App\Models\PenawaranVersion::where('penawaran_id', $id)->max('version');
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)->where('version', $activeVersion)->first();
 
         // Tambahkan pengecekan jika versionRow null
         if (!$versionRow) {
             return redirect()->route('penawaran.list')->with('error', 'Versi penawaran tidak ditemukan');
         }
 
-        $details = PenawaranDetail::where('version_id', $versionRow->id)->get();
+        // Ambil detail penawaran sesuai versi
+        $details = PenawaranDetail::where('version_id', $versionRow->id)
+            ->orderBy('id_penawaran_detail', 'asc')
+            ->get();
 
-        // Grouping section, sama seperti preview
-        $sections = $details->groupBy(function ($item) {
-            return $item->nama_section;
-        })->map(function ($items, $nama_section) {
-            return [
-                'nama_section' => $nama_section,
-                'data' => $items->map(function ($d) {
-                    return [
-                        'no' => $d->no,
-                        'tipe' => $d->tipe,
-                        'deskripsi' => $d->deskripsi,
-                        'qty' => $d->qty,
-                        'satuan' => $d->satuan,
-                        'harga_satuan' => $d->harga_satuan,
-                        'harga_total' => $d->harga_total,
-                        'is_mitra' => $d->is_mitra,
-                    ];
-                })->toArray()
-            ];
-        })->values()->toArray();
+        // Hitung total penawaran
+        $totalPenawaran = $details->sum('harga_total');
 
+        // Ambil jasa sesuai versi
+        $jasa = \App\Models\Jasa::where('version_id', $versionRow->id)->first();
+        $jasaDetails = \App\Models\JasaDetail::where('version_id', $versionRow->id)->get();
+        $grandTotalJasa = $jasa ? $jasa->grand_total : 0;
+
+        // Hitung grand total
+        $grandTotal = $totalPenawaran + $grandTotalJasa;
+
+        // Ambil field dinamis dari versionRow untuk kalkulasi
+        $ppnPersen = $versionRow->ppn_persen ?? 11;
+        $isBest = $versionRow->is_best_price ?? false;
+        $bestPrice = $versionRow->best_price ?? 0;
+        $baseAmount = ($isBest && $bestPrice > 0) ? $bestPrice : $grandTotal;
+
+        $ppnNominal = ($baseAmount * $ppnPersen) / 100;
+        $grandTotalWithPpn = $baseAmount + $ppnNominal;
+
+        // Grouping sections untuk PDF - group by nama_section kemudian by area
         $groupedSections = [];
         foreach ($details as $row) {
-            $section = $row->nama_section ?: 'Section';
+            $section = $row->nama_section ?: 'Umum';
             $area = $row->area ?: '-';
             $groupedSections[$section][$area][] = $row;
         }
 
-        // Ambil jasa sesuai versi
-        $jasa = \App\Models\Jasa::where('version_id', $versionRow->id)->first();
+        // Data yang akan dikirim ke PDF
+        $pdfData = compact(
+            'penawaran',
+            'groupedSections', 
+            'jasa',
+            'jasaDetails',
+            'versionRow',
+            'details',
+            'activeVersion',
+            'totalPenawaran',
+            'grandTotalJasa',
+            'grandTotal',
+            'ppnPersen',
+            'ppnNominal',
+            'baseAmount',
+            'grandTotalWithPpn',
+            'isBest',
+            'bestPrice'
+        );
 
-        // Kirim versionRow dan details ke PDF agar template bisa akses data versi
-        $pdf = Pdf::loadView('penawaran.pdf', compact('penawaran', 'groupedSections', 'jasa', 'versionRow', 'details'));
-        $safeNoPenawaran = str_replace(['/', '\\'], '-', $penawaran->no_penawaran);
-        return $pdf->download('Penawaran-' . $safeNoPenawaran . '.pdf');
+        // Generate PDF
+        $pdf = Pdf::loadView('penawaran.pdf', $pdfData);
+        
+        // Set paper size dan orientasi
+        $pdf->setPaper('A4', 'portrait');
+        
+        // Generate filename dengan format yang aman untuk file system
+        $safeNoPenawaran = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $penawaran->no_penawaran);
+        
+        // Tambahkan suffix revisi ke filename jika bukan versi 1
+        $filename = 'Penawaran-' . $safeNoPenawaran;
+        if ($activeVersion > 1) {
+            $filename .= '-Rev' . $activeVersion;
+        }
+        $filename .= '.pdf';
+
+        // Download PDF
+        return $pdf->download($filename);
     }
 
     public function saveNotes(Request $request, $id)
@@ -405,86 +464,102 @@ class PenawaranController extends Controller
 
         // Ambil versi terakhir
         $lastVersion = \App\Models\PenawaranVersion::where('penawaran_id', $id)->max('version');
+        
+        // Jika belum ada versi sama sekali, buat versi 1 terlebih dahulu
+        if (!$lastVersion) {
+            $lastVersion = 0;
+        }
+        
         $newVersion = $lastVersion + 1;
 
-        // Copy versi sebelumnya
-        $oldVersion = \App\Models\PenawaranVersion::where('penawaran_id', $id)->where('version', $lastVersion)->first();
+        // Copy versi sebelumnya jika ada
+        $oldVersion = null;
+        if ($lastVersion > 0) {
+            $oldVersion = \App\Models\PenawaranVersion::where('penawaran_id', $id)
+                ->where('version', $lastVersion)
+                ->first();
+        }
 
-        // Buat versi baru, COPY semua field jasa dari versi lama
+        // Buat versi baru
         $newVersionRow = \App\Models\PenawaranVersion::create([
             'penawaran_id'        => $id,
             'version'             => $newVersion,
-            'notes'               => $oldVersion->notes ?? null,
+            'notes'               => $oldVersion ? ($oldVersion->notes ?? null) : null,
             'status'              => 'draft',
-            'jasa_ringkasan'      => $oldVersion->jasa_ringkasan ?? null,
-            'jasa_profit_percent' => $oldVersion->jasa_profit_percent ?? 0,
-            'jasa_profit_value'   => $oldVersion->jasa_profit_value ?? 0,
-            'jasa_pph_percent'    => $oldVersion->jasa_pph_percent ?? 0,
-            'jasa_pph_value'      => $oldVersion->jasa_pph_value ?? 0,
-            'jasa_bpjsk_percent'  => $oldVersion->jasa_bpjsk_percent ?? 0,
-            'jasa_bpjsk_value'    => $oldVersion->jasa_bpjsk_value ?? 0,
-            'jasa_grand_total'    => $oldVersion->jasa_grand_total ?? 0,
+            'jasa_ringkasan'      => $oldVersion ? ($oldVersion->jasa_ringkasan ?? null) : null,
+            'jasa_profit_percent' => $oldVersion ? ($oldVersion->jasa_profit_percent ?? 0) : 0,
+            'jasa_profit_value'   => $oldVersion ? ($oldVersion->jasa_profit_value ?? 0) : 0,
+            'jasa_pph_percent'    => $oldVersion ? ($oldVersion->jasa_pph_percent ?? 0) : 0,
+            'jasa_pph_value'      => $oldVersion ? ($oldVersion->jasa_pph_value ?? 0) : 0,
+            'jasa_bpjsk_percent'  => $oldVersion ? ($oldVersion->jasa_bpjsk_percent ?? 0) : 0,
+            'jasa_bpjsk_value'    => $oldVersion ? ($oldVersion->jasa_bpjsk_value ?? 0) : 0,
+            'jasa_grand_total'    => $oldVersion ? ($oldVersion->jasa_grand_total ?? 0) : 0,
         ]);
 
-        // Copy penawaran_detail
-        foreach ($oldVersion->details as $detail) {
-            \App\Models\PenawaranDetail::create([
-                'version_id'    => $newVersionRow->id,
-                'id_penawaran'  => $detail->id_penawaran,
-                'area'          => $detail->area,
-                'nama_section'  => $detail->nama_section,
-                'no'            => $detail->no,
-                'tipe'          => $detail->tipe,
-                'deskripsi'     => $detail->deskripsi,
-                'qty'           => $detail->qty,
-                'satuan'        => $detail->satuan,
-                'harga_satuan'  => $detail->harga_satuan,
-                'harga_total'   => $detail->harga_total,
-                'hpp'           => $detail->hpp,
-                'is_mitra'      => $detail->is_mitra,
-                'added_cost'    => $detail->added_cost,
-                'profit'        => $detail->profit,
-            ]);
-        }
-
-        // Copy jasa dan jasa_detail
-        $oldJasa = \App\Models\Jasa::where('version_id', $oldVersion->id)->first();
-        if ($oldJasa) {
-            $newJasa = \App\Models\Jasa::create([
-                'version_id'     => $newVersionRow->id,
-                'id_penawaran'   => $id,
-                'ringkasan'      => $oldJasa->ringkasan,
-                'profit_percent' => $oldJasa->profit_percent,
-                'profit_value'   => $oldJasa->profit_value,
-                'pph_percent'    => $oldJasa->pph_percent,
-                'pph_value'      => $oldJasa->pph_value,
-                'bpjsk_percent'  => $oldJasa->bpjsk_percent,
-                'bpjsk_value'    => $oldJasa->bpjsk_value,
-                'grand_total'    => $oldJasa->grand_total,
-            ]);
-
-            // Copy JasaDetail dengan query langsung
-            $oldJasaDetails = \App\Models\JasaDetail::where('version_id', $oldVersion->id)->get();
-            foreach ($oldJasaDetails as $jasaDetail) {
-                \App\Models\JasaDetail::create([
+        // Copy penawaran_detail hanya jika ada versi sebelumnya
+        if ($oldVersion && $oldVersion->details) {
+            foreach ($oldVersion->details as $detail) {
+                \App\Models\PenawaranDetail::create([
                     'version_id'    => $newVersionRow->id,
-                    'id_jasa'       => $newJasa->id_jasa,
-                    'id_penawaran'  => $jasaDetail->id_penawaran,
-                    'nama_section'  => $jasaDetail->nama_section,
-                    'no'            => $jasaDetail->no,
-                    'deskripsi'     => $jasaDetail->deskripsi,
-                    'vol'           => $jasaDetail->vol,
-                    'hari'          => $jasaDetail->hari,
-                    'orang'         => $jasaDetail->orang,
-                    'unit'          => $jasaDetail->unit,
-                    'total'         => $jasaDetail->total,
-                    'pembulatan'    => $jasaDetail->pembulatan,
-                    'profit'        => $jasaDetail->profit,
+                    'id_penawaran'  => $detail->id_penawaran,
+                    'area'          => $detail->area,
+                    'nama_section'  => $detail->nama_section,
+                    'no'            => $detail->no,
+                    'tipe'          => $detail->tipe,
+                    'deskripsi'     => $detail->deskripsi,
+                    'qty'           => $detail->qty,
+                    'satuan'        => $detail->satuan,
+                    'harga_satuan'  => $detail->harga_satuan,
+                    'harga_total'   => $detail->harga_total,
+                    'hpp'           => $detail->hpp,
+                    'is_mitra'      => $detail->is_mitra,
+                    'added_cost'    => $detail->added_cost,
+                    'profit'        => $detail->profit,
                 ]);
             }
         }
 
-        return redirect()->route('penawaran.show', ['id' => $id, 'version' => $newVersion]);
+        // Copy jasa dan jasa_detail hanya jika ada versi sebelumnya
+        if ($oldVersion) {
+            $oldJasa = \App\Models\Jasa::where('version_id', $oldVersion->id)->first();
+            if ($oldJasa) {
+                $newJasa = \App\Models\Jasa::create([
+                    'version_id'     => $newVersionRow->id,
+                    'id_penawaran'   => $id,
+                    'ringkasan'      => $oldJasa->ringkasan,
+                    'profit_percent' => $oldJasa->profit_percent,
+                    'profit_value'   => $oldJasa->profit_value,
+                    'pph_percent'    => $oldJasa->pph_percent,
+                    'pph_value'      => $oldJasa->pph_value,
+                    'bpjsk_percent'  => $oldJasa->bpjsk_percent,
+                    'bpjsk_value'    => $oldJasa->bpjsk_value,
+                    'grand_total'    => $oldJasa->grand_total,
+                ]);
+
+                // Copy JasaDetail dengan query langsung
+                $oldJasaDetails = \App\Models\JasaDetail::where('version_id', $oldVersion->id)->get();
+                foreach ($oldJasaDetails as $jasaDetail) {
+                    \App\Models\JasaDetail::create([
+                        'version_id'    => $newVersionRow->id,
+                        'id_jasa'       => $newJasa->id_jasa,
+                        'id_penawaran'  => $jasaDetail->id_penawaran,
+                        'nama_section'  => $jasaDetail->nama_section,
+                        'no'            => $jasaDetail->no,
+                        'deskripsi'     => $jasaDetail->deskripsi,
+                        'vol'           => $jasaDetail->vol,
+                        'hari'          => $jasaDetail->hari,
+                        'orang'         => $jasaDetail->orang,
+                        'unit'          => $jasaDetail->unit,
+                        'total'         => $jasaDetail->total,
+                        'pembulatan'    => $jasaDetail->pembulatan,
+                        'profit'        => $jasaDetail->profit,
+                    ]);
+                }
+            }
+        }
+
+        return redirect()->route('penawaran.show', ['id' => $id, 'version' => $newVersion])
+            ->with('success', 'Revisi baru berhasil dibuat (Rev ' . $newVersion . ')');
     }
 
     public function updateStatus(Request $request, $id)
