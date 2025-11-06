@@ -1,3 +1,5 @@
+<!-- filepath: c:\laragon\www\sales-puterako\resources\views\layouts\app.blade.php -->
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -53,7 +55,7 @@
             left: 0;
             width: 0;
             height: 100%;
-            background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);
+            background: linear-gradient(90deg, rgba(60, 255, 0, 0.1) 0%, transparent 100%);
             transition: width 0.3s ease;
         }
 
@@ -120,8 +122,6 @@
             padding-left: 3.5rem;
         }
 
-        
-
         .submenu-item:hover::before,
         .submenu-item.active::before {
             background: #3B82F6;
@@ -161,6 +161,29 @@
         .sidebar-collapsed button.menu-item {
             position: relative;
         }
+
+        /* User Dropdown Hover Styles */
+        .user-dropdown-container:hover .user-dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .user-dropdown-menu {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        /* User dropdown arrow rotation on hover */
+        .user-dropdown-container:hover .user-dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .user-dropdown-arrow {
+            transition: transform 0.3s ease;
+        }
     </style>
 </head>
 
@@ -182,19 +205,90 @@
                     </svg>
                 </button>
                 <div class="flex items-center space-x-2">
-                    {{-- <div class="w-8 h-8 bg-[#3B82F6] rounded-lg flex items-center justify-center">
-                        <span class="text-white font-bold text-sm"></span>
-                    </div> --}}
                     <img src="{{ asset('assets/puterako_logo.png') }}" alt="Puterako Logo" class="h-5 w-auto">
                 </div>
             </div>
-            <div class="flex items-center space-x-3">
-                <div class="text-right">
-                    <p class="text-sm font-medium text-gray-900">R</p>
-                    <p class="text-xs text-gray-500"></p>
-                </div>
-                <div class="w-10 h-10 rounded-full flex items-center justify-center">
-                    <span class="text-white font-semibold text-sm"></span>
+            
+            <div class="flex items-center space-x-4">
+                <!-- User Profile Dropdown -->
+                <div class="relative user-dropdown-container">
+                    <button id="userDropdown" type="button" 
+                        class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none">
+                        <!-- User Avatar -->
+                        <div class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+                            <span class="text-white font-semibold text-sm">
+                                {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                            </span>
+                        </div>
+                        
+                        <!-- User Info (hidden on mobile) -->
+                        <div class="hidden md:block text-left">
+                            <p class="text-sm font-medium text-gray-900">{{ Auth::user()->name }}</p>
+                            <p class="text-xs text-gray-500">{{ Auth::user()->email }}</p>
+                            <p class="text-xs text-gray-400">Role: {{ ucfirst(Auth::user()->role ?? 'N/A') }}</p>
+                        </div>
+                        
+                        <!-- Dropdown Arrow -->
+                        <svg class="w-4 h-4 text-gray-400 user-dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Dropdown Menu -->
+                    <div id="userDropdownMenu" 
+                        class="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-30 user-dropdown-menu">
+                        
+                        <!-- User Info in Dropdown -->
+                        <div class="px-4 py-3 border-b border-gray-100">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-semibold">
+                                        {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900">{{ Auth::user()->name }}</p>
+                                    <p class="text-sm text-gray-500">{{ Auth::user()->email }}</p>
+                                    <p class="text-xs text-gray-400">Role: {{ ucfirst(Auth::user()->role ?? 'N/A') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Menu Items -->
+                        <div class="py-2">
+                            <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                Profile
+                            </a>
+                            
+                            <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                Settings
+                            </a>
+                        </div>
+                        
+                        <!-- Logout Button -->
+                        <div class="border-t border-gray-100 pt-2">
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" 
+                                    class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"></path>
+                                    </svg>
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -275,17 +369,23 @@
                                 <div class="space-y-1 py-2">
                                     <a href="{{ route('penawaran.list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <x-lucide-scroll-text class="w-4 h-4 inline-block mr-2 text-gray-600" />
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
                                         <span class="menu-label show text-sm text-gray-700">List Penawaran</span>
                                     </a>
                                     <a href="{{ route('penawaran.followup') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <x-lucide-phone-call class="w-4 h-4 inline-block mr-2 text-gray-600" />
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                        </svg>
                                         <span class="menu-label show text-sm text-gray-700">Follow Up</span>
                                     </a>
                                     <a href="{{ route('penawaran.rekap-survey') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <x-lucide-files class="w-4 h-4 inline-block mr-2 text-gray-600" />
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
                                         <span class="menu-label show text-sm text-gray-700">Rekap Survey</span>
                                     </a>
                                 </div>
@@ -303,7 +403,7 @@
                                         <svg class="w-6 h-6 transition-colors text-gray-600" fill="none"
                                             stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
                                             </path>
                                         </svg>
                                     </div>
@@ -325,14 +425,24 @@
                                 <div class="space-y-1 py-2">
                                     <a href="#"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                                        </svg>
                                         <span class="menu-label show text-sm text-gray-700">List Klien</span>
                                     </a>
                                     <a href="#"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                                        </svg>
                                         <span class="menu-label show text-sm text-gray-700">Klien Baru</span>
                                     </a>
                                     <a href="#"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
                                         <span class="menu-label show text-sm text-gray-700">Detail Klien</span>
                                     </a>
                                 </div>
@@ -342,40 +452,6 @@
 
                     </div>
                 </nav>
-
-                <!-- Sidebar Footer -->
-                <div class="sidebar-footer p-4 border-t border-gray-100">
-                    <form method="POST" action="#">
-                        @csrf
-                        <button type="submit"
-                            class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-2 rounded flex items-center justify-center space-x-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1">
-                                </path>
-                            </svg>
-                            <span class="menu-label show">Logout</span>
-                        </button>
-                    </form>
-                    <div class="menu-label show mt-4">
-                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4">
-                            <div class="flex items-center space-x-3">
-                                <div
-                                    class="w-8 h-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-4 h-4 text-gray-600 " fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-900">Need Help?</p>
-                                    <p class="text-xs text-gray-600">Contact support</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </aside>
 
             <!-- Main Content -->
@@ -393,9 +469,11 @@
         const penawaranMenu = document.getElementById('penawaranMenu');
         const klienDropdown = document.getElementById('klienDropdown');
         const klienMenu = document.getElementById('klienMenu');
-        const dropdownIcon = penawaranDropdown.querySelector('.dropdown-icon');
+        const penawaranDropdownIcon = penawaranDropdown.querySelector('.dropdown-icon');
+        const klienDropdownIcon = klienDropdown.querySelector('.dropdown-icon');
         let expanded = true;
-        let dropdownOpen = false;
+        let penawaranDropdownOpen = false;
+        let klienDropdownOpen = false;
 
         // Sidebar Toggle
         toggleBtn.addEventListener('click', function() {
@@ -415,36 +493,43 @@
                     label.classList.add('hide');
                 });
                 // Close dropdown when sidebar collapses
-                if (dropdownOpen) {
+                if (penawaranDropdownOpen) {
                     penawaranMenu.classList.remove('open');
-                    dropdownIcon.classList.remove('rotate');
-                    dropdownOpen = false;
+                    penawaranDropdownIcon.classList.remove('rotate');
+                    penawaranDropdownOpen = false;
+                }
+                if (klienDropdownOpen) {
+                    klienMenu.classList.remove('open');
+                    klienDropdownIcon.classList.remove('rotate');
+                    klienDropdownOpen = false;
                 }
             }
         });
 
-        // Dropdown Toggle
+        // Penawaran Dropdown Toggle
         penawaranDropdown.addEventListener('click', function() {
             if (expanded) {
-                dropdownOpen = !dropdownOpen;
-                if (dropdownOpen) {
+                penawaranDropdownOpen = !penawaranDropdownOpen;
+                if (penawaranDropdownOpen) {
                     penawaranMenu.classList.add('open');
-                    dropdownIcon.classList.add('rotate');
+                    penawaranDropdownIcon.classList.add('rotate');
                 } else {
                     penawaranMenu.classList.remove('open');
-                    dropdownIcon.classList.remove('rotate');
+                    penawaranDropdownIcon.classList.remove('rotate');
                 }
             }
         });
+
+        // Klien Dropdown Toggle
         klienDropdown.addEventListener('click', function() {
             if (expanded) {
-                dropdownOpen = !dropdownOpen;
-                if (dropdownOpen) {
+                klienDropdownOpen = !klienDropdownOpen;
+                if (klienDropdownOpen) {
                     klienMenu.classList.add('open');
-                    dropdownIcon.classList.add('rotate');
+                    klienDropdownIcon.classList.add('rotate');
                 } else {
                     klienMenu.classList.remove('open');
-                    dropdownIcon.classList.remove('rotate');
+                    klienDropdownIcon.classList.remove('rotate');
                 }
             }
         });
@@ -457,9 +542,17 @@
                 item.classList.add('active');
                 // If it's a submenu item, open the parent dropdown
                 if (item.classList.contains('submenu-item')) {
-                    penawaranMenu.classList.add('open');
-                    dropdownIcon.classList.add('rotate');
-                    dropdownOpen = true;
+                    // Check if it's under penawaran
+                    const parentDropdown = item.closest('#penawaranMenu, #klienMenu');
+                    if (parentDropdown && parentDropdown.id === 'penawaranMenu') {
+                        penawaranMenu.classList.add('open');
+                        penawaranDropdownIcon.classList.add('rotate');
+                        penawaranDropdownOpen = true;
+                    } else if (parentDropdown && parentDropdown.id === 'klienMenu') {
+                        klienMenu.classList.add('open');
+                        klienDropdownIcon.classList.add('rotate');
+                        klienDropdownOpen = true;
+                    }
                 }
             }
         });

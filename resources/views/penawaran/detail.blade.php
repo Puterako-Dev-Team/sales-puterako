@@ -77,7 +77,7 @@
         <!-- Pindahkan button status keluar dari form -->
         <div class="flex gap-2 -mt-4">
             <button type="button" onclick="openStatusModal('draft')"
-                class="bg-blue-500 text-white px-2 py-2 rounded hover:bg-blue-600 font-semibold">
+                class="bg-[#FFA500] text-white px-2 py-2 rounded hover:shadow-lg font-semibold">
                 <x-lucide-file-edit class="w-6 h-6 inline-block" />
             </button>
             <button type="button" onclick="openStatusModal('lost')"
