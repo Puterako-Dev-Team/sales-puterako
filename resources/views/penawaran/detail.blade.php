@@ -68,7 +68,7 @@
         <!-- Form terpisah untuk button buat revisi -->
         <form method="POST" action="{{ route('penawaran.createRevision', ['id' => $penawaran->id_penawaran]) }}">
             @csrf
-            <button type="submit" class="bg-[#02ADB8] text-white px-4 py-2 rounded hover:bg-green-600 font-semibold">
+            <button type="submit" class="bg-[#02ADB8] text-white px-4 py-2 rounded hover:shadow-lg font-semibold">
                 + Tambah Revisi
             </button>
         </form>
