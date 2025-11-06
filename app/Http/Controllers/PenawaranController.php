@@ -356,14 +356,26 @@ class PenawaranController extends Controller
     public function saveNotes(Request $request, $id)
     {
         $request->validate([
-            'note' => 'nullable|string'
+            'note' => 'nullable|string',
+            'version' => 'required|integer'
         ]);
 
-        $penawaran = \App\Models\Penawaran::findOrFail($id);
-        $penawaran->note = $request->note;
-        $penawaran->save();
+        $version = $request->input('version');
+        
+        // Cari penawaran version berdasarkan penawaran_id dan version
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)
+            ->where('version', $version)
+            ->first();
 
-        return redirect()->back()->with('success', 'Notes berhasil disimpan.');
+        if (!$versionRow) {
+            return redirect()->back()->with('error', 'Versi penawaran tidak ditemukan.');
+        }
+
+        // Simpan note ke penawaran_versions
+        $versionRow->notes = $request->note;
+        $versionRow->save();
+
+        return redirect()->back()->with('success', 'Notes berhasil disimpan ke versi penawaran.');
     }
 
     public function saveBestPrice(Request $request, $id)
@@ -402,7 +414,6 @@ class PenawaranController extends Controller
         $newVersionRow = \App\Models\PenawaranVersion::create([
             'penawaran_id'        => $id,
             'version'             => $newVersion,
-            'notes'               => 'Revisi baru',
             'status'              => 'draft',
             'jasa_ringkasan'      => $oldVersion->jasa_ringkasan ?? null,
             'jasa_profit_percent' => $oldVersion->jasa_profit_percent ?? 0,

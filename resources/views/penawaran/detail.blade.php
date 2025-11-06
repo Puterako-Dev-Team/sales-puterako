@@ -778,30 +778,28 @@
 
                         <!-- Notes -->
                         <div class="mt-8 mb-6">
-                            <form id="notesForm" method="POST"
-                                action="{{ route('penawaran.saveNotes', ['id' => $penawaran->id_penawaran]) }}">
+                            <form method="POST" action="{{ route('penawaran.saveNotes', $penawaran->id_penawaran) }}">
                                 @csrf
-                                <label for="note" class="font-bold mb-2 block">Catatan Penawaran (Notes):</label>
-                                <textarea name="note" id="note" rows="7" class="border rounded w-full p-3 text-sm mb-2"
-                                    placeholder="Masukkan catatan penawaran...">{{ old('note', $penawaran->note) }}</textarea>
-                                <button type="submit"
-                                    class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition font-semibold shadow-md">
+                                <input type="hidden" name="version" value="{{ $activeVersion }}">
+                                <textarea name="note" class="w-full border rounded px-3 py-2" 
+                                        placeholder="Masukkan catatan untuk versi ini...">{{ $versionRow->notes ?? '' }}</textarea>
+                                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-2">
                                     Simpan Notes
                                 </button>
                             </form>
                         </div>
                         <div class="mt-8 border-t pt-6">
                             <h4 class="font-bold mb-3">NOTE:</h4>
-                            @if (!empty($penawaran->note))
+                            @if (!empty($versionRow->notes))
                                 <ol class="list-decimal list-inside space-y-1 text-sm">
-                                    @foreach (explode("\n", $penawaran->note) as $note)
+                                    @foreach (explode("\n", $versionRow->notes) as $note)
                                         @if (trim($note) !== '')
                                             <li>{{ $note }}</li>
                                         @endif
                                     @endforeach
                                 </ol>
                             @else
-                                <p class="text-gray-500 text-sm">Belum ada catatan penawaran.</p>
+                                <p class="text-gray-500 text-sm">Belum ada catatan untuk versi ini.</p>
                             @endif
                         </div>
 
