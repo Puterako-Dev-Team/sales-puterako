@@ -341,8 +341,7 @@
             @endif
 
             <p style="margin-top: 20px;"><strong>Perihal:</strong> {{ $penawaran->perihal }}</p>
-            <p><strong>No:</strong> {{ $penawaran->no_penawaran }}</p>
-
+            <p><strong>No:</strong> {{ $penawaran->no_penawaran }}@if($activeVersion > 1)-Rev{{ $activeVersion }}@endif</p>
             <p class="greeting" style="margin-top: 20px;"><strong>Dengan Hormat,</strong></p>
             <p>Bersama ini kami PT. Puterako Inti Buana memberitahukan Penawaran Harga {{ $penawaran->perihal }} dengan
                 perincian sebagai berikut:</p>
