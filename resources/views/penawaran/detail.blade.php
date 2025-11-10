@@ -1223,7 +1223,7 @@
                             ],
                             tableOverflow: true,
                             tableWidth: '100%',
-                            tableHeight: '350px',
+                            tableHeight: '100%',
                             editable: editable,
                             onchange: function(instance, cell, col, row, value) {
                                 if (col >= 2 && col <= 5) {
@@ -1703,7 +1703,7 @@
                             ],
                             tableOverflow: true,
                             tableWidth: '100%',
-                            tableHeight: '400px',
+                            tableHeight: '100%',
                             editable: isEditMode,
                             onchange: function(instance, cell, colIndex, rowIndex, value) {
                                 console.log('📝 Spreadsheet onChange:', {
