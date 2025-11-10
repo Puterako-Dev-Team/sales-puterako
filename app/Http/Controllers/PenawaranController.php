@@ -11,10 +11,136 @@ use Illuminate\Support\Facades\Auth;
 
 class PenawaranController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $penawarans = \App\Models\Penawaran::all();
-        return view('penawaran.list', compact('penawarans'));
+        $query = \App\Models\Penawaran::query();
+
+        // Filter berdasarkan tanggal
+        if ($request->filled('tanggal_dari')) {
+            $query->whereDate('created_at', '>=', $request->tanggal_dari);
+        }
+
+        // Filter berdasarkan no penawaran
+        if ($request->filled('no_penawaran')) {
+            $query->where('no_penawaran', 'like', '%' . $request->no_penawaran . '%');
+        }
+
+        // Filter berdasarkan nama perusahaan
+        if ($request->filled('nama_perusahaan')) {
+            $query->where('nama_perusahaan', 'like', '%' . $request->nama_perusahaan . '%');
+        }
+
+        // Filter berdasarkan status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter berdasarkan PIC Admin
+        if ($request->filled('pic_admin')) {
+            $query->where('pic_admin', $request->pic_admin);
+        }
+
+        // Sorting
+        $sortColumn = $request->get('sort', 'id_penawaran');
+        $sortDirection = $request->get('direction', 'desc');
+        
+        // Validasi kolom yang bisa di-sort
+        $allowedSorts = ['id_penawaran', 'created_at', 'no_penawaran', 'perihal', 'nama_perusahaan', 'pic_perusahaan', 'pic_admin', 'status'];
+        if (!in_array($sortColumn, $allowedSorts)) {
+            $sortColumn = 'id_penawaran';
+        }
+
+        $query->orderBy($sortColumn, $sortDirection);
+
+        // Ambil data dengan pagination
+        $penawarans = $query->paginate(10)->appends($request->query());
+        
+        // Untuk info hasil filter
+        $totalRecords = \App\Models\Penawaran::count();
+        
+        // Ambil daftar PIC Admin untuk dropdown
+        $picAdmins = \App\Models\Penawaran::distinct('pic_admin')
+            ->whereNotNull('pic_admin')
+            ->orderBy('pic_admin')
+            ->pluck('pic_admin');
+
+        return view('penawaran.list', compact('penawarans', 'totalRecords', 'picAdmins'));
+    }
+
+    public function filter(Request $request)
+    {
+        if (!$request->ajax()) {
+            return redirect()->route('penawaran.list');
+        }
+
+        $query = \App\Models\Penawaran::query();
+
+        // Apply filters
+        if ($request->filled('tanggal_dari')) {
+            $query->whereDate('created_at', '>=', $request->tanggal_dari);
+        }
+
+        if ($request->filled('no_penawaran')) {
+            $query->where('no_penawaran', 'like', '%' . $request->no_penawaran . '%');
+        }
+
+        if ($request->filled('nama_perusahaan')) {
+            $query->where('nama_perusahaan', 'like', '%' . $request->nama_perusahaan . '%');
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('pic_admin')) {
+            $query->where('pic_admin', $request->pic_admin);
+        }
+
+        // Sorting
+        $sortColumn = $request->get('sort', 'id_penawaran');
+        $sortDirection = $request->get('direction', 'desc');
+        
+        // Validasi kolom yang bisa di-sort
+        $allowedSorts = ['id_penawaran', 'created_at', 'no_penawaran', 'perihal', 'nama_perusahaan', 'pic_perusahaan', 'pic_admin', 'status'];
+        if (!in_array($sortColumn, $allowedSorts)) {
+            $sortColumn = 'id_penawaran';
+        }
+
+        $query->orderBy($sortColumn, $sortDirection);
+
+        $penawarans = $query->paginate(10)->appends($request->query());
+        $totalRecords = \App\Models\Penawaran::count();
+
+        $table = view('penawaran.table-content', compact('penawarans'))->render();
+        
+        // Generate pagination links
+        $pagination = $penawarans->links('penawaran.pagination')->render();
+        
+        $info = '';
+        if ($request->hasAny(['tanggal_dari', 'no_penawaran', 'nama_perusahaan', 'status', 'pic_admin'])) {
+            $activeFilters = [];
+            if ($request->tanggal_dari) $activeFilters[] = 'Tanggal';
+            if ($request->no_penawaran) $activeFilters[] = 'No Penawaran';
+            if ($request->nama_perusahaan) $activeFilters[] = 'Perusahaan';
+            if ($request->status) $activeFilters[] = 'Status';
+            if ($request->pic_admin) $activeFilters[] = 'PIC';
+
+            $info = view('penawaran.filter-info', [
+                'count' => $penawarans->count(),
+                'total' => $totalRecords,
+                'filters' => implode(', ', $activeFilters),
+                'currentPage' => $penawarans->currentPage(),
+                'lastPage' => $penawarans->lastPage(),
+                'from' => $penawarans->firstItem(),
+                'to' => $penawarans->lastItem()
+            ])->render();
+        }
+
+        return response()->json([
+            'table' => $table,
+            'info' => $info,
+            'pagination' => $pagination
+        ]);
     }
 
     public function store(Request $request)

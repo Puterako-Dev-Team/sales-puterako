@@ -13,122 +13,199 @@
         .translate-x-0 {
             transform: translateX(0);
         }
+
+        .filter-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-item label {
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #374151;
+        }
+
+        .filter-item input,
+        .filter-item select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+
+        .filter-item input:focus,
+        .filter-item select:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: end;
+        }
+
+        .loading-overlay {
+            position: relative;
+        }
+
+        .loading-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            z-index: 10;
+        }
+
+        .loading-overlay.loading::after {
+            display: block;
+        }
+
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 11;
+        }
+
+        .loading-overlay.loading .loading-spinner {
+            display: block;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
     </style>
+
     <div class="container mx-auto p-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-xl font-bold">List Penawaran</h1>
             <button id="btnTambah"
-                class="bg-green-500  text-white px-4 py-2 rounded flex items-center gap-2 text-sm hover:bg-green-700 transition">
+                class="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2 text-sm hover:bg-green-700 transition">
                 <x-lucide-plus class="w-5 h-5 inline" />
                 Tambah
             </button>
         </div>
-        <div class="bg-white shadow rounded-lg">
-            <table class="min-w-full text-sm">
-                <thead>
-                    <tr class="bg-green-500 text-white">
-                        <th class="px-2 py-2 font-semibold text-center">ID</th>
-                        <th class="px-2 py-2 font-semibold text-center">No Penawaran</th>
-                        <th class="px-2 py-2 font-semibold text-center">Perihal</th>
-                        <th class="px-2 py-2 font-semibold text-center">Nama Perusahaan</th>
-                        <th class="px-2 py-2 font-semibold text-center">PIC Perusahaan</th>
-                        <th class="px-2 py-2 font-semibold text-center">PIC Admin</th>
-                        <th class="px-2 py-2 font-semibold text-center">Status</th>
-                        <th class="px-2 py-2 font-semibold text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($penawarans as $p)
-                        <tr class="border-b transition">
-                            <td class="px-2 py-2 text-center">{{ $p->id_penawaran }}</td>
-                            <td class="px-2 py-2 text-center">{{ $p->no_penawaran }}</td>
-                            <td class="px-2 py-2">{{ $p->perihal }}</td>
-                            <td class="px-2 py-2">{{ $p->nama_perusahaan }}</td>
-                            <td class="px-2 py-2">{{ $p->pic_perusahaan }}</td>
-                            <td class="px-2 py-2">{{ $p->pic_admin }}</td>
-                            <td class="px-2 py-2">
-                                @if ($p->status === 'draft')
-                                    <span
-                                        class="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full">
-                                        Draft
-                                    </span>
-                                @elseif($p->status === 'lost')
-                                    <span
-                                        class="inline-block px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded-full">
-                                        Lost
-                                    </span>
-                                @elseif($p->status === 'success')
-                                    <span
-                                        class="inline-block px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
-                                        Success
-                                    </span>
-                                @else
-                                    <span
-                                        class="inline-block px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-800 rounded-full">
-                                        {{ $p->status }}
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="px-2 py-2 text-center">
-                                <div class="flex gap-1 justify-center">
-                                    @if ($p->tiket)
-                                        <button
-                                            class="bg-gray-300 text-gray-700 px-2 py-1 rounded flex items-center gap-1 text-xs"
-                                            disabled>
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-ticket"
-                                                width="14" height="14" fill="none" stroke="currentColor"
-                                                stroke-width="2">
-                                                <path d="M3 7V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2" />
-                                                <path d="M21 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7" />
-                                                <path d="M7 7v10" />
-                                                <path d="M17 7v10" />
-                                                <path d="M9 11h6" />
-                                            </svg>
-                                            Tiket
-                                        </button>
-                                    @else
-                                        <a href="{{ route('penawaran.show', ['id' => $p->id_penawaran]) }}"
-                                            class="bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 transition"
-                                            title="Lihat Detail">
-                                            <x-lucide-file-text class="w-5 h-5 inline" />
-                                        </a>
-                                        <button
-                                            class="bg-yellow-500 text-white px-2 py-2 rounded flex items-center gap-1 text-xs hover:bg-yellow-700 transition"
-                                            title="Edit">
-                                            <x-lucide-square-pen class="w-5 h-5 inline" />
-                                        </button>
-                                    @endif
-                                    <button class="bg-red-500 text-white px-2 py-2 rounded hover:bg-red-700 transition"
-                                        title="Hapus Data">
-                                        <x-lucide-trash-2 class="w-5 h-5 inline" />
-                                    </button>
 
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="py-8">
-                                <div class="flex flex-col items-center justify-center text-gray-500 gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-ticket" width="32"
-                                        height="32" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M3 7V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2" />
-                                        <path d="M21 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7" />
-                                        <path d="M7 7v10" />
-                                        <path d="M17 7v10" />
-                                        <path d="M9 11h6" />
-                                    </svg>
-                                    Belum ada tiket penawaran
-                                </div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                <!-- Filter Section -->
+        <div class="filter-card">
+            <form id="filterForm">
+                <div class="flex items-end gap-4 flex-wrap">
+                    <div class="filter-item" style="flex: 0 0 180px;">
+                        <label for="tanggal_dari">Tanggal Dari</label>
+                        <input type="date" 
+                               id="tanggal_dari" 
+                               name="tanggal_dari" 
+                               value="{{ request('tanggal_dari') }}"
+                               class="filter-input">
+                    </div>
+
+                    <div class="filter-item" style="flex: 1 1 200px;">
+                        <label for="no_penawaran">No Penawaran</label>
+                        <input type="text" 
+                               id="no_penawaran" 
+                               name="no_penawaran" 
+                               placeholder="Cari no penawaran..."
+                               value="{{ request('no_penawaran') }}"
+                               class="filter-input">
+                    </div>
+
+                    <div class="filter-item" style="flex: 1 1 250px;">
+                        <label for="nama_perusahaan">Nama Perusahaan</label>
+                        <input type="text" 
+                               id="nama_perusahaan" 
+                               name="nama_perusahaan" 
+                               placeholder="Cari nama perusahaan..."
+                               value="{{ request('nama_perusahaan') }}"
+                               class="filter-input">
+                    </div>
+
+                    <div class="filter-item" style="flex: 0 0 150px;">
+                        <label for="status">Status</label>
+                        <select id="status" name="status" class="filter-input">
+                            <option value="">Semua Status</option>
+                            <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>Draft</option>
+                            <option value="lost" {{ request('status') == 'lost' ? 'selected' : '' }}>Lost</option>
+                            <option value="success" {{ request('status') == 'success' ? 'selected' : '' }}>Success</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-item" style="flex: 0 0 180px;">
+                        <label for="pic_admin">PIC Admin</label>
+                        <select id="pic_admin" name="pic_admin" class="filter-input">
+                            <option value="">Semua PIC</option>
+                            @foreach($picAdmins as $pic)
+                                <option value="{{ $pic }}" {{ request('pic_admin') == $pic ? 'selected' : '' }}>
+                                    {{ $pic }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="filter-actions" style="flex: 0 0 auto;">
+                        <button type="button" id="resetFilter"
+                                class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition flex items-center gap-2 text-sm">
+                            <x-lucide-refresh-cw class="w-4 h-4" />
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+
+        <!-- Results Info -->
+        <div id="resultsInfo" class="mb-4"></div>
+
+        <!-- Table Container with Loading Overlay -->
+        <div class="bg-white shadow rounded-lg loading-overlay" id="tableContainer">
+            <div class="loading-spinner">
+                <svg class="animate-spin h-8 w-8 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <div id="tableContent">
+                @include('penawaran.table-content', ['penawarans' => $penawarans, 'totalRecords' => $totalRecords])
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="paginationContent" class="mt-6">
+            {{ $penawarans->appends(request()->query())->links('penawaran.pagination') }}
         </div>
     </div>
 
-    <!-- Slide-over Form -->
+    <!-- Slide-over Form (tetap sama) -->
     <div id="formSlide" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden">
         <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-lg p-8 transition-transform transform translate-x-full"
             id="formPanel">
@@ -142,7 +219,7 @@
                     </svg>
                 </button>
             </div>
-            <form id="formPanel" method="POST" action="{{ route('penawaran.store') }}">
+            <form method="POST" action="{{ route('penawaran.store') }}">
                 @csrf
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">Perihal</label>
@@ -206,7 +283,7 @@
             formPanel.classList.add('translate-x-full');
             setTimeout(() => {
                 formSlide.classList.add('hidden');
-            }, 400); // Sesuaikan dengan durasi transition
+            }, 400);
         }
 
         closeForm.addEventListener('click', closeModal);
@@ -215,6 +292,213 @@
             if (e.target === formSlide) {
                 closeModal();
             }
+        });
+
+        // AJAX Filter Logic
+        let filterTimeout;
+        const tableContainer = document.getElementById('tableContainer');
+        const tableContent = document.getElementById('tableContent');
+        const resultsInfo = document.getElementById('resultsInfo');
+
+        function showLoading() {
+            tableContainer.classList.add('loading');
+        }
+
+        function hideLoading() {
+            tableContainer.classList.remove('loading');
+        }
+
+                // Add sort functionality
+        function attachSortListeners() {
+            document.querySelectorAll('.sort-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const column = this.getAttribute('data-column');
+                    const direction = this.getAttribute('data-direction');
+                    
+                    // Get current filter values
+                    const formData = new FormData(document.getElementById('filterForm'));
+                    const params = new URLSearchParams(formData);
+                    params.set('sort', column);
+                    params.set('direction', direction);
+                    
+                    showLoading();
+                    
+                    fetch(`{{ route('penawaran.filter') }}?${params.toString()}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        tableContent.innerHTML = data.table;
+                        resultsInfo.innerHTML = data.info;
+                        document.getElementById('paginationContent').innerHTML = data.pagination;
+                        hideLoading();
+
+                        // Re-attach all listeners
+                        attachPaginationListeners();
+                        attachSortListeners();
+
+                        // Update URL
+                        const newUrl = new URL(window.location);
+                        params.forEach((value, key) => {
+                            if (value) {
+                                newUrl.searchParams.set(key, value);
+                            } else {
+                                newUrl.searchParams.delete(key);
+                            }
+                        });
+                        window.history.pushState({}, '', newUrl.toString());
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        hideLoading();
+                    });
+                });
+            });
+        }
+
+        // Update existing functions to include sort listeners
+        function performFilter() {
+            showLoading();
+            
+            const formData = new FormData(document.getElementById('filterForm'));
+            const params = new URLSearchParams(formData);
+            
+            // Preserve current sort
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('sort')) {
+                params.set('sort', urlParams.get('sort'));
+            }
+            if (urlParams.get('direction')) {
+                params.set('direction', urlParams.get('direction'));
+            }
+
+            fetch(`{{ route('penawaran.filter') }}?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                tableContent.innerHTML = data.table;
+                resultsInfo.innerHTML = data.info;
+                document.getElementById('paginationContent').innerHTML = data.pagination;
+                hideLoading();
+
+                // Attach pagination event listeners
+                attachPaginationListeners();
+                attachSortListeners();
+
+                // Update URL tanpa refresh
+                const newUrl = new URL(window.location);
+                params.forEach((value, key) => {
+                    if (value) {
+                        newUrl.searchParams.set(key, value);
+                    } else {
+                        newUrl.searchParams.delete(key);
+                    }
+                });
+                window.history.pushState({}, '', newUrl.toString());
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                hideLoading();
+            });
+        }
+
+        function attachPaginationListeners() {
+            document.querySelectorAll('.pagination-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const url = new URL(this.href);
+                    const page = url.searchParams.get('page');
+                    
+                    // Add current filter values to pagination request
+                    const formData = new FormData(document.getElementById('filterForm'));
+                    const params = new URLSearchParams(formData);
+                    params.set('page', page);
+                    
+                    // Preserve sort
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('sort')) {
+                        params.set('sort', urlParams.get('sort'));
+                    }
+                    if (urlParams.get('direction')) {
+                        params.set('direction', urlParams.get('direction'));
+                    }
+
+                    showLoading();
+                    
+                    fetch(`{{ route('penawaran.filter') }}?${params.toString()}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        tableContent.innerHTML = data.table;
+                        resultsInfo.innerHTML = data.info;
+                        document.getElementById('paginationContent').innerHTML = data.pagination;
+                        hideLoading();
+
+                        // Re-attach listeners for new pagination
+                        attachPaginationListeners();
+                        attachSortListeners();
+
+                        // Update URL
+                        const newUrl = new URL(window.location);
+                        params.forEach((value, key) => {
+                            if (value) {
+                                newUrl.searchParams.set(key, value);
+                            } else {
+                                newUrl.searchParams.delete(key);
+                            }
+                        });
+                        window.history.pushState({}, '', newUrl.toString());
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        hideLoading();
+                    });
+                });
+            });
+        }
+
+        // Initial attachment
+        document.addEventListener('DOMContentLoaded', function() {
+            attachPaginationListeners();
+            attachSortListeners();
+        });
+
+        // Auto filter untuk text inputs
+        document.querySelectorAll('.filter-input').forEach(input => {
+            if (input.type === 'text') {
+                input.addEventListener('input', function() {
+                    clearTimeout(filterTimeout);
+                    filterTimeout = setTimeout(() => {
+                        performFilter();
+                    }, 800); // Delay 800ms untuk mengurangi request
+                });
+            } else {
+                // Langsung filter untuk date dan select
+                input.addEventListener('change', function() {
+                    performFilter();
+                });
+            }
+        });
+
+        // Reset filter
+        document.getElementById('resetFilter').addEventListener('click', function() {
+            document.getElementById('filterForm').reset();
+            performFilter();
         });
     </script>
 @endpush

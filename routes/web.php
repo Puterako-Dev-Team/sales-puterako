@@ -37,6 +37,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/save-best-price', [PenawaranController::class, 'saveBestPrice'])->name('penawaran.saveBestPrice');
         Route::post('/{id}/create-revision', [PenawaranController::class, 'createRevision'])->name('penawaran.createRevision');
         Route::post('/{id}/update-status', [PenawaranController::class, 'updateStatus'])->name('penawaran.updateStatus');
+        Route::get('/filter', [PenawaranController::class, 'filter'])->name('penawaran.filter');
+        Route::get('/datatable', [PenawaranController::class, 'datatable'])->name('penawaran.datatable');
     });
 
     // Jasa routes (protected)
