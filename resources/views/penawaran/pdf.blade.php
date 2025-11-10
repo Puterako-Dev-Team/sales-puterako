@@ -19,11 +19,11 @@
             height: 100px;
             text-align: center;
             z-index: 10;
-            width: 100%; 
+            width: 100%;
         }
 
         .pdf-header img {
-            width: 100%; 
+            width: 100%;
             max-width: 100%;
             max-height: 100px;
             object-fit: cover;
@@ -341,7 +341,10 @@
             @endif
 
             <p style="margin-top: 20px;"><strong>Perihal:</strong> {{ $penawaran->perihal }}</p>
-            <p><strong>No:</strong> {{ $penawaran->no_penawaran }}@if($activeVersion > 1)-Rev{{ $activeVersion }}@endif</p>
+            <p><strong>No:</strong> {{ $penawaran->no_penawaran }}@if ($activeVersion > 1)
+                    -Rev{{ $activeVersion }}
+                @endif
+            </p>
             <p class="greeting" style="margin-top: 20px;"><strong>Dengan Hormat,</strong></p>
             <p>Bersama ini kami PT. Puterako Inti Buana memberitahukan Penawaran Harga {{ $penawaran->perihal }} dengan
                 perincian sebagai berikut:</p>
@@ -429,7 +432,7 @@
                                         <span style="color:#3498db;font-weight:bold; font-style: italic;">by
                                             Mitra</span>
                                     @else
-                                        {{ number_format($row->harga_satuan, 0, ',', '.') }}
+                                        {{ $row->harga_satuan > 0 ? number_format($row->harga_satuan, 0, ',', '.') : '' }}
                                     @endif
                                 </td>
                                 <td>
@@ -437,7 +440,7 @@
                                         <span style="color:#3498db;font-weight:bold; font-style: italic;">by
                                             Mitra</span>
                                     @else
-                                        {{ number_format($row->harga_total, 0, ',', '.') }}
+                                        {{ $row->harga_total > 0 ? number_format($row->harga_total, 0, ',', '.') : '' }}
                                     @endif
                                 </td>
                             </tr>

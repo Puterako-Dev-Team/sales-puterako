@@ -615,12 +615,10 @@
                                                             <td class="border border-gray-300 px-3 py-2">
                                                                 {{ $row['satuan'] }}</td>
                                                             <td class="border border-gray-300 px-3 py-2 text-right">
-                                                                Rp
-                                                                {{ number_format($row['harga_satuan'], 0, ',', '.') }}
+                                                                {{ $row['harga_satuan'] > 0 ? 'Rp ' . number_format($row['harga_satuan'], 0, ',', '.') : '' }}
                                                             </td>
                                                             <td class="border border-gray-300 px-3 py-2 text-right">
-                                                                Rp
-                                                                {{ number_format($row['harga_total'], 0, ',', '.') }}
+                                                                {{ $row['harga_total'] > 0 ? 'Rp ' . number_format($row['harga_total'], 0, ',', '.') : '' }}
                                                             </td>
                                                         </tr>
                                                     @endforeach
