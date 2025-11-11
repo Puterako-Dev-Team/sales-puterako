@@ -940,12 +940,28 @@
                     function parseNumber(value) {
                         if (typeof value === "string") {
                             value = value.trim();
+                            
+                            // Handle currency format (Rp 123.456 atau Rp 123,456)
+                            if (value.includes('Rp')) {
+                                value = value.replace(/Rp\s?/g, ''); // Hapus 'Rp '
+                            }
+                            
+                            // Handle format Indonesia: titik sebagai pemisah ribuan, koma sebagai desimal
                             if (value.indexOf('.') !== -1 && value.indexOf(',') !== -1) {
                                 value = value.replace(/\./g, '').replace(/,/g, '.');
                             } else if (value.indexOf(',') !== -1) {
+                                // Jika hanya ada koma, anggap sebagai desimal
                                 value = value.replace(/,/g, '.');
                             } else {
-                                value = value.replace(/,/g, '');
+                                // Hapus titik jika digunakan sebagai pemisah ribuan
+                                const dotCount = (value.match(/\./g) || []).length;
+                                if (dotCount === 1 && value.indexOf('.') > value.length - 4) {
+                                    // Jika ada satu titik di 3 digit terakhir, anggap desimal
+                                    // Biarkan apa adanya
+                                } else {
+                                    // Hapus semua titik (pemisah ribuan)
+                                    value = value.replace(/\./g, '');
+                                }
                             }
                         }
                         const result = parseFloat(value) || 0;
@@ -1138,46 +1154,46 @@
                         ];
 
                         const sectionHTML = `
-    <div class="section-card p-4 mb-6 bg-white" id="${sectionId}">
-        <div class="flex justify-between items-center mb-3">
-            <div class="flex items-center gap-4">
-                <h3 class="text-lg font-bold text-gray-700">Section Jasa ${jasaSectionCounter}</h3>
-                <input type="text" class="nama-section-input border rounded px-3 py-1" 
-                    placeholder="Ex: Pekerjaan Instalasi" 
-                    value="${sectionData && sectionData.nama_section ? sectionData.nama_section : ''}">
-            </div>
-            <div class="flex items-center ml-4">
-                <label class="block text-sm font-semibold mr-2">Pembulatan:</label>
-                <input type="number" class="pembulatan-input border rounded px-3 py-1 w-48" 
-                    min="0" step="1" value="${sectionData && typeof sectionData.pembulatan !== 'undefined' ? sectionData.pembulatan : 0}">
-            </div>
-            <div class="flex gap-2">
-                <button class="flex items-center add-row-btn bg-[#02ADB8] text-white px-3 py-1 rounded hover:bg-blue-700 transition text-sm">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Tambah Baris
-                </button>
-                <button class="flex items-center delete-row-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700 transition text-sm">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Hapus Baris
-                </button>
-                <button class="delete-section-btn bg-white text-red-500 px-3 py-1 rounded hover:bg-red-500 hover:text-white transition text-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                </button>
-            </div>
-        </div>
+                        <div class="section-card p-4 mb-6 bg-white" id="${sectionId}">
+                            <div class="flex justify-between items-center mb-3">
+                                <div class="flex items-center gap-4">
+                                    <h3 class="text-lg font-bold text-gray-700">Section Jasa ${jasaSectionCounter}</h3>
+                                    <input type="text" class="nama-section-input border rounded px-3 py-1" 
+                                        placeholder="Ex: Pekerjaan Instalasi" 
+                                        value="${sectionData && sectionData.nama_section ? sectionData.nama_section : ''}">
+                                </div>
+                                <div class="flex items-center ml-4">
+                                    <label class="block text-sm font-semibold mr-2">Pembulatan:</label>
+                                    <input type="number" class="pembulatan-input border rounded px-3 py-1 w-48" 
+                                        min="0" step="1" value="${sectionData && typeof sectionData.pembulatan !== 'undefined' ? sectionData.pembulatan : 0}">
+                                </div>
+                                <div class="flex gap-2">
+                                    <button class="flex items-center add-row-btn bg-[#02ADB8] text-white px-3 py-1 rounded hover:bg-blue-700 transition text-sm">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Tambah Baris
+                                    </button>
+                                    <button class="flex items-center delete-row-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700 transition text-sm">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Hapus Baris
+                                    </button>
+                                    <button class="delete-section-btn bg-white text-red-500 px-3 py-1 rounded hover:bg-red-500 hover:text-white transition text-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                    </button>
+                                </div>
+                            </div>
 
-        <div class="spreadsheet-scroll-wrapper" style="overflow-x:auto;">
-            <div id="${spreadsheetId}"></div>
-        </div>
+                            <div class="spreadsheet-scroll-wrapper" style="overflow-x:auto;">
+                                <div id="${spreadsheetId}"></div>
+                            </div>
 
-        <div class="mt-3 flex items-start">
-            <div class="flex-1"></div>
-            <div class="w-full lg:w-56 flex flex-col items-end text-right space-y-1">
-                <div class="text-right font-semibold">Subtotal: Rp <span id="${sectionId}-subtotal">0</span></div>
-                <div class="text-sm">Profit: Rp <span class="${sectionId}-profit-val">0</span></div>
-                <div class="text-sm">PPH: Rp <span class="${sectionId}-pph-val">0</span></div>
-                <div class="text-sm">Pembulatan: Rp <span class="${sectionId}-pembulatan-val">0</span></div>
-            </div>
-        </div>
-    </div>`;
+                            <div class="mt-3 flex items-start">
+                                <div class="flex-1"></div>
+                                <div class="w-full lg:w-56 flex flex-col items-end text-right space-y-1">
+                                    <div class="text-right font-semibold">Subtotal: Rp <span id="${sectionId}-subtotal">0</span></div>
+                                    <div class="text-sm">Profit: Rp <span class="${sectionId}-profit-val">0</span></div>
+                                    <div class="text-sm">PPH: Rp <span class="${sectionId}-pph-val">0</span></div>
+                                    <div class="text-sm">Pembulatan: Rp <span class="${sectionId}-pembulatan-val">0</span></div>
+                                </div>
+                            </div>
+                        </div>`;
 
                         document.getElementById('jasaSectionsContainer').insertAdjacentHTML('beforeend', sectionHTML);
 
@@ -1210,13 +1226,17 @@
                                 {
                                     title: 'Unit',
                                     width: 100,
-                                    type: 'numeric'
+                                    type: 'numeric',
+                                    mask: 'Rp #.##0',
+                                    decimal: ',',
                                 },
                                 {
                                     title: 'Total',
                                     width: 120,
                                     type: 'numeric',
-                                    readOnly: true
+                                    readOnly: true,
+                                    mask: 'Rp #.##0',
+                                    decimal: ',',
                                 },
                             ],
                             tableOverflow: true,
@@ -1643,61 +1663,43 @@
 
                         const spreadsheet = jspreadsheet(document.getElementById(spreadsheetId), {
                             data: initialData,
-                            columns: [{
-                                    title: 'No',
-                                    width: 60
-                                },
-                                {
-                                    title: 'Tipe',
-                                    width: 150,
-                                    wordWrap: true
-                                },
-                                {
-                                    title: 'Deskripsi',
-                                    width: 300,
-                                    wordWrap: true
-                                },
-                                {
-                                    title: 'QTY',
-                                    width: 100,
-                                    type: 'numeric'
-                                },
-                                {
-                                    title: 'Satuan',
-                                    width: 100
-                                },
+                            columns: [
+                                { title: 'No', width: 60 },
+                                { title: 'Tipe', width: 150, wordWrap: true },
+                                { title: 'Deskripsi', width: 300, wordWrap: true },
+                                { title: 'QTY', width: 100, type: 'numeric' },
+                                { title: 'Satuan', width: 100 },
                                 {
                                     title: 'Harga Satuan',
                                     width: 150,
                                     type: 'numeric',
                                     readOnly: true,
-
+                                    mask: 'Rp #.##0',
+                                    decimal: ','
                                 },
                                 {
                                     title: 'Harga Total',
                                     width: 150,
                                     type: 'numeric',
                                     readOnly: true,
-
+                                    mask: 'Rp #.##0',
+                                    decimal: ','
                                 },
                                 {
                                     title: 'HPP',
                                     width: 100,
                                     type: 'numeric',
-
+                                    mask: 'Rp #.##0',
+                                    decimal: ','
                                 },
-                                {
-                                    title: 'Mitra',
-                                    width: 80,
-                                    type: 'checkbox'
-                                },
+                                { title: 'Mitra', width: 80, type: 'checkbox' },
                                 {
                                     title: 'Added Cost',
                                     width: 120,
                                     type: 'numeric',
-
+                                    mask: 'Rp #.##0',
+                                    decimal: ','
                                 }
-
                             ],
                             tableOverflow: true,
                             tableWidth: '100%',
