@@ -41,8 +41,8 @@ class PenawaranController extends Controller
         }
 
         // Sorting
-        $sortColumn = $request->get('sort', 'id_penawaran');
-        $sortDirection = $request->get('direction', 'desc');
+        $sortColumn = $request->get('sort', 'created_at');
+        $sortDirection = $request->get('direction', 'asc');
         
         // Validasi kolom yang bisa di-sort
         $allowedSorts = ['id_penawaran', 'created_at', 'no_penawaran', 'perihal', 'nama_perusahaan', 'pic_perusahaan', 'pic_admin', 'status'];
@@ -97,8 +97,8 @@ class PenawaranController extends Controller
         }
 
         // Sorting
-        $sortColumn = $request->get('sort', 'id_penawaran');
-        $sortDirection = $request->get('direction', 'desc');
+        $sortColumn = $request->get('sort', 'created_at');
+        $sortDirection = $request->get('direction', 'asc');
         
         // Validasi kolom yang bisa di-sort
         $allowedSorts = ['id_penawaran', 'created_at', 'no_penawaran', 'perihal', 'nama_perusahaan', 'pic_perusahaan', 'pic_admin', 'status'];
