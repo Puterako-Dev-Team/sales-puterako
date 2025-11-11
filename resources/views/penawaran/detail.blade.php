@@ -506,7 +506,7 @@
                         <div class="mb-6">
                             <p class="mb-1">
                                 <span class="font-semibold">Surabaya,</span>
-                                {{ \Carbon\Carbon::parse($penawaran->created_at ?? now())->locale('id')->translatedFormat('F Y') }}
+                                {{ \Carbon\Carbon::parse($penawaran->created_at ?? now())->locale('id')->translatedFormat('d F Y') }}
                             </p>
                             <p class="mb-4">
                                 <span class="font-semibold">Kepada Yth:</span><br>
