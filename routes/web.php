@@ -6,6 +6,7 @@ use App\Http\Controllers\JasaDetailController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PenawaranController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\MitraController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -47,5 +48,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/save', [JasaController::class, 'save'])->name('jasa.save');
         Route::post('/save-ringkasan/{id_penawaran}', [JasaController::class, 'saveRingkasan'])->name('jasa.saveRingkasan');
     });
-});
 
+    // Mitra routes (protected)
+    Route::prefix('mitra')->group(function () {
+        Route::get('/list', [MitraController::class, 'index'])->name('mitra.list');
+        Route::get('/filter', [MitraController::class, 'filter'])->name('mitra.filter');
+        Route::post('/store', [MitraController::class, 'store'])->name('mitra.store');
+    });
+
+});
