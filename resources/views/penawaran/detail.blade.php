@@ -893,7 +893,7 @@
                     let jasaInitialSections = [];
                     let jasaProfit = 0;
                     let jasaPph = 0;
-                    let jasaIsEditMode = true;
+                    let jasaIsEditMode = false;
                     let jasaHasExistingData = false;
 
                     // =====================================================
@@ -974,16 +974,17 @@
 
                     // Paste kode ini ke dalam tag <script> di bagian FUNGSI JASA
 
+                    const jasaDetailUrl = "{{ route('jasa.detail') }}";
+
                     function loadJasaData() {
                         const penawaranId = {{ $penawaran->id_penawaran }};
 
-                        fetch(`/jasa/detail?id=${penawaranId}&version=${activeVersion}`)
+                        fetch(`${jasaDetailUrl}?id=${penawaranId}&version=${activeVersion}`)
                             .then(res => {
                                 if (!res.ok) throw new Error('Network response was not ok');
                                 return res.json();
                             })
                             .then(data => {
-                                console.log('🟢 Response dari /jasa/detail:', data);
                                 jasaInitialSections = data.sections || [];
                                 jasaProfit = data.profit || 0;
                                 jasaPph = data.pph || 0;
@@ -993,7 +994,7 @@
                                 document.getElementById('jasaPphInput').value = jasaPph;
 
                                 if (jasaHasExistingData) {
-                                    // Tambahkan ID detail ke setiap row
+                                    // VIEW MODE
                                     jasaInitialSections.forEach(section => {
                                         if (section.data && Array.isArray(section.data)) {
                                             section.data = section.data.map(row => ({
@@ -1003,32 +1004,21 @@
                                         }
                                         createJasaSection(section, false);
                                     });
-                                    jasaIsEditMode = false;
                                     toggleJasaEditMode(false);
-                                    document.getElementById('jasaEditModeBtn').classList.remove('hidden');
-                                    document.getElementById('jasaCancelEditBtn').classList.add('hidden');
-
-                                    console.log('🔒 Mode: VIEW (jasa data exists)');
                                 } else {
+                                    // NEW DATA → langsung EDIT MODE + buat 1 section kosong
                                     createJasaSection(null, true);
-                                    jasaIsEditMode = true;
                                     toggleJasaEditMode(true);
-                                    document.getElementById('jasaEditModeBtn').classList.add('hidden');
-                                    document.getElementById('jasaCancelEditBtn').classList.remove('hidden');
-
-                                    console.log('✏️ Mode: EDIT (new jasa data)');
                                 }
                             })
-                            .catch(error => {
+                            .catch(err => {
+                                console.error('Load jasa failed:', err);
+                                // Anggap tidak ada data → langsung NEW (edit)
                                 if (jasaSections.length === 0) {
                                     createJasaSection(null, true);
-                                    jasaIsEditMode = true;
-                                    toggleJasaEditMode(true);
-                                    document.getElementById('jasaEditModeBtn').classList.add('hidden');
-                                    document.getElementById('jasaCancelEditBtn').classList.remove('hidden');
-                                    document.getElementById('jasaSaveAllBtn').classList.remove('hidden');
-                                    console.log('✏️ Mode: EDIT (first create jasa data)');
                                 }
+                                jasaHasExistingData = false;
+                                toggleJasaEditMode(true);
                             });
                     }
 
@@ -1037,12 +1027,12 @@
                     });
 
                     document.getElementById('jasaEditModeBtn').addEventListener('click', () => {
-                        toggleJasaEditMode(true);
-                        jasaIsEditMode = true;
-                        document.getElementById('jasaEditModeBtn').classList.add('hidden');
-                        document.getElementById('jasaCancelEditBtn').classList.remove('hidden');
-                        document.getElementById('jasaSaveAllBtn').classList.remove('hidden');
-                    });
+                    if (jasaSections.length === 0) {
+                        // buat satu section kosong ketika belum ada data
+                        createJasaSection(null, true);
+                    }
+                    toggleJasaEditMode(true);
+                });
 
                     document.getElementById('jasaCancelEditBtn').addEventListener('click', () => {
                         if (confirm('Batalkan perubahan dan kembali ke mode view?')) {
@@ -1053,11 +1043,27 @@
                     function toggleJasaEditMode(enable) {
                         jasaIsEditMode = enable;
 
+                        const btnEdit   = document.getElementById('jasaEditModeBtn');
+                        const btnCancel = document.getElementById('jasaCancelEditBtn');
+                        const btnSave   = document.getElementById('jasaSaveAllBtn');
+                        const btnAdd    = document.getElementById('jasaAddSectionBtn');
+
+                        if (jasaHasExistingData) {
+                            btnEdit.classList.toggle('hidden', enable);
+                            btnCancel.classList.toggle('hidden', !enable);
+                        } else {
+                            // Tidak ada data → tidak perlu tombol Edit / Batal
+                            btnEdit.classList.add('hidden');
+                            btnCancel.classList.add('hidden');
+                        }
+
+                        // Save selalu tampil (sama seperti Penawaran)
+                        btnSave.classList.remove('hidden');
+                        // Add Section hanya saat edit
+                        btnAdd.classList.toggle('hidden', !enable);
+
                         document.getElementById('jasaProfitInput').disabled = !enable;
                         document.getElementById('jasaPphInput').disabled = !enable;
-
-                        // Tampilkan tombol tambah section jasa hanya saat edit
-                        document.getElementById('jasaAddSectionBtn').classList.toggle('hidden', !enable);
 
                         jasaSections.forEach(section => {
                             const sectionElement = document.getElementById(section.id);
@@ -1066,21 +1072,30 @@
                             const addRowBtn = sectionElement.querySelector('.add-row-btn');
                             const deleteSectionBtn = sectionElement.querySelector('.delete-section-btn');
                             const pembulatanInput = sectionElement.querySelector('.pembulatan-input');
-                            pembulatanInput.addEventListener('input', updateJasaOverallSummary);
 
-                            if (enable) {
-                                spreadsheetWrapper.classList.remove('spreadsheet-disabled');
-                                section.spreadsheet.options.editable = true;
-                            } else {
-                                spreadsheetWrapper.classList.add('spreadsheet-disabled');
-                                section.spreadsheet.options.editable = false;
-                            }
+                            spreadsheetWrapper.classList.toggle('spreadsheet-disabled', !enable);
+                            section.spreadsheet.options.editable = enable;
 
                             namaSectionInput.disabled = !enable;
                             addRowBtn.classList.toggle('hidden', !enable);
                             deleteSectionBtn.classList.toggle('hidden', !enable);
+
+                            if (!pembulatanInput._binded) {
+                                pembulatanInput.addEventListener('input', updateJasaOverallSummary);
+                                pembulatanInput._binded = true;
+                            }
                         });
                     }
+
+                    document.getElementById('jasaEditModeBtn').addEventListener('click', () => {
+                        toggleJasaEditMode(true);
+                    });
+
+                    document.getElementById('jasaCancelEditBtn').addEventListener('click', () => {
+                        if (confirm('Batalkan perubahan dan kembali ke mode view?')) {
+                            window.location.reload();
+                        }
+                    });
 
                     function recalcJasaRow(spreadsheet, rowIndex) {
                         // Ambil data fresh dari spreadsheet
