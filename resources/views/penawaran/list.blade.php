@@ -210,7 +210,7 @@
         <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-lg p-8 transition-transform transform translate-x-full"
             id="formPanel">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">Tambah Penawaran</h2>
+                <h2 id="formTitle" class="text-xl font-bold">Tambah Penawaran</h2>
                 <button id="closeForm" class="text-gray-500 hover:text-gray-700">
                     <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-x" width="24" height="24"
                         fill="none" stroke="currentColor" stroke-width="2">
@@ -219,37 +219,40 @@
                     </svg>
                 </button>
             </div>
-            <form method="POST" action="{{ route('penawaran.store') }}">
+            <form id="penawaranForm" method="POST" action="{{ route('penawaran.store') }}">
                 @csrf
+                <input type="hidden" id="methodField" name="_method" value=""> {{-- diisi PUT saat edit --}}
+                <input type="hidden" id="editId" value="">
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">Perihal</label>
-                    <input type="text" name="perihal" class="w-full border rounded px-3 py-2 text-sm" required>
+                    <input type="text" name="perihal" id="f_perihal" class="w-full border rounded px-3 py-2 text-sm" required>
                 </div>
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">Nama Perusahaan</label>
-                    <input type="text" name="nama_perusahaan" class="w-full border rounded px-3 py-2 text-sm" required>
+                    <input type="text" name="nama_perusahaan" id="f_nama_perusahaan" class="w-full border rounded px-3 py-2 text-sm" required>
                 </div>
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">Lokasi</label>
-                    <input type="text" name="lokasi" class="w-full border rounded px-3 py-2 text-sm" required>
+                    <input type="text" name="lokasi" id="f_lokasi" class="w-full border rounded px-3 py-2 text-sm" required>
                 </div>
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">PIC Perusahaan</label>
-                    <input type="text" name="pic_perusahaan" class="w-full border rounded px-3 py-2 text-sm" required>
+                    <input type="text" name="pic_perusahaan" id="f_pic_perusahaan" class="w-full border rounded px-3 py-2 text-sm" required>
                 </div>
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">PIC Admin</label>
-                    <input type="text" name="pic_admin" class="w-full border rounded px-3 py-2 text-sm"
+                    <input type="text" name="pic_admin" id="f_pic_admin" class="w-full border rounded px-3 py-2 text-sm"
                         value="{{ Auth::user()->name }}" required>
                 </div>
-                <div class="mb-4">
+                <div class="mb-4 add-only" id="noPenawaranGroup">
                     <label class="block mb-1 font-medium text-sm">No Penawaran</label>
                     <div class="flex items-center space-x-2">
                         <span
                             class="text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded border">PIB/SS-SBY/JK/{{ Auth::id() }}-</span>
-                        <input type="text" name="no_penawaran_suffix" class="flex-1 border rounded px-3 py-2 text-sm"
-                            placeholder="VII/2025" required>
+                        <input type="text" name="no_penawaran_suffix" id="f_no_penawaran_suffix"
+                            class="flex-1 border rounded px-3 py-2 text-sm" placeholder="VII/2025">
                     </div>
+                    <p class="text-xs text-gray-500 mt-1">Otomatis dibuat saat tambah. Disembunyikan saat edit.</p>
                 </div>
                 <div class="absolute bottom-0 left-0 w-full p-4 bg-white border-t">
                     <button type="submit"
@@ -260,245 +263,339 @@
             </form>
         </div>
     </div>
+
+    <!-- Modal Konfirmasi Hapus -->
+    <div id="confirmModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+        <div class="bg-white rounded shadow p-6 w-full max-w-sm">
+            <h3 class="text-lg font-semibold mb-2">Hapus Penawaran?</h3>
+            <p class="text-sm text-gray-600 mb-4">Data akan dihapus sementara (soft delete) dan bisa dipulihkan.</p>
+            <div class="flex justify-end gap-3">
+                <button id="btnCancelDelete" class="px-4 py-2 border rounded text-sm">Batal</button>
+                <button id="btnConfirmDelete" class="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
-    <script>
-        // Slide-over logic
-        const btnTambah = document.getElementById('btnTambah');
-        const formSlide = document.getElementById('formSlide');
-        const formPanel = document.getElementById('formPanel');
-        const closeForm = document.getElementById('closeForm');
+<script>
+/* ================== KONFIG DASAR ================== */
+const CSRF_TOKEN = '{{ csrf_token() }}';
+const ROUTES = {
+    store: "{{ route('penawaran.store') }}",
+    filter: "{{ route('penawaran.filter') }}",
+    base: "{{ url('penawaran') }}"
+};
+const NO_PREFIX = "PIB/SS-SBY/JK/{{ Auth::id() }}-";
 
-        btnTambah.addEventListener('click', function() {
-            formSlide.classList.remove('hidden');
-            setTimeout(() => {
-                formPanel.classList.remove('translate-x-full');
-                formPanel.classList.add('translate-x-0');
-            }, 10);
-        });
+/* ================== ELEMEN FORM / MODAL ================== */
+const btnTambah          = document.getElementById('btnTambah');
+const formSlide          = document.getElementById('formSlide');
+const formPanel          = document.getElementById('formPanel');
+const closeFormBtn       = document.getElementById('closeForm');
+const penawaranForm      = document.getElementById('penawaranForm');
+const methodField        = document.getElementById('methodField');
+const editIdField        = document.getElementById('editId');
+const formTitle          = document.getElementById('formTitle');
+const grpNoPenawaran     = document.getElementById('noPenawaranGroup');
 
-        function closeModal() {
-            formPanel.classList.remove('translate-x-0');
-            formPanel.classList.add('translate-x-full');
-            setTimeout(() => {
-                formSlide.classList.add('hidden');
-            }, 400);
+const f_perihal          = document.getElementById('f_perihal');
+const f_nama_perusahaan  = document.getElementById('f_nama_perusahaan');
+const f_lokasi           = document.getElementById('f_lokasi');
+const f_pic_perusahaan   = document.getElementById('f_pic_perusahaan');
+const f_pic_admin        = document.getElementById('f_pic_admin');
+const f_no_suffix        = document.getElementById('f_no_penawaran_suffix');
+
+/* ================== MODAL HAPUS ================== */
+const confirmModal       = document.getElementById('confirmModal');
+const btnCancelDelete    = document.getElementById('btnCancelDelete');
+const btnConfirmDelete   = document.getElementById('btnConfirmDelete');
+let deleteTargetId = null;
+
+/* ================== TABLE / FILTER ================== */
+const tableContainer = document.getElementById('tableContainer');
+const tableContent   = document.getElementById('tableContent');
+const paginationWrap = document.getElementById('paginationContent');
+const resultsInfo    = document.getElementById('resultsInfo');
+let filterTimeoutId;
+
+/* ================== UTIL ================== */
+function toastSafe(payload){
+    if (window.toast) toast(payload); else console.log(payload);
+}
+function showLoading(){ tableContainer.classList.add('loading'); }
+function hideLoading(){ tableContainer.classList.remove('loading'); }
+function currentUrlParams(){
+    return new URLSearchParams(window.location.search);
+}
+function pushUrl(params){
+    const url = new URL(window.location);
+    // bersihkan dulu
+    [...url.searchParams.keys()].forEach(k=>url.searchParams.delete(k));
+    params.forEach((v,k)=>{ if(v) url.searchParams.set(k,v); });
+    window.history.pushState({}, '', url.toString());
+}
+
+/* ================== SLIDE FORM ================== */
+function openSlide(){
+    formSlide.classList.remove('hidden');
+    requestAnimationFrame(()=>{
+        formPanel.classList.remove('translate-x-full');
+        formPanel.classList.add('translate-x-0');
+    });
+}
+function closeSlide(){
+    formPanel.classList.remove('translate-x-0');
+    formPanel.classList.add('translate-x-full');
+    setTimeout(()=>formSlide.classList.add('hidden'), 350);
+}
+function resetForm(){
+    penawaranForm.reset();
+    methodField.value = '';
+    editIdField.value = '';
+    f_pic_admin.value = "{{ Auth::user()->name }}";
+}
+function setupAdd(){
+    resetForm();
+    formTitle.textContent = 'Tambah Penawaran';
+    grpNoPenawaran.classList.remove('hidden');
+    penawaranForm.dataset.mode = 'add';
+    penawaranForm.action = ROUTES.store;
+    openSlide();
+}
+function setupEdit(id){
+    fetch(`${ROUTES.base}/${id}/edit`, {
+        headers:{'X-Requested-With':'XMLHttpRequest'}
+    })
+    .then(r => {
+        if(!r.ok) throw new Error('Gagal load data');
+        return r.json();
+    })
+    .then(d => {
+        formTitle.textContent = 'Edit Penawaran';
+        penawaranForm.dataset.mode = 'edit';
+        penawaranForm.action = `${ROUTES.base}/${id}`;
+        methodField.value = 'PUT';
+        editIdField.value = id;
+
+        // isi field
+        f_perihal.value         = d.perihal ?? '';
+        f_nama_perusahaan.value = d.nama_perusahaan ?? '';
+        f_lokasi.value          = d.lokasi ?? '';
+        f_pic_perusahaan.value  = d.pic_perusahaan ?? '';
+        f_pic_admin.value       = d.pic_admin ?? "{{ Auth::user()->name }}";
+        f_no_suffix.value       = ''; // tidak dipakai saat edit
+
+        grpNoPenawaran.classList.add('hidden');
+        openSlide();
+    })
+    .catch(e=>{
+        toastSafe({type:'error',title:'Error',message:e.message});
+    });
+}
+
+/* ================== SUBMIT FORM (AJAX) ================== */
+penawaranForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    const mode = penawaranForm.dataset.mode || 'add';
+
+    const fd = new FormData(penawaranForm);
+
+    if(mode === 'add'){
+        // backend mungkin butuh no_penawaran lengkap
+        const suffix = (f_no_suffix.value || '').trim();
+        if(suffix){
+            fd.append('no_penawaran', NO_PREFIX + suffix);
         }
+    } else {
+        // Edit: pastikan method override
+        fd.append('_method','PUT');
+    }
 
-        closeForm.addEventListener('click', closeModal);
+    // Disable submit
+    const submitBtn = penawaranForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-70','cursor-not-allowed');
 
-        formSlide.addEventListener('click', function(e) {
-            if (e.target === formSlide) {
-                closeModal();
-            }
-        });
-
-        // AJAX Filter Logic
-        let filterTimeout;
-        const tableContainer = document.getElementById('tableContainer');
-        const tableContent = document.getElementById('tableContent');
-        const resultsInfo = document.getElementById('resultsInfo');
-
-        function showLoading() {
-            tableContainer.classList.add('loading');
+    fetch(penawaranForm.action, {
+        method: 'POST',
+        headers:{
+            'X-CSRF-TOKEN': CSRF_TOKEN,
+            'X-Requested-With':'XMLHttpRequest'
+        },
+        body: fd
+    })
+    .then(r => r.json().catch(()=>({})))
+    .then(res => {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-70','cursor-not-allowed');
+        closeSlide();
+        performFilter(); // reload tabel
+        if(res.notify){
+            toastSafe(res.notify);
+        } else {
+            toastSafe({type:'success',title:'Sukses',message: mode==='add'?'Penawaran ditambahkan':'Penawaran diperbarui'});
         }
+    })
+    .catch(err=>{
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-70','cursor-not-allowed');
+        toastSafe({type:'error',title:'Error',message:'Gagal simpan data'});
+    });
+});
 
-        function hideLoading() {
-            tableContainer.classList.remove('loading');
-        }
+/* ================== HAPUS (SOFT DELETE) ================== */
+function openConfirmDelete(id){
+    deleteTargetId = id;
+    confirmModal.classList.remove('hidden');
+    confirmModal.classList.add('flex');
+}
+function closeConfirmDelete(){
+    confirmModal.classList.add('hidden');
+    confirmModal.classList.remove('flex');
+    deleteTargetId = null;
+}
+btnCancelDelete.addEventListener('click', closeConfirmDelete);
+confirmModal.addEventListener('click', e=>{
+    if(e.target === confirmModal) closeConfirmDelete();
+});
+btnConfirmDelete.addEventListener('click', ()=>{
+    if(!deleteTargetId) return;
+    fetch(`${ROUTES.base}/${deleteTargetId}`, {
+        method:'POST',
+        headers:{
+            'X-CSRF-TOKEN': CSRF_TOKEN,
+            'X-Requested-With':'XMLHttpRequest',
+            'Accept':'application/json'
+        },
+        body: new URLSearchParams({_method:'DELETE'})
+    })
+    .then(r=>r.json().catch(()=>({})))
+    .then(res=>{
+        closeConfirmDelete();
+        performFilter();
+        toastSafe(res.notify ?? {type:'success',title:'Berhasil',message:'Penawaran dihapus (soft)'});
+    })
+    .catch(()=>{
+        closeConfirmDelete();
+        performFilter();
+        toastSafe({type:'error',title:'Error',message:'Gagal hapus'});
+    });
+});
 
-                // Add sort functionality
-        function attachSortListeners() {
-            document.querySelectorAll('.sort-button').forEach(button => {
-                button.addEventListener('click', function() {
-                    const column = this.getAttribute('data-column');
-                    const direction = this.getAttribute('data-direction');
-                    
-                    // Get current filter values
-                    const formData = new FormData(document.getElementById('filterForm'));
-                    const params = new URLSearchParams(formData);
-                    params.set('sort', column);
-                    params.set('direction', direction);
-                    
-                    showLoading();
-                    
-                    fetch(`{{ route('penawaran.filter') }}?${params.toString()}`, {
-                        method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'application/json'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        tableContent.innerHTML = data.table;
-                        resultsInfo.innerHTML = data.info;
-                        document.getElementById('paginationContent').innerHTML = data.pagination;
-                        hideLoading();
+/* ================== EVENT DELEGATION UNTUK EDIT / HAPUS ================== */
+document.addEventListener('click', e=>{
+    const editBtn = e.target.closest('.btn-edit');
+    if(editBtn){
+        e.preventDefault();
+        setupEdit(editBtn.dataset.id);
+        return;
+    }
+    const delBtn = e.target.closest('.btn-delete');
+    if(delBtn){
+        e.preventDefault();
+        openConfirmDelete(delBtn.dataset.id);
+    }
+});
 
-                        // Re-attach all listeners
-                        attachPaginationListeners();
-                        attachSortListeners();
-
-                        // Update URL
-                        const newUrl = new URL(window.location);
-                        params.forEach((value, key) => {
-                            if (value) {
-                                newUrl.searchParams.set(key, value);
-                            } else {
-                                newUrl.searchParams.delete(key);
-                            }
-                        });
-                        window.history.pushState({}, '', newUrl.toString());
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        hideLoading();
-                    });
-                });
-            });
-        }
-
-        // Update existing functions to include sort listeners
-        function performFilter() {
-            showLoading();
-            
+/* ================== FILTER / SORT / PAGINATION (AJAX) ================== */
+function attachSortListeners(){
+    document.querySelectorAll('.sort-button').forEach(btn=>{
+        btn.addEventListener('click', function(){
+            const column = this.dataset.column;
+            const direction = this.dataset.direction;
             const formData = new FormData(document.getElementById('filterForm'));
             const params = new URLSearchParams(formData);
-            
-            // Preserve current sort
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('sort')) {
-                params.set('sort', urlParams.get('sort'));
-            }
-            if (urlParams.get('direction')) {
-                params.set('direction', urlParams.get('direction'));
-            }
+            params.set('sort', column);
+            params.set('direction', direction);
+            fetchList(params);
+        });
+    });
+}
+function attachPaginationListeners(){
+    document.querySelectorAll('.pagination-link').forEach(a=>{
+        a.addEventListener('click', function(ev){
+            ev.preventDefault();
+            const url = new URL(this.href);
+            const page = url.searchParams.get('page') || 1;
+            const formData = new FormData(document.getElementById('filterForm'));
+            const params = new URLSearchParams(formData);
+            params.set('page', page);
 
-            fetch(`{{ route('penawaran.filter') }}?${params.toString()}`, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                tableContent.innerHTML = data.table;
-                resultsInfo.innerHTML = data.info;
-                document.getElementById('paginationContent').innerHTML = data.pagination;
-                hideLoading();
+            // keep sort
+            const cur = currentUrlParams();
+            if(cur.get('sort')) params.set('sort', cur.get('sort'));
+            if(cur.get('direction')) params.set('direction', cur.get('direction'));
 
-                // Attach pagination event listeners
-                attachPaginationListeners();
-                attachSortListeners();
-
-                // Update URL tanpa refresh
-                const newUrl = new URL(window.location);
-                params.forEach((value, key) => {
-                    if (value) {
-                        newUrl.searchParams.set(key, value);
-                    } else {
-                        newUrl.searchParams.delete(key);
-                    }
-                });
-                window.history.pushState({}, '', newUrl.toString());
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                hideLoading();
-            });
+            fetchList(params);
+        });
+    });
+}
+function fetchList(params){
+    showLoading();
+    fetch(`${ROUTES.filter}?${params.toString()}`, {
+        headers:{
+            'X-Requested-With':'XMLHttpRequest',
+            'Accept':'application/json'
         }
+    })
+    .then(r=>r.json())
+    .then(data=>{
+        tableContent.innerHTML = data.table;
+        paginationWrap.innerHTML = data.pagination;
+        if(resultsInfo) resultsInfo.innerHTML = data.info || '';
+        hideLoading();
+        attachPaginationListeners();
+        attachSortListeners();
+        pushUrl(params);
+    })
+    .catch(e=>{
+        console.error(e);
+        hideLoading();
+    });
+}
+function performFilter(){
+    const formData = new FormData(document.getElementById('filterForm'));
+    const params = new URLSearchParams(formData);
+    // keep sort
+    const cur = currentUrlParams();
+    if(cur.get('sort')) params.set('sort', cur.get('sort'));
+    if(cur.get('direction')) params.set('direction', cur.get('direction'));
+    fetchList(params);
+}
 
-        function attachPaginationListeners() {
-            document.querySelectorAll('.pagination-link').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    const url = new URL(this.href);
-                    const page = url.searchParams.get('page');
-                    
-                    // Add current filter values to pagination request
-                    const formData = new FormData(document.getElementById('filterForm'));
-                    const params = new URLSearchParams(formData);
-                    params.set('page', page);
-                    
-                    // Preserve sort
-                    const urlParams = new URLSearchParams(window.location.search);
-                    if (urlParams.get('sort')) {
-                        params.set('sort', urlParams.get('sort'));
-                    }
-                    if (urlParams.get('direction')) {
-                        params.set('direction', urlParams.get('direction'));
-                    }
-
-                    showLoading();
-                    
-                    fetch(`{{ route('penawaran.filter') }}?${params.toString()}`, {
-                        method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'application/json'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        tableContent.innerHTML = data.table;
-                        resultsInfo.innerHTML = data.info;
-                        document.getElementById('paginationContent').innerHTML = data.pagination;
-                        hideLoading();
-
-                        // Re-attach listeners for new pagination
-                        attachPaginationListeners();
-                        attachSortListeners();
-
-                        // Update URL
-                        const newUrl = new URL(window.location);
-                        params.forEach((value, key) => {
-                            if (value) {
-                                newUrl.searchParams.set(key, value);
-                            } else {
-                                newUrl.searchParams.delete(key);
-                            }
-                        });
-                        window.history.pushState({}, '', newUrl.toString());
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        hideLoading();
-                    });
-                });
-            });
-        }
-
-        // Initial attachment
-        document.addEventListener('DOMContentLoaded', function() {
-            attachPaginationListeners();
-            attachSortListeners();
+/* ================== FILTER INPUT LISTENERS ================== */
+document.querySelectorAll('#filterForm .filter-input').forEach(el=>{
+    if(el.type === 'text'){
+        el.addEventListener('input', ()=>{
+            clearTimeout(filterTimeoutId);
+            filterTimeoutId = setTimeout(()=>performFilter(), 700);
         });
+    } else {
+        el.addEventListener('change', performFilter);
+    }
+});
+const resetBtn = document.getElementById('resetFilter');
+if(resetBtn){
+    resetBtn.addEventListener('click', ()=>{
+        document.getElementById('filterForm').reset();
+        performFilter();
+    });
+}
 
-        // Auto filter untuk text inputs
-        document.querySelectorAll('.filter-input').forEach(input => {
-            if (input.type === 'text') {
-                input.addEventListener('input', function() {
-                    clearTimeout(filterTimeout);
-                    filterTimeout = setTimeout(() => {
-                        performFilter();
-                    }, 800); // Delay 800ms untuk mengurangi request
-                });
-            } else {
-                // Langsung filter untuk date dan select
-                input.addEventListener('change', function() {
-                    performFilter();
-                });
-            }
-        });
+/* ================== OPEN / CLOSE FORM BUTTONS ================== */
+btnTambah.addEventListener('click', setupAdd);
+closeFormBtn.addEventListener('click', closeSlide);
+formSlide.addEventListener('click', e=>{
+    if(e.target === formSlide) closeSlide();
+});
 
-        // Reset filter
-        document.getElementById('resetFilter').addEventListener('click', function() {
-            document.getElementById('filterForm').reset();
-            performFilter();
-        });
-    </script>
+/* ================== INIT ================== */
+document.addEventListener('DOMContentLoaded', ()=>{
+    attachPaginationListeners();
+    attachSortListeners();
+});
+</script>
 @endpush

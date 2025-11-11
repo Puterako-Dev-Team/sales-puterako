@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Penawaran;
 use App\Models\PenawaranDetail;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -43,7 +44,7 @@ class PenawaranController extends Controller
         // Sorting
         $sortColumn = $request->get('sort', 'created_at');
         $sortDirection = $request->get('direction', 'asc');
-        
+
         // Validasi kolom yang bisa di-sort
         $allowedSorts = ['id_penawaran', 'created_at', 'no_penawaran', 'perihal', 'nama_perusahaan', 'pic_perusahaan', 'pic_admin', 'status'];
         if (!in_array($sortColumn, $allowedSorts)) {
@@ -54,10 +55,10 @@ class PenawaranController extends Controller
 
         // Ambil data dengan pagination
         $penawarans = $query->paginate(10)->appends($request->query());
-        
+
         // Untuk info hasil filter
         $totalRecords = \App\Models\Penawaran::count();
-        
+
         // Ambil daftar PIC Admin untuk dropdown
         $picAdmins = \App\Models\Penawaran::distinct('pic_admin')
             ->whereNotNull('pic_admin')
@@ -99,7 +100,7 @@ class PenawaranController extends Controller
         // Sorting
         $sortColumn = $request->get('sort', 'created_at');
         $sortDirection = $request->get('direction', 'asc');
-        
+
         // Validasi kolom yang bisa di-sort
         $allowedSorts = ['id_penawaran', 'created_at', 'no_penawaran', 'perihal', 'nama_perusahaan', 'pic_perusahaan', 'pic_admin', 'status'];
         if (!in_array($sortColumn, $allowedSorts)) {
@@ -112,10 +113,10 @@ class PenawaranController extends Controller
         $totalRecords = \App\Models\Penawaran::count();
 
         $table = view('penawaran.table-content', compact('penawarans'))->render();
-        
+
         // Generate pagination links
         $pagination = $penawarans->links('penawaran.pagination')->render();
-        
+
         $info = '';
         if ($request->hasAny(['tanggal_dari', 'no_penawaran', 'nama_perusahaan', 'status', 'pic_admin'])) {
             $activeFilters = [];
@@ -146,27 +147,77 @@ class PenawaranController extends Controller
     public function store(Request $request)
     {
         $data = $request->all();
-        
+
         // Generate full no_penawaran dari suffix yang diinput user
         if ($request->has('no_penawaran_suffix')) {
             $userId = Auth::id();
-            
+
             // Ambil nomor urut terakhir dari database
             $lastPenawaran = \App\Models\Penawaran::orderBy('id_penawaran', 'desc')->first();
             $nextSequence = $lastPenawaran ? ($lastPenawaran->id_penawaran + 1) : 1;
-            
+
             // Format nomor dengan padding 0 di depan (minimal 3 digit)
             $paddedSequence = str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
-            
+
             // Format: PIB/SS-SBY/JK/{user_id}-{padded_sequence}/{user_input}
             $data['no_penawaran'] = "PIB/SS-SBY/JK/{$userId}-{$paddedSequence}/{$request->no_penawaran_suffix}";
-            
+
             // Hapus field suffix karena tidak ada di database
             unset($data['no_penawaran_suffix']);
         }
-        
+
         \App\Models\Penawaran::create($data);
         return redirect()->route('penawaran.list');
+    }
+
+    public function edit($id)
+    {
+        $penawaran = Penawaran::findOrFail($id);
+        return response()->json($penawaran);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $penawaran = Penawaran::findOrFail($id);
+        $data = $request->validate([
+            'perihal'         => 'required|string|max:255',
+            'nama_perusahaan' => 'required|string|max:255',
+            'lokasi'          => 'required|string|max:255',  
+            'pic_perusahaan'  => 'nullable|string|max:255',
+            'pic_admin'       => 'nullable|string|max:255',
+        ]);
+        $penawaran->update($data);
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'notify' => [
+                'type' => 'success',
+                'title' => 'Updated',
+                'message' => 'Penawaran diperbarui'
+            ]]);
+        }
+        return back()->with('success', 'Penawaran diperbarui');
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        $penawaran = Penawaran::findOrFail($id);
+        $penawaran->delete();
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'notify' => [
+                'type' => 'success',
+                'title' => 'Deleted',
+                'message' => 'Penawaran dihapus (soft)'
+            ]]);
+        }
+        return back()->with('success', 'Penawaran dihapus');
+    }
+
+    public function restore($id)
+    {
+        $penawaran = Penawaran::onlyTrashed()->findOrFail($id);
+        $penawaran->restore();
+        return back()->with('success', 'Penawaran dipulihkan');
     }
 
     public function followUp()
@@ -453,9 +504,9 @@ class PenawaranController extends Controller
     {
         $id = $request->query('id');
         $version = $request->query('version');
-        
+
         $penawaran = \App\Models\Penawaran::findOrFail($id);
-        
+
         // Ambil versi aktif
         $activeVersion = $version ?? \App\Models\PenawaranVersion::where('penawaran_id', $id)->max('version');
         $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)->where('version', $activeVersion)->first();
@@ -501,7 +552,7 @@ class PenawaranController extends Controller
         // Data yang akan dikirim ke PDF
         $pdfData = compact(
             'penawaran',
-            'groupedSections', 
+            'groupedSections',
             'jasa',
             'jasaDetails',
             'versionRow',
@@ -520,13 +571,13 @@ class PenawaranController extends Controller
 
         // Generate PDF
         $pdf = Pdf::loadView('penawaran.pdf', $pdfData);
-        
+
         // Set paper size dan orientasi
         $pdf->setPaper('A4', 'portrait');
-        
+
         // Generate filename dengan format yang aman untuk file system
         $safeNoPenawaran = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', $penawaran->no_penawaran);
-        
+
         // Tambahkan suffix revisi ke filename jika bukan versi 1
         $filename = 'Penawaran-' . $safeNoPenawaran;
         if ($activeVersion > 1) {
@@ -546,7 +597,7 @@ class PenawaranController extends Controller
         ]);
 
         $version = $request->input('version');
-        
+
         // Cari penawaran version berdasarkan penawaran_id dan version
         $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)
             ->where('version', $version)
@@ -590,12 +641,12 @@ class PenawaranController extends Controller
 
         // Ambil versi terakhir
         $lastVersion = \App\Models\PenawaranVersion::where('penawaran_id', $id)->max('version');
-        
+
         // Jika belum ada versi sama sekali, buat versi 1 terlebih dahulu
         if (!$lastVersion) {
             $lastVersion = 0;
         }
-        
+
         $newVersion = $lastVersion + 1;
 
         // Copy versi sebelumnya jika ada

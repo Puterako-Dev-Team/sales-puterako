@@ -3,10 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Penawaran extends Model
 {
+    use SoftDeletes;
+    
     protected $primaryKey = 'id_penawaran';
+    
     protected $fillable = [
         'perihal',
         'nama_perusahaan',
@@ -23,7 +27,11 @@ class Penawaran extends Model
         'grand_total',
         'note',
         'status',
+        'deleted_at',
     ];
+
+    protected $dates = ['deleted_at'];
+
 
     public function details()
     {

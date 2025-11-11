@@ -40,6 +40,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/update-status', [PenawaranController::class, 'updateStatus'])->name('penawaran.updateStatus');
         Route::get('/filter', [PenawaranController::class, 'filter'])->name('penawaran.filter');
         Route::get('/datatable', [PenawaranController::class, 'datatable'])->name('penawaran.datatable');
+        Route::get('/{id}/edit', [PenawaranController::class,'edit'])->name('edit');          // AJAX get data
+        Route::put('/{id}', [PenawaranController::class,'update'])->name('update'); 
+        Route::post('/{id}/restore', [PenawaranController::class, 'restore'])->name('penawaran.restore');
+        Route::delete('/{id}', [PenawaranController::class, 'destroy'])->name('penawaran.delete');
     });
 
     // Jasa routes (protected)
