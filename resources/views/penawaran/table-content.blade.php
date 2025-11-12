@@ -1,7 +1,7 @@
 <table class="min-w-full text-sm">
     <thead>
         <tr class="bg-green-500 text-white">
-            <th class="px-2 py-2 font-semibold text-center">No</th>
+            <th class="px-2 py-2 font-semibold text-center rounded-tl-md">No</th>
             <th class="px-2 py-2 font-semibold ">
                 <button class="sort-button flex justify-between gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
                         data-column="created_at" data-direction="{{ request('sort') == 'created_at' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
@@ -149,7 +149,7 @@
                     @endif
                 </button>
             </th>
-            <th class="px-2 py-2 font-semibold text-center">Aksi</th>
+            <th class="px-2 py-2 font-semibold text-center rounded-tr-md">Aksi</th>
         </tr>
     </thead>
     <tbody>

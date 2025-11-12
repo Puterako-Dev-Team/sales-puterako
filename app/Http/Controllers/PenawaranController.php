@@ -269,7 +269,50 @@ class PenawaranController extends Controller
     {
         $penawaran = Penawaran::with('user')->findOrFail($id);
         
-        return view('penawaran.follow-up', compact('penawaran'));
+        // Ambil follow ups dari database
+        $followUps = DB::table('follow_ups')
+            ->where('penawaran_id', $id)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        return view('penawaran.follow-up', compact('penawaran', 'followUps'));
+    }
+
+    public function storeFollowUp(Request $request, $id)
+    {
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'deskripsi' => 'required|string',
+            'hasil_progress' => 'nullable|string',
+            'jenis' => 'required|in:whatsapp,email,telepon,kunjungan',
+            'pic_perusahaan' => 'nullable|string|max:255',
+            'status' => 'required|in:progress,deal,closed'
+        ]);
+
+        DB::table('follow_ups')->insert([
+            'penawaran_id' => $id,
+            'nama' => $request->nama,
+            'deskripsi' => $request->deskripsi,
+            'hasil_progress' => $request->hasil_progress,
+            'jenis' => $request->jenis,
+            'pic_perusahaan' => $request->pic_perusahaan,
+            'status' => $request->status,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'notify' => [
+                    'type' => 'success',
+                    'title' => 'Berhasil',
+                    'message' => 'Follow up berhasil ditambahkan'
+                ]
+            ]);
+        }
+
+        return back()->with('success', 'Follow up berhasil ditambahkan');
     }
 
     public function rekapSurvey()

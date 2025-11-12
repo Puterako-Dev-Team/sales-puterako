@@ -34,6 +34,28 @@
             width: 100%;
             overflow-x: auto;
         }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-draft {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .status-lost {
+            background: #fecaca;
+            color: #dc2626;
+        }
+
+        .status-success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
     </style>
 
     <div class="flex items-center p-8 text-gray-600 -mb-8">
@@ -130,49 +152,43 @@
     </div>
 
     <div class="container mx-auto p-8 -mt-12">
+        <!-- Detail Penawaran (Header) -->
         <div class="bg-white shadow rounded-lg p-6 mb-6">
-            <h2 class="text-xl font-bold mb-4">Detail Penawaran</h2>
-            <div class="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                    <div class="font-semibold">No Penawaran</div>
-                    <div>{{ $penawaran->no_penawaran }}</div>
-                </div>
-                <div>
-                    <div class="font-semibold">Status</div>
-                    <div class="py-2">
-                        @if ($penawaran->status === 'draft')
-                            <span
-                                class="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full">
-                                Draft
+            <div class="flex flex-wrap gap-8">
+                <!-- Kolom 1 -->
+                <div class="flex-1 min-w-[250px]">
+                    <h3 class="font-semibold text-gray-800 mb-4">Informasi Penawaran</h3>
+                    <div class="space-y-2 text-sm">
+                        <div><span class="font-medium">No. Penawaran:</span> {{ $penawaran->no_penawaran }}</div>
+                        <div><span class="font-medium">Perihal:</span> {{ $penawaran->perihal }}</div>
+                        <div><span class="font-medium">Status:</span>
+                            <span class="status-badge status-{{ $penawaran->status }}">
+                                {{ ucfirst($penawaran->status) }}
                             </span>
-                        @elseif($penawaran->status === 'lost')
-                            <span class="inline-block px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded-full">
-                                Lost
-                            </span>
-                        @elseif($penawaran->status === 'success')
-                            <span
-                                class="inline-block px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
-                                Success
-                            </span>
-                        @else
-                            <span
-                                class="inline-block px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-800 rounded-full">
-                                {{ $penawaran->status }}
-                            </span>
-                        @endif
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <div class="font-semibold">Perihal</div>
-                    <div>{{ $penawaran->perihal }}</div>
+
+                <!-- Kolom 2 -->
+                <div class="flex-1 min-w-[250px]">
+                    <h3 class="font-semibold text-gray-800 mb-4">Informasi Perusahaan</h3>
+                    <div class="space-y-2 text-sm">
+                        <div><span class="font-medium">Perusahaan:</span> {{ $penawaran->nama_perusahaan }}</div>
+                        <div><span class="font-medium">Lokasi:</span> {{ $penawaran->lokasi }}</div>
+                        <div><span class="font-medium">PIC Perusahaan:</span> {{ $penawaran->pic_perusahaan ?? 'N/A' }}
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <div class="font-semibold">Nama Perusahaan</div>
-                    <div>{{ $penawaran->nama_perusahaan }}</div>
-                </div>
-                <div>
-                    <div class="font-semibold">PIC Perusahaan</div>
-                    <div>{{ $penawaran->pic_perusahaan }}</div>
+
+                <!-- Kolom 3 -->
+                <div class="flex-1 min-w-[250px]">
+                    <h3 class="font-semibold text-gray-800 mb-4">PIC Admin</h3>
+                    <div class="space-y-2 text-sm">
+                        <div><span class="font-medium">Nama:</span> {{ $penawaran->user ? $penawaran->user->name : 'N/A' }}
+                        </div>
+                        <div><span class="font-medium">Email:</span>
+                            {{ $penawaran->user ? $penawaran->user->email : 'N/A' }}</div>
+                    </div>
                 </div>
             </div>
         </div>

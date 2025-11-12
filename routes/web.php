@@ -31,6 +31,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/detail-penawaran/save', [PenawaranController::class, 'save'])->name('penawaran.save');
         Route::post('/tambah-penawaran', [PenawaranController::class, 'store'])->name('penawaran.store');
         Route::get('{id}/follow-up', [PenawaranController::class, 'followUp'])->name('penawaran.followUp');
+        Route::post('{id}/follow-up/store', [PenawaranController::class, 'storeFollowUp'])->name('penawaran.followUp.store');
         Route::get('/rekap-survey', [PenawaranController::class, 'rekapSurvey'])->name('penawaran.rekap-survey');
         Route::get('/preview', [PenawaranController::class, 'preview'])->name('penawaran.preview');
         Route::get('/export-pdf', [PenawaranController::class, 'exportPdf'])->name('penawaran.exportPdf');
