@@ -80,6 +80,12 @@ class MitraController extends Controller
         return redirect()->route('mitra.list')->with('success', 'Mitra ditambahkan');
     }
 
+    public function edit($id)
+    {
+        $mitra = Mitra::findOrFail($id);
+        return response()->json($mitra);
+    }
+
     public function update(Request $request, $id)
     {
         $mitra = Mitra::findOrFail($id);

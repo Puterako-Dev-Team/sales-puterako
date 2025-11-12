@@ -40,8 +40,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/update-status', [PenawaranController::class, 'updateStatus'])->name('penawaran.updateStatus');
         Route::get('/filter', [PenawaranController::class, 'filter'])->name('penawaran.filter');
         Route::get('/datatable', [PenawaranController::class, 'datatable'])->name('penawaran.datatable');
-        Route::get('/{id}/edit', [PenawaranController::class,'edit'])->name('edit');          // AJAX get data
-        Route::put('/{id}', [PenawaranController::class,'update'])->name('update'); 
+        Route::get('/{id}/edit', [PenawaranController::class, 'edit'])->name('edit');          // AJAX get data
+        Route::put('/{id}', [PenawaranController::class, 'update'])->name('update');
         Route::post('/{id}/restore', [PenawaranController::class, 'restore'])->name('penawaran.restore');
         Route::delete('/{id}', [PenawaranController::class, 'destroy'])->name('penawaran.delete');
     });
@@ -58,6 +58,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/list', [MitraController::class, 'index'])->name('mitra.list');
         Route::get('/filter', [MitraController::class, 'filter'])->name('mitra.filter');
         Route::post('/store', [MitraController::class, 'store'])->name('mitra.store');
+        Route::get('/{id}/edit', [MitraController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [MitraController::class, 'update'])->name('update');
+        Route::delete('/{id}', [MitraController::class, 'destroy'])->name('destroy');
     });
-
 });

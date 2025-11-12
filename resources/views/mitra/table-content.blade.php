@@ -1,9 +1,9 @@
 <table class="min-w-full text-sm">
     <thead>
         <tr class="bg-green-500 text-white">
-            <th class="px-2 py-2 font-semibold text-center">No</th>
-            <th class="px-2 py-2 font-semibold text-center">
-                <button class="sort-button flex items-center justify-center gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition"
+            <th class="px-2 py-2 font-semibold ">No</th>
+            <th class="px-2 py-2 font-semibold ">
+                <button class="sort-button flex justify-between gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition"
                         data-column="nama_mitra" data-direction="{{ request('sort') == 'nama_mitra' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
                     Nama Perusahaan
                     @if(request('sort') == 'nama_mitra')
@@ -18,7 +18,7 @@
                 </button>
             </th>
             <th class="px-2 py-2 font-semibold text-center">
-                <button class="sort-button flex items-center justify-center gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition"
+                <button class="sort-button flex justify-between gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition"
                         data-column="provinsi" data-direction="{{ request('sort') == 'provinsi' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
                     Provinsi
                     @if(request('sort') == 'provinsi')
@@ -32,8 +32,8 @@
                     @endif
                 </button>
             </th>
-            <th class="px-2 py-2 font-semibold text-center">
-                <button class="sort-button flex items-center justify-center gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition"
+            <th class=" font-semibold ">
+                <button class="sort-button flex justify-between gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition"
                         data-column="kota" data-direction="{{ request('sort') == 'kota' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
                     Kota
                     @if(request('sort') == 'kota')
@@ -47,8 +47,8 @@
                     @endif
                 </button>
             </th>
-            <th class="px-2 py-2 font-semibold text-center">
-                <button class="sort-button flex items-center justify-center gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition"
+            <th class="px-2 py-2 font-semibold ">
+                <button class="sort-button flex justify-between gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition"
                         data-column="alamat" data-direction="{{ request('sort') == 'alamat' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
                     Alamat
                     @if(request('sort') == 'alamat')
@@ -62,23 +62,25 @@
                     @endif
                 </button>
             </th>
-            <th class="px-2 py-2 font-semibold text-center">Aksi</th>
+            <th class="px-2 py-2 font-semibold ">Aksi</th>
         </tr>
     </thead>
     <tbody>
         @forelse($mitras as $index => $m)
             <tr class="border-b transition hover:bg-gray-50">
-                <td class="px-2 py-2 text-center">{{ $mitras->firstItem() + $index }}</td>
+                <td class="px-2 py-2">{{ $mitras->firstItem() + $index }}</td>
                 <td class="px-2 py-2">{{ $m->nama_mitra }}</td>
-                <td class="px-2 py-2 text-center">{{ $m->provinsi }}</td>
-                <td class="px-2 py-2 text-center">{{ $m->kota }}</td>
+                <td class="px-2 py-2">{{ $m->provinsi }}</td>
+                <td class="px-2 py-2">{{ $m->kota }}</td>
                 <td class="px-2 py-2">{{ $m->alamat }}</td>
-                <td class="px-2 py-2 text-center">
+                <td class="px-2 py-2">
                     <div class="flex gap-1 justify-center">
-                        <button class="bg-yellow-500 text-white px-2 py-2 rounded text-xs hover:bg-yellow-600" title="Edit">
+                        <button class="btn-edit bg-yellow-500 text-white px-2 py-2 rounded text-xs hover:bg-yellow-600" 
+                                data-id="{{ $m->id_mitra }}" title="Edit">
                             <x-lucide-square-pen class="w-5 h-5 inline" />
                         </button>
-                        <button class="bg-red-500 text-white px-2 py-2 rounded hover:bg-red-600" title="Hapus">
+                        <button class="btn-delete bg-red-500 text-white px-2 py-2 rounded hover:bg-red-600" 
+                                data-id="{{ $m->id_mitra }}" title="Hapus">
                             <x-lucide-trash-2 class="w-5 h-5 inline" />
                         </button>
                     </div>
@@ -86,7 +88,7 @@
             </tr>
         @empty
             <tr>
-                <td colspan="5" class="py-8">
+                <td colspan="6" class="py-8">
                     <div class="flex flex-col items-center justify-center text-gray-500 gap-2">
                         <x-lucide-search-x class="w-8 h-8" />
                         <span>Belum ada mitra</span>

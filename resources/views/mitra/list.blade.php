@@ -1,255 +1,562 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto p-8">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-xl font-bold">List Mitra</h1>
-        <button id="btnTambahMitra"
-            class="bg-green-600 text-white px-4 py-2 rounded flex items-center gap-2 text-sm hover:bg-green-700 transition">
-            + Tambah Mitra
-        </button>
-    </div>
+    <style>
+        .filter-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
 
-    <!-- Filter -->
-    <div class="bg-white shadow rounded-lg p-4 mb-4">
-        <form id="filterForm" class="flex items-center gap-3">
-            <input type="text" name="q" id="filterQ" class="border rounded px-3 py-2 w-full md:w-1/3"
-                   placeholder="Cari nama/kota/alamat..." value="{{ request('q') }}">
-            <input type="hidden" name="sort" value="{{ request('sort','id_mitra') }}">
-            <input type="hidden" name="direction" value="{{ request('direction','asc') }}">
-            <button type="submit" class="px-3 py-2 border rounded hover:bg-gray-50">Filter</button>
-            <button type="button" id="btnReset" class="px-3 py-2 border rounded hover:bg-gray-50">Reset</button>
-        </form>
-    </div>
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
 
-    <!-- Table -->
-    <div id="tableContainer" class="bg-white shadow rounded-lg p-4">
-        @include('mitra.table-content', ['mitras'=>$mitras])
-    </div>
+        .filter-item label {
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #374151;
+        }
 
-    <!-- Pagination -->
-    <div id="paginationContent" class="mt-4">
-        @include('penawaran.pagination', ['paginator'=>$mitras])
-    </div>
-</div>
+        .filter-item input {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
 
-<!-- Slide-over Tambah Mitra -->
-<div id="formSlideMitra" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden opacity-0 transition-opacity duration-300">
-    <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-lg p-8 transition-transform duration-300 ease-in-out transform translate-x-full"
-         id="formPanelMitra">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold">Tambah Mitra</h2>
-            <button id="closeFormMitra" class="text-gray-500 hover:text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-x" width="24" height="24"
-                    fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                </svg>
+        .filter-item input:focus {
+            outline: none;
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+        }
+
+        .loading-overlay {
+            position: relative;
+        }
+
+        .loading-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            z-index: 10;
+        }
+
+        .loading-overlay.loading::after {
+            display: block;
+        }
+
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 11;
+        }
+
+        .loading-overlay.loading .loading-spinner {
+            display: block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        #formPanelMitra {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+
+    <div class="container mx-auto p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-xl font-bold">List Mitra</h1>
+            <button id="btnTambahMitra"
+                class="bg-green-600 text-white px-4 py-2 rounded flex items-center gap-2 text-sm hover:bg-green-700 transition">
+                <x-lucide-plus class="w-5 h-5 inline" />
+                Tambah Mitra
             </button>
         </div>
-        <form id="formTambahMitra">
-            @csrf
-            <div class="mb-4">
-                <label class="block mb-1 font-medium text-sm">Nama Perusahaan</label>
-                <input type="text" name="nama_mitra" class="w-full border rounded px-3 py-2 text-sm" required>
+
+        <!-- Filter Section -->
+        <div class="filter-card">
+            <form id="filterForm">
+                <div class="flex items-end gap-4 flex-wrap">
+                    <div class="filter-item" style="flex: 1 1 300px;">
+                        <label for="q">Cari Nama/Kota/Alamat</label>
+                        <input type="text" 
+                               id="q" 
+                               name="q" 
+                               placeholder="Cari nama perusahaan, kota, alamat..."
+                               value="{{ request('q') }}"
+                               class="filter-input">
+                    </div>
+
+                    <div class="filter-item" style="flex: 0 0 200px;">
+                        <label for="provinsi_filter">Provinsi</label>
+                        <input type="text" 
+                               id="provinsi_filter" 
+                               name="provinsi_filter" 
+                               placeholder="Cari provinsi..."
+                               value="{{ request('provinsi_filter') }}"
+                               class="filter-input">
+                    </div>
+
+                    <div class="filter-actions" style="flex: 0 0 auto;">
+                        <button type="button" id="resetFilter"
+                                class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition flex items-center gap-2 text-sm">
+                            <x-lucide-refresh-cw class="w-4 h-4" />
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Info -->
+        <div id="resultsInfo" class="mb-4"></div>
+
+        <!-- Table Container with Loading -->
+        <div class="bg-white shadow rounded-lg loading-overlay" id="tableContainer">
+            <div class="loading-spinner">
+                <svg class="animate-spin h-8 w-8 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
             </div>
-            <div class="mb-4">
-                <label class="block mb-1 font-medium text-sm">Provinsi</label>
-                <select name="provinsi" id="provinsiSelect" class="w-full border rounded px-3 py-2 text-sm">
-                    <option value="">Pilih Provinsi...</option>
-                </select>
-            </div>   
-            <div class="mb-4">
-                <label class="block mb-1 font-medium text-sm">Kota/Kabupaten</label>
-                <select name="kota" id="kotaSelect" class="w-full border rounded px-3 py-2 text-sm" required disabled>
-                    <option value="">Pilih Kota/Kabupaten...</option>
-                </select>
+            <div id="tableContent">
+                @include('mitra.table-content', ['mitras' => $mitras])
             </div>
-            <div class="mb-4">
-                <label class="block mb-1 font-medium text-sm">Alamat</label>
-                <textarea name="alamat" rows="3" class="w-full border rounded px-3 py-2 text-sm"></textarea>
-            </div>
-            <div class="absolute bottom-0 left-0 w-full p-4 bg-white border-t flex gap-3">
-                <button type="submit"
-                        class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition text-sm">
-                    Simpan
+        </div>
+
+        <!-- Pagination -->
+        <div id="paginationContent" class="mt-6">
+            {{ $mitras->appends(request()->query())->links('penawaran.pagination') }}
+        </div>
+    </div>
+
+    <!-- Slide-over Form (smooth animation) -->
+    <div id="formSlideMitra" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden">
+        <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-lg p-8 transform translate-x-full"
+            id="formPanelMitra">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="mitraFormTitle" class="text-xl font-bold">Tambah Mitra</h2>
+                <button id="closeFormMitra" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-x" width="24" height="24"
+                        fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                    </svg>
                 </button>
             </div>
-        </form>
+            <form id="formMitra">
+                @csrf
+                <input type="hidden" id="mitraMethodField" name="_method" value="">
+                <input type="hidden" id="mitraEditId" value="">
+                <div class="mb-4">
+                    <label class="block mb-1 font-medium text-sm">Nama Perusahaan</label>
+                    <input type="text" name="nama_mitra" id="f_nama_mitra" class="w-full border rounded px-3 py-2 text-sm" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-1 font-medium text-sm">Provinsi</label>
+                    <select name="provinsi" id="provinsiSelect" class="w-full border rounded px-3 py-2 text-sm">
+                        <option value="">Pilih Provinsi...</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-1 font-medium text-sm">Kota/Kabupaten</label>
+                    <select name="kota" id="kotaSelect" class="w-full border rounded px-3 py-2 text-sm" required disabled>
+                        <option value="">Pilih Kota/Kabupaten...</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-1 font-medium text-sm">Alamat</label>
+                    <textarea name="alamat" id="f_alamat" rows="3" class="w-full border rounded px-3 py-2 text-sm"></textarea>
+                </div>
+                <div class="absolute bottom-0 left-0 w-full p-4 bg-white border-t">
+                    <button type="submit"
+                        class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition text-sm">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
+
+    <!-- Modal Konfirmasi Hapus -->
+    <div id="confirmModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+        <div class="bg-white rounded shadow p-6 w-full max-w-sm">
+            <h3 class="text-lg font-semibold mb-2">Hapus Mitra?</h3>
+            <p class="text-sm text-gray-600 mb-4">Data mitra akan dihapus permanen.</p>
+            <div class="flex justify-end gap-3">
+                <button id="btnCancelDelete" class="px-4 py-2 border rounded text-sm">Batal</button>
+                <button id="btnConfirmDelete" class="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">
+                    Hapus
+                </button>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
 <script>
-    // Slide-over logic
-    const formSlideMitra = document.getElementById('formSlideMitra');
-    const formPanelMitra = document.getElementById('formPanelMitra');
-    const btnTambahMitra = document.getElementById('btnTambahMitra');
-    const closeFormMitra = document.getElementById('closeFormMitra');
-    const batalFormMitra = document.getElementById('batalFormMitra');
+/* ================== KONFIG DASAR ================== */
+const CSRF_TOKEN = '{{ csrf_token() }}';
+const ROUTES = {
+    store: "{{ route('mitra.store') }}",
+    filter: "{{ route('mitra.filter') }}",
+    base: "{{ url('mitra') }}"
+};
 
-    // Wilayah Indonesia (EMSIFA)
-    const EMSIFA = 'https://www.emsifa.com/api-wilayah-indonesia/api';
-    const provinsiSelect = document.getElementById('provinsiSelect');
-    const kotaSelect = document.getElementById('kotaSelect');
-    let provincesLoaded = false;
-    const regencyCache = new Map();
+// Wilayah Indonesia (EMSIFA)
+const EMSIFA = 'https://www.emsifa.com/api-wilayah-indonesia/api';
+let provincesLoaded = false;
+const regencyCache = new Map();
 
-    function titleCase(s) {
-        return s.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    }
-    function formatRegionName(name) {
-        let t = titleCase(name);
-        t = t.replace(/^Kabupaten\s+/i, 'Kab. ');
-        return t;
-    }
+/* ================== ELEMEN ================== */
+const btnTambahMitra = document.getElementById('btnTambahMitra');
+const formSlideMitra = document.getElementById('formSlideMitra');
+const formPanelMitra = document.getElementById('formPanelMitra');
+const closeFormMitra = document.getElementById('closeFormMitra');
+const formMitra = document.getElementById('formMitra');
+const mitraFormTitle = document.getElementById('mitraFormTitle');
+const mitraMethodField = document.getElementById('mitraMethodField');
+const mitraEditId = document.getElementById('mitraEditId');
 
-    async function loadProvincesOnce() {
-        if (provincesLoaded) return;
-        try {
-            const res = await fetch(`${EMSIFA}/provinces.json`);
-            const data = await res.json();
-            data.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.id;            // id provinsi
-                opt.textContent = formatRegionName(p.name);
-                provinsiSelect.appendChild(opt);
-            });
-            provincesLoaded = true;
-        } catch (e) {
-            console.error('Load provinces failed', e);
-        }
-    }
+const f_nama_mitra = document.getElementById('f_nama_mitra');
+const f_alamat = document.getElementById('f_alamat');
+const provinsiSelect = document.getElementById('provinsiSelect');
+const kotaSelect = document.getElementById('kotaSelect');
 
-    async function loadRegencies(provinceId) {
-        kotaSelect.innerHTML = '<option value="">Pilih Kota/Kabupaten...</option>';
-        kotaSelect.disabled = true;
-        if (!provinceId) return;
+const tableContainer = document.getElementById('tableContainer');
+const tableContent = document.getElementById('tableContent');
+const paginationWrap = document.getElementById('paginationContent');
+const resultsInfo = document.getElementById('resultsInfo');
 
-        try {
-            let regencies = regencyCache.get(provinceId);
-            if (!regencies) {
-                const res = await fetch(`${EMSIFA}/regencies/${provinceId}.json`);
-                regencies = await res.json();
-                regencyCache.set(provinceId, regencies);
-            }
-            regencies.forEach(k => {
-                const opt = document.createElement('option');
-                // Simpan nama kota/kabupaten sebagai value untuk dikirim ke backend
-                opt.value = formatRegionName(k.name);
-                opt.textContent = formatRegionName(k.name);
-                kotaSelect.appendChild(opt);
-            });
-            kotaSelect.disabled = false;
-        } catch (e) {
-            console.error('Load regencies failed', e);
-        }
-    }
+const confirmModal = document.getElementById('confirmModal');
+const btnCancelDelete = document.getElementById('btnCancelDelete');
+const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+let deleteTargetId = null;
+let filterTimeoutId;
 
-    provinsiSelect?.addEventListener('change', (e) => {
-        loadRegencies(e.target.value);
-    });
+/* ================== UTIL ================== */
+function toastSafe(payload){
+    if (window.toast) toast(payload); else console.log(payload);
+}
+function showLoading(){ tableContainer.classList.add('loading'); }
+function hideLoading(){ tableContainer.classList.remove('loading'); }
+function pushUrl(params){
+    const url = new URL(window.location);
+    [...url.searchParams.keys()].forEach(k=>url.searchParams.delete(k));
+    params.forEach((v,k)=>{ if(v) url.searchParams.set(k,v); });
+    window.history.pushState({}, '', url.toString());
+}
 
-    function openMitraForm() {
-        formSlideMitra.classList.remove('hidden');
-        // Next frame: fade-in backdrop + slide-in panel
-        requestAnimationFrame(() => {
-            formSlideMitra.classList.remove('opacity-0');
-            formSlideMitra.classList.add('opacity-100');
-            formPanelMitra.classList.remove('translate-x-full');
-            formPanelMitra.classList.add('translate-x-0');
+/* ================== WILAYAH INDONESIA ================== */
+function titleCase(s) {
+    return s.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+function formatRegionName(name) {
+    let t = titleCase(name);
+    return t.replace(/^Kabupaten\s+/i, 'Kab. ');
+}
+async function loadProvincesOnce() {
+    if (provincesLoaded) return;
+    try {
+        const res = await fetch(`${EMSIFA}/provinces.json`);
+        const data = await res.json();
+        data.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = formatRegionName(p.name);
+            provinsiSelect.appendChild(opt);
         });
-        loadProvincesOnce();
+        provincesLoaded = true;
+    } catch (e) {
+        console.error('Load provinces failed', e);
     }
-    function closeMitraForm() {
-        // Start animations: slide-out + fade-out
-        formPanelMitra.classList.remove('translate-x-0');
-        formPanelMitra.classList.add('translate-x-full');
-        formSlideMitra.classList.remove('opacity-100');
-        formSlideMitra.classList.add('opacity-0');
-        // After transition ends, hide container
-        setTimeout(() => {
-            formSlideMitra.classList.add('hidden');
-        }, 300); // match duration-300
+}
+async function loadRegencies(provinceId) {
+    kotaSelect.innerHTML = '<option value="">Pilih Kota/Kabupaten...</option>';
+    kotaSelect.disabled = true;
+    if (!provinceId) return;
+    try {
+        let regencies = regencyCache.get(provinceId);
+        if (!regencies) {
+            const res = await fetch(`${EMSIFA}/regencies/${provinceId}.json`);
+            regencies = await res.json();
+            regencyCache.set(provinceId, regencies);
+        }
+        regencies.forEach(k => {
+            const opt = document.createElement('option');
+            opt.value = formatRegionName(k.name);
+            opt.textContent = formatRegionName(k.name);
+            kotaSelect.appendChild(opt);
+        });
+        kotaSelect.disabled = false;
+    } catch (e) {
+        console.error('Load regencies failed', e);
     }
+}
+provinsiSelect.addEventListener('change', (e) => {
+    loadRegencies(e.target.value);
+});
 
-    btnTambahMitra.addEventListener('click', openMitraForm);
-    closeFormMitra.addEventListener('click', closeMitraForm);
-    batalFormMitra?.addEventListener('click', closeMitraForm);
-    formSlideMitra.addEventListener('click', e => {
-        if (e.target === formSlideMitra) closeMitraForm();
+/* ================== SLIDE FORM ================== */
+function openSlide(){
+    formSlideMitra.classList.remove('hidden');
+    requestAnimationFrame(()=>{
+        formPanelMitra.classList.remove('translate-x-full');
+        formPanelMitra.classList.add('translate-x-0');
     });
+    loadProvincesOnce();
+}
+function closeSlide(){
+    formPanelMitra.classList.remove('translate-x-0');
+    formPanelMitra.classList.add('translate-x-full');
+    setTimeout(()=>formSlideMitra.classList.add('hidden'), 400);
+}
+function resetForm(){
+    formMitra.reset();
+    mitraMethodField.value = '';
+    mitraEditId.value = '';
+    kotaSelect.innerHTML = '<option value="">Pilih Kota/Kabupaten...</option>';
+    kotaSelect.disabled = true;
+    provinsiSelect.value = '';
+}
+function setupAdd(){
+    resetForm();
+    mitraFormTitle.textContent = 'Tambah Mitra';
+    formMitra.dataset.mode = 'add';
+    openSlide();
+}
+function setupEdit(id){
+    fetch(`${ROUTES.base}/${id}/edit`, {
+        headers:{'X-Requested-With':'XMLHttpRequest'}
+    })
+    .then(r => {
+        if(!r.ok) throw new Error('Gagal load data');
+        return r.json();
+    })
+    .then(d => {
+        mitraFormTitle.textContent = 'Edit Mitra';
+        formMitra.dataset.mode = 'edit';
+        mitraMethodField.value = 'PUT';
+        mitraEditId.value = id;
 
-    // Submit tambah mitra (AJAX)
-    document.getElementById('formTambahMitra').addEventListener('submit', function(e){
+        f_nama_mitra.value = d.nama_mitra ?? '';
+        f_alamat.value = d.alamat ?? '';
+        
+        // Set provinsi & kota
+        if(d.provinsi) {
+            // Cari provinsi by name, set value by id
+            Array.from(provinsiSelect.options).forEach(opt => {
+                if(opt.textContent === d.provinsi) {
+                    provinsiSelect.value = opt.value;
+                    loadRegencies(opt.value).then(()=>{
+                        kotaSelect.value = d.kota ?? '';
+                    });
+                }
+            });
+        }
+
+        openSlide();
+    })
+    .catch(e=>{
+        toastSafe({type:'error',title:'Error',message:e.message});
+    });
+}
+
+/* ================== SUBMIT FORM (AJAX) ================== */
+formMitra.addEventListener('submit', function(e){
+    e.preventDefault();
+    const mode = formMitra.dataset.mode || 'add';
+    const fd = new FormData(formMitra);
+
+    // Provinsi: simpan nama (bukan ID)
+    const provText = provinsiSelect.value ?
+        provinsiSelect.options[provinsiSelect.selectedIndex].text :
+        '';
+    fd.set('provinsi', provText);
+
+    if(mode === 'edit'){
+        fd.append('_method','PUT');
+    }
+
+    const submitBtn = formMitra.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-70','cursor-not-allowed');
+
+    const url = mode === 'add' ? ROUTES.store : `${ROUTES.base}/${mitraEditId.value}`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers:{
+            'X-CSRF-TOKEN': CSRF_TOKEN,
+            'X-Requested-With':'XMLHttpRequest'
+        },
+        body: fd
+    })
+    .then(r => r.json().catch(()=>({})))
+    .then(res => {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-70','cursor-not-allowed');
+        closeSlide();
+        performFilter();
+        toastSafe(res.notify ?? {type:'success',title:'Sukses',message: mode==='add'?'Mitra ditambahkan':'Mitra diperbarui'});
+    })
+    .catch(err=>{
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-70','cursor-not-allowed');
+        toastSafe({type:'error',title:'Error',message:'Gagal simpan data'});
+    });
+});
+
+/* ================== HAPUS ================== */
+function openConfirmDelete(id){
+    deleteTargetId = id;
+    confirmModal.classList.remove('hidden');
+    confirmModal.classList.add('flex');
+}
+function closeConfirmDelete(){
+    confirmModal.classList.add('hidden');
+    confirmModal.classList.remove('flex');
+    deleteTargetId = null;
+}
+btnCancelDelete.addEventListener('click', closeConfirmDelete);
+confirmModal.addEventListener('click', e=>{
+    if(e.target === confirmModal) closeConfirmDelete();
+});
+btnConfirmDelete.addEventListener('click', ()=>{
+    if(!deleteTargetId) return;
+    fetch(`${ROUTES.base}/${deleteTargetId}`, {
+        method:'POST',
+        headers:{
+            'X-CSRF-TOKEN': CSRF_TOKEN,
+            'X-Requested-With':'XMLHttpRequest'
+        },
+        body: new URLSearchParams({_method:'DELETE'})
+    })
+    .then(r=>r.json().catch(()=>({})))
+    .then(res=>{
+        closeConfirmDelete();
+        performFilter();
+        toastSafe(res.notify ?? {type:'success',title:'Berhasil',message:'Mitra dihapus'});
+    })
+    .catch(()=>{
+        closeConfirmDelete();
+        performFilter();
+        toastSafe({type:'error',title:'Error',message:'Gagal hapus'});
+    });
+});
+
+/* ================== EVENT DELEGATION ================== */
+document.addEventListener('click', e=>{
+    const editBtn = e.target.closest('.btn-edit');
+    if(editBtn){
         e.preventDefault();
-        const fd = new FormData(e.target);
+        setupEdit(editBtn.dataset.id);
+        return;
+    }
+    const delBtn = e.target.closest('.btn-delete');
+    if(delBtn){
+        e.preventDefault();
+        openConfirmDelete(delBtn.dataset.id);
+    }
+});
 
-        // Provinsi: simpan nama (bukan ID)
-        const provText = provinsiSelect.value
-            ? provinsiSelect.options[provinsiSelect.selectedIndex].text
-            : '';
-        fd.set('provinsi', provText);
-
-        // Tutup dulu biar terasa cepat
-        closeMitraForm();
-
-        fetch("{{ route('mitra.store') }}", {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-            body: fd
-        })
-        .then(r => r.json())
-        .then(() => {
-            e.target.reset();
-            kotaSelect.innerHTML = '<option value="">Pilih Kota/Kabupaten...</option>';
-            kotaSelect.disabled = true;
-            provinsiSelect.value = '';
-            reloadKlien(); // refresh tabel tanpa alert
-        })
-        .catch(() => {
-            // tetap refresh agar sinkron meski gagal
-            reloadKlien();
+/* ================== FILTER / SORT / PAGINATION ================== */
+function attachSortListeners(){
+    document.querySelectorAll('.sort-button').forEach(btn=>{
+        btn.addEventListener('click', function(){
+            const column = this.dataset.column;
+            const direction = this.dataset.direction;
+            const formData = new FormData(document.getElementById('filterForm'));
+            const params = new URLSearchParams(formData);
+            params.set('sort', column);
+            params.set('direction', direction);
+            fetchList(params);
         });
     });
-
-    // Filter + sort + pagination (tetap)
-    document.getElementById('filterForm').addEventListener('submit', function(e){
-        e.preventDefault();
-        reloadKlien();
+}
+function attachPaginationListeners(){
+    document.querySelectorAll('.pagination-link').forEach(a=>{
+        a.addEventListener('click', function(ev){
+            ev.preventDefault();
+            const url = new URL(this.href);
+            const page = url.searchParams.get('page') || 1;
+            const formData = new FormData(document.getElementById('filterForm'));
+            const params = new URLSearchParams(formData);
+            params.set('page', page);
+            fetchList(params);
+        });
     });
-    document.getElementById('btnReset').addEventListener('click', () => {
-        document.getElementById('filterQ').value = '';
-        document.querySelector('input[name="sort"]').value = 'id_mitra';
-        document.querySelector('input[name="direction"]').value = 'asc';
-        reloadKlien();
-    });
-
-    document.addEventListener('click', function(e){
-        const sortBtn = e.target.closest('.sort-button');
-        if (sortBtn && sortBtn.dataset.column) {
-            e.preventDefault();
-            document.querySelector('input[name="sort"]').value = sortBtn.dataset.column;
-            document.querySelector('input[name="direction"]').value = sortBtn.dataset.direction;
-            reloadKlien();
-            return;
+}
+function fetchList(params){
+    showLoading();
+    fetch(`${ROUTES.filter}?${params.toString()}`, {
+        headers:{
+            'X-Requested-With':'XMLHttpRequest',
+            'Accept':'application/json'
         }
-        if (e.target.closest('.pagination-link')) {
-            e.preventDefault();
-            const url = new URL(e.target.closest('.pagination-link').href);
-            reloadKlien(url.searchParams.get('page') || 1);
-        }
+    })
+    .then(r=>r.json())
+    .then(data=>{
+        tableContent.innerHTML = data.table;
+        paginationWrap.innerHTML = data.pagination;
+        if(resultsInfo) resultsInfo.innerHTML = data.info || '';
+        hideLoading();
+        attachPaginationListeners();
+        attachSortListeners();
+        pushUrl(params);
+    })
+    .catch(e=>{
+        console.error(e);
+        hideLoading();
     });
+}
+function performFilter(){
+    const formData = new FormData(document.getElementById('filterForm'));
+    const params = new URLSearchParams(formData);
+    fetchList(params);
+}
 
-    function reloadKlien(page = 1) {
-        const params = new URLSearchParams(new FormData(document.getElementById('filterForm')));
-        params.set('page', page);
-        fetch(`{{ route('mitra.filter') }}?` + params.toString())
-            .then(r => r.json()).then(res => {
-                document.getElementById('tableContainer').innerHTML = res.table;
-                document.getElementById('paginationContent').innerHTML = res.pagination;
-            });
-    }
+/* ================== FILTER INPUT LISTENERS ================== */
+document.querySelectorAll('#filterForm .filter-input').forEach(el=>{
+    el.addEventListener('input', ()=>{
+        clearTimeout(filterTimeoutId);
+        filterTimeoutId = setTimeout(()=>performFilter(), 700);
+    });
+});
+document.getElementById('resetFilter').addEventListener('click', ()=>{
+    document.getElementById('filterForm').reset();
+    performFilter();
+});
+
+/* ================== INIT ================== */
+btnTambahMitra.addEventListener('click', setupAdd);
+closeFormMitra.addEventListener('click', closeSlide);
+formSlideMitra.addEventListener('click', e=>{
+    if(e.target === formSlideMitra) closeSlide();
+});
+
+document.addEventListener('DOMContentLoaded', ()=>{
+    attachPaginationListeners();
+    attachSortListeners();
+});
 </script>
 @endpush

@@ -2,8 +2,8 @@
     <thead>
         <tr class="bg-green-500 text-white">
             <th class="px-2 py-2 font-semibold text-center">No</th>
-            <th class="px-2 py-2 font-semibold text-center">
-                <button class="sort-button flex items-center justify-center gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
+            <th class="px-2 py-2 font-semibold ">
+                <button class="sort-button flex justify-between gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
                         data-column="created_at" data-direction="{{ request('sort') == 'created_at' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
                     Tanggal
                     @if(request('sort') == 'created_at')
@@ -23,8 +23,8 @@
                     @endif
                 </button>
             </th>
-            <th class="px-2 py-2 font-semibold text-center">
-                <button class="sort-button flex items-center justify-center gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
+            <th class="px-2 py-2 font-semibold ">
+                <button class="sort-button flex justify-between gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
                         data-column="no_penawaran" data-direction="{{ request('sort') == 'no_penawaran' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
                     No Penawaran
                     @if(request('sort') == 'no_penawaran')
@@ -44,8 +44,8 @@
                     @endif
                 </button>
             </th>
-            <th class="px-2 py-2 font-semibold text-center">
-                <button class="sort-button flex items-center justify-center gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
+            <th class="px-2 py-2 font-semibold ">
+                <button class="sort-button flex justify-between gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
                         data-column="perihal" data-direction="{{ request('sort') == 'perihal' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
                     Perihal
                     @if(request('sort') == 'perihal')
@@ -65,10 +65,10 @@
                     @endif
                 </button>
             </th>
-            <th class="px-2 py-2 font-semibold text-center">
-                <button class="sort-button flex items-center justify-center gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
+            <th class="px-2 py-2 font-semibold ">
+                <button class="sort-button flex justify-between gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
                         data-column="nama_perusahaan" data-direction="{{ request('sort') == 'nama_perusahaan' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
-                    Nama Perusahaan
+                    Perusahaan
                     @if(request('sort') == 'nama_perusahaan')
                         @if(request('direction') == 'asc')
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -86,8 +86,8 @@
                     @endif
                 </button>
             </th>
-            <th class="px-2 py-2 font-semibold text-center">
-                <button class="sort-button flex items-center justify-center gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
+            <th class="px-2 py-2 font-semibold ">
+                <button class="sort-button flex justify-between gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
                         data-column="pic_perusahaan" data-direction="{{ request('sort') == 'pic_perusahaan' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
                     PIC Perusahaan
                     @if(request('sort') == 'pic_perusahaan')
@@ -107,8 +107,8 @@
                     @endif
                 </button>
             </th>
-            <th class="px-2 py-2 font-semibold text-center">
-                <button class="sort-button flex items-center justify-center gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
+            <th class="px-2 py-2 font-semibold">
+                <button class="sort-button flex justify-between gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
                         data-column="pic_admin" data-direction="{{ request('sort') == 'pic_admin' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
                     PIC Admin
                     @if(request('sort') == 'pic_admin')
@@ -128,8 +128,8 @@
                     @endif
                 </button>
             </th>
-            <th class="px-2 py-2 font-semibold text-center">
-                <button class="sort-button flex items-center justify-center gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
+            <th class="px-2 py-2 font-semibold">
+                <button class="sort-button flex justify-between gap-1 w-full hover:bg-green-600 rounded px-2 py-1 transition" 
                         data-column="status" data-direction="{{ request('sort') == 'status' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
                     Status
                     @if(request('sort') == 'status')
@@ -155,9 +155,9 @@
     <tbody>
         @forelse($penawarans as $index => $p)
             <tr class="border-b transition hover:bg-gray-50">
-                <td class="px-2 py-2 text-center">{{ $penawarans->firstItem() + $index }}</td>
-                <td class="px-2 py-2 text-center">{{ $p->created_at->format('Y/m/d') }}</td>
-                <td class="px-2 py-2 text-center">{{ $p->no_penawaran }}</td>
+                <td class="px-2 py-2 ">{{ $penawarans->firstItem() + $index }}</td>
+                <td class="px-2 py-2 ">{{ $p->created_at->format('Y/m/d') }}</td>
+                <td class="px-2 py-2 ">{{ $p->no_penawaran }}</td>
                 <td class="px-2 py-2">{{ $p->perihal }}</td>
                 <td class="px-2 py-2">{{ $p->nama_perusahaan }}</td>
                 <td class="px-2 py-2">{{ $p->pic_perusahaan }}</td>
