@@ -265,10 +265,11 @@ class PenawaranController extends Controller
         return back()->with('success', 'Penawaran dipulihkan');
     }
 
-    public function followUp()
+    public function followUp($id)
     {
-        // Halaman Follow Up
-        return view('penawaran.followUp');
+        $penawaran = Penawaran::with('user')->findOrFail($id);
+        
+        return view('penawaran.follow-up', compact('penawaran'));
     }
 
     public function rekapSurvey()

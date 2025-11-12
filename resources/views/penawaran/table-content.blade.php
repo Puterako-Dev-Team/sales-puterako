@@ -195,9 +195,14 @@
                                 <x-lucide-file-text class="w-5 h-5 inline" />
                             </a>
                             <button class="btn-edit bg-yellow-500 text-white px-2 py-2 rounded flex items-center gap-1 text-xs hover:bg-yellow-700 transition"
-                                data-id="{{ $p->id_penawaran }}" title="Edit">
-                                <x-lucide-square-pen class="w-5 h-5 inline" />
-                            </button>
+                            data-id="{{ $p->id_penawaran }}" title="Edit">
+                            <x-lucide-square-pen class="w-5 h-5 inline" />
+                        </button>
+                        <a href="{{ route('penawaran.followUp', $p->id_penawaran) }}"
+                            class="bg-blue-600 text-white px-2 py-2 rounded flex items-center gap-1 text-xs hover:bg-blue-700 transition"
+                            title="Follow Up">
+                            <x-lucide-phone-outgoing class="w-5 h-5 inline" />
+                        </a>
                         @endif
                         <button class="btn-delete bg-red-500 text-white px-2 py-2 rounded hover:bg-red-700 transition"
                             data-id="{{ $p->id_penawaran }}" title="Hapus Data">
