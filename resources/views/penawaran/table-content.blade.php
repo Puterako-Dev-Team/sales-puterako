@@ -161,7 +161,7 @@
                 <td class="px-2 py-2">{{ $p->perihal }}</td>
                 <td class="px-2 py-2">{{ $p->nama_perusahaan }}</td>
                 <td class="px-2 py-2">{{ $p->pic_perusahaan }}</td>
-                <td class="px-2 py-2">{{ $p->pic_admin }}</td>
+                <td class="px-2 py-2">{{ $p->user ? $p->user->name : 'N/A' }}</td>
                 <td class="px-2 py-2">
                     @if ($p->status === 'draft')
                         <span class="inline-block px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-800 rounded-full">

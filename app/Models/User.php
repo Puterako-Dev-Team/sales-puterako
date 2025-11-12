@@ -49,4 +49,8 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    public function penawarans()
+    {
+        return $this->hasMany(\App\Models\Penawaran::class, 'user_id');
+    }
 }

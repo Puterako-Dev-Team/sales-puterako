@@ -14,7 +14,7 @@ class PenawaranController extends Controller
 {
     public function index(Request $request)
     {
-        $query = \App\Models\Penawaran::query();
+        $query = \App\Models\Penawaran::with('user'); // Eager load user
 
         // Filter berdasarkan tanggal
         if ($request->filled('tanggal_dari')) {
@@ -36,9 +36,11 @@ class PenawaranController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Filter berdasarkan PIC Admin
+        // PERBAIKI: Filter berdasarkan PIC Admin dari tabel users
         if ($request->filled('pic_admin')) {
-            $query->where('pic_admin', $request->pic_admin);
+            $query->whereHas('user', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->pic_admin . '%');
+            });
         }
 
         // Sorting
@@ -46,7 +48,7 @@ class PenawaranController extends Controller
         $sortDirection = $request->get('direction', 'asc');
 
         // Validasi kolom yang bisa di-sort
-        $allowedSorts = ['id_penawaran', 'created_at', 'no_penawaran', 'perihal', 'nama_perusahaan', 'pic_perusahaan', 'pic_admin', 'status'];
+        $allowedSorts = ['id_penawaran', 'created_at', 'no_penawaran', 'perihal', 'nama_perusahaan', 'pic_perusahaan', 'status'];
         if (!in_array($sortColumn, $allowedSorts)) {
             $sortColumn = 'id_penawaran';
         }
@@ -59,11 +61,11 @@ class PenawaranController extends Controller
         // Untuk info hasil filter
         $totalRecords = \App\Models\Penawaran::count();
 
-        // Ambil daftar PIC Admin untuk dropdown
-        $picAdmins = \App\Models\Penawaran::distinct('pic_admin')
-            ->whereNotNull('pic_admin')
-            ->orderBy('pic_admin')
-            ->pluck('pic_admin');
+        // PERBAIKI: Ambil daftar PIC Admin dari tabel users yang punya penawaran
+        $picAdmins = \App\Models\User::whereHas('penawarans')
+            ->distinct('name')
+            ->orderBy('name')
+            ->pluck('name');
 
         $mitras = \App\Models\Mitra::orderBy('nama_mitra')
             ->orderBy('kota')
@@ -87,7 +89,7 @@ class PenawaranController extends Controller
             return redirect()->route('penawaran.list');
         }
 
-        $query = \App\Models\Penawaran::query();
+        $query = \App\Models\Penawaran::with('user'); // Eager load user
 
         // Apply filters
         if ($request->filled('tanggal_dari')) {
@@ -106,8 +108,11 @@ class PenawaranController extends Controller
             $query->where('status', $request->status);
         }
 
+        // PERBAIKI: Filter PIC Admin berdasarkan user name
         if ($request->filled('pic_admin')) {
-            $query->where('pic_admin', $request->pic_admin);
+            $query->whereHas('user', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->pic_admin . '%');
+            });
         }
 
         // Sorting
@@ -115,7 +120,7 @@ class PenawaranController extends Controller
         $sortDirection = $request->get('direction', 'asc');
 
         // Validasi kolom yang bisa di-sort
-        $allowedSorts = ['id_penawaran', 'created_at', 'no_penawaran', 'perihal', 'nama_perusahaan', 'pic_perusahaan', 'pic_admin', 'status'];
+        $allowedSorts = ['id_penawaran', 'created_at', 'no_penawaran', 'perihal', 'nama_perusahaan', 'pic_perusahaan', 'status'];
         if (!in_array($sortColumn, $allowedSorts)) {
             $sortColumn = 'id_penawaran';
         }
@@ -175,6 +180,9 @@ class PenawaranController extends Controller
     {
         $data = $request->all();
 
+        // TAMBAH: Auto-set user_id dari Auth user
+        $data['user_id'] = Auth::id();
+
         // Generate full no_penawaran dari suffix yang diinput user
         if ($request->has('no_penawaran_suffix')) {
             $userId = Auth::id();
@@ -194,6 +202,17 @@ class PenawaranController extends Controller
         }
 
         \App\Models\Penawaran::create($data);
+        
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'notify' => [
+                    'type' => 'success',
+                    'title' => 'Berhasil',
+                    'message' => 'Penawaran berhasil ditambahkan'
+                ]
+            ]);
+        }
         return redirect()->route('penawaran.list');
     }
 
@@ -211,7 +230,6 @@ class PenawaranController extends Controller
             'nama_perusahaan' => 'required|string|max:255',
             'lokasi'          => 'required|string|max:255',
             'pic_perusahaan'  => 'nullable|string|max:255',
-            'pic_admin'       => 'nullable|string|max:255',
         ]);
         $penawaran->update($data);
 

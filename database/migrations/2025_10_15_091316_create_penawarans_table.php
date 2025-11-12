@@ -13,7 +13,6 @@ class CreatePenawaransTable extends Migration
             $table->string('perihal');
             $table->string('nama_perusahaan');
             $table->string('pic_perusahaan');
-            $table->string('pic_admin');
             $table->string('no_penawaran');
             $table->string('lokasi');
             $table->string('tiket')->nullable();

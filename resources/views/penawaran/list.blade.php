@@ -250,11 +250,6 @@
                     <label class="block mb-1 font-medium text-sm">PIC Perusahaan</label>
                     <input type="text" name="pic_perusahaan" id="f_pic_perusahaan" class="w-full border rounded px-3 py-2 text-sm" required>
                 </div>
-                <div class="mb-4">
-                    <label class="block mb-1 font-medium text-sm">PIC Admin</label>
-                    <input type="text" name="pic_admin" id="f_pic_admin" class="w-full border rounded px-3 py-2 text-sm"
-                        value="{{ Auth::user()->name }}" required>
-                </div>
                 <div class="mb-4 add-only" id="noPenawaranGroup">
                     <label class="block mb-1 font-medium text-sm">No Penawaran</label>
                     <div class="flex items-center space-x-2">
@@ -316,7 +311,6 @@ const f_perihal          = document.getElementById('f_perihal');
 const f_nama_perusahaan  = document.getElementById('f_nama_perusahaan');
 const f_lokasi           = document.getElementById('f_lokasi');
 const f_pic_perusahaan   = document.getElementById('f_pic_perusahaan');
-const f_pic_admin        = document.getElementById('f_pic_admin');
 const f_no_suffix        = document.getElementById('f_no_penawaran_suffix');
 
 /* ================== MODAL HAPUS ================== */
@@ -391,7 +385,6 @@ function resetForm(){
     penawaranForm.reset();
     methodField.value = '';
     editIdField.value = '';
-    f_pic_admin.value = "{{ Auth::user()->name }}";
     
     // Reset lokasi state
     f_lokasi.readOnly = false;
@@ -426,7 +419,6 @@ function setupEdit(id){
         f_perihal.value = d.perihal ?? '';
         f_lokasi.value = d.lokasi ?? '';
         f_pic_perusahaan.value = d.pic_perusahaan ?? '';
-        f_pic_admin.value = d.pic_admin ?? "{{ Auth::user()->name }}";
         f_no_suffix.value = '';
 
         // Set nama perusahaan dari dropdown

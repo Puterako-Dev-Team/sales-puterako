@@ -15,7 +15,7 @@ class Penawaran extends Model
         'perihal',
         'nama_perusahaan',
         'pic_perusahaan',
-        'pic_admin',
+        'user_id',
         'no_penawaran',
         'lokasi',
         'tiket',
@@ -32,6 +32,10 @@ class Penawaran extends Model
 
     protected $dates = ['deleted_at'];
 
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'user_id');
+    }
 
     public function details()
     {
