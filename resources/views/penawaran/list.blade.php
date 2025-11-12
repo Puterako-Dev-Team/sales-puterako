@@ -229,11 +229,22 @@
                 </div>
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">Nama Perusahaan</label>
-                    <input type="text" name="nama_perusahaan" id="f_nama_perusahaan" class="w-full border rounded px-3 py-2 text-sm" required>
+                    <select name="nama_perusahaan" id="f_nama_perusahaan" class="w-full border rounded px-3 py-2 text-sm" required>
+                        <option value="">Pilih Perusahaan...</option>
+                        @foreach($mitras as $mitra)
+                            <option value="{{ $mitra['nama'] }}" 
+                                    data-kota="{{ $mitra['kota'] }}" 
+                                    data-provinsi="{{ $mitra['provinsi'] }}">
+                                {{ $mitra['display'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                    
                 </div>
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">Lokasi</label>
-                    <input type="text" name="lokasi" id="f_lokasi" class="w-full border rounded px-3 py-2 text-sm" required>
+                    <input type="text" name="lokasi" id="f_lokasi" class="w-full border rounded px-3 py-2 text-sm " required readonly>
+                    <p class="text-xs text-gray-500 mt-1">Akan otomatis terisi jika pilih dari Mitra</p>
                 </div>
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">PIC Perusahaan</label>
@@ -351,12 +362,42 @@ function closeSlide(){
     formPanel.classList.add('translate-x-full');
     setTimeout(()=>formSlide.classList.add('hidden'), 350);
 }
+
+/* ================== PERUSAHAAN DROPDOWN LOGIC ================== */
+f_nama_perusahaan.addEventListener('change', function() {
+    const selectedValue = this.value;
+    const selectedOption = this.options[this.selectedIndex];
+    
+    if (selectedValue) {
+        // Auto-fill lokasi dari data mitra
+        const kota = selectedOption.dataset.kota;
+        const provinsi = selectedOption.dataset.provinsi;
+        
+        if (kota) {
+            const lokasi = provinsi ? `${kota}, ${provinsi}` : kota;
+            f_lokasi.value = lokasi;
+            f_lokasi.readOnly = true;
+            f_lokasi.classList.add('bg-gray-100');
+        }
+    } else {
+        // Reset lokasi jika tidak ada pilihan
+        f_lokasi.value = '';
+        f_lokasi.readOnly = false;
+        f_lokasi.classList.remove('bg-gray-100');
+    }
+});
+
 function resetForm(){
     penawaranForm.reset();
     methodField.value = '';
     editIdField.value = '';
     f_pic_admin.value = "{{ Auth::user()->name }}";
+    
+    // Reset lokasi state
+    f_lokasi.readOnly = false;
+    f_lokasi.classList.remove('bg-gray-100');
 }
+
 function setupAdd(){
     resetForm();
     formTitle.textContent = 'Tambah Penawaran';
@@ -365,6 +406,7 @@ function setupAdd(){
     penawaranForm.action = ROUTES.store;
     openSlide();
 }
+
 function setupEdit(id){
     fetch(`${ROUTES.base}/${id}/edit`, {
         headers:{'X-Requested-With':'XMLHttpRequest'}
@@ -381,12 +423,18 @@ function setupEdit(id){
         editIdField.value = id;
 
         // isi field
-        f_perihal.value         = d.perihal ?? '';
-        f_nama_perusahaan.value = d.nama_perusahaan ?? '';
-        f_lokasi.value          = d.lokasi ?? '';
-        f_pic_perusahaan.value  = d.pic_perusahaan ?? '';
-        f_pic_admin.value       = d.pic_admin ?? "{{ Auth::user()->name }}";
-        f_no_suffix.value       = ''; // tidak dipakai saat edit
+        f_perihal.value = d.perihal ?? '';
+        f_lokasi.value = d.lokasi ?? '';
+        f_pic_perusahaan.value = d.pic_perusahaan ?? '';
+        f_pic_admin.value = d.pic_admin ?? "{{ Auth::user()->name }}";
+        f_no_suffix.value = '';
+
+        // Set nama perusahaan dari dropdown
+        const namaPerusahaan = d.nama_perusahaan ?? '';
+        f_nama_perusahaan.value = namaPerusahaan;
+        
+        // Trigger change event untuk auto-fill lokasi jika ada match
+        f_nama_perusahaan.dispatchEvent(new Event('change'));
 
         grpNoPenawaran.classList.add('hidden');
         openSlide();
@@ -404,17 +452,14 @@ penawaranForm.addEventListener('submit', function(e){
     const fd = new FormData(penawaranForm);
 
     if(mode === 'add'){
-        // backend mungkin butuh no_penawaran lengkap
         const suffix = (f_no_suffix.value || '').trim();
         if(suffix){
             fd.append('no_penawaran', NO_PREFIX + suffix);
         }
     } else {
-        // Edit: pastikan method override
         fd.append('_method','PUT');
     }
 
-    // Disable submit
     const submitBtn = penawaranForm.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     submitBtn.classList.add('opacity-70','cursor-not-allowed');
@@ -432,7 +477,7 @@ penawaranForm.addEventListener('submit', function(e){
         submitBtn.disabled = false;
         submitBtn.classList.remove('opacity-70','cursor-not-allowed');
         closeSlide();
-        performFilter(); // reload tabel
+        performFilter();
         if(res.notify){
             toastSafe(res.notify);
         } else {

@@ -65,7 +65,20 @@ class PenawaranController extends Controller
             ->orderBy('pic_admin')
             ->pluck('pic_admin');
 
-        return view('penawaran.list', compact('penawarans', 'totalRecords', 'picAdmins'));
+        $mitras = \App\Models\Mitra::orderBy('nama_mitra')
+            ->orderBy('kota')
+            ->get(['id_mitra', 'nama_mitra', 'kota', 'provinsi'])
+            ->map(function ($mitra) {
+                return [
+                    'id' => $mitra->id_mitra,
+                    'nama' => $mitra->nama_mitra,
+                    'kota' => $mitra->kota,
+                    'provinsi' => $mitra->provinsi,
+                    'display' => $mitra->nama_mitra . ' (' . $mitra->kota . ')'
+                ];
+            });
+
+        return view('penawaran.list', compact('penawarans', 'totalRecords', 'picAdmins', 'mitras'));
     }
 
     public function filter(Request $request)
@@ -137,10 +150,24 @@ class PenawaranController extends Controller
             ])->render();
         }
 
+        $mitras = \App\Models\Mitra::orderBy('nama_mitra')
+            ->orderBy('kota')
+            ->get(['id_mitra', 'nama_mitra', 'kota', 'provinsi'])
+            ->map(function ($mitra) {
+                return [
+                    'id' => $mitra->id_mitra,
+                    'nama' => $mitra->nama_mitra,
+                    'kota' => $mitra->kota,
+                    'provinsi' => $mitra->provinsi,
+                    'display' => $mitra->nama_mitra . ' (' . $mitra->kota . ')'
+                ];
+            });
+
         return response()->json([
             'table' => $table,
             'info' => $info,
-            'pagination' => $pagination
+            'pagination' => $pagination,
+            'mitras' => $mitras 
         ]);
     }
 
@@ -182,7 +209,7 @@ class PenawaranController extends Controller
         $data = $request->validate([
             'perihal'         => 'required|string|max:255',
             'nama_perusahaan' => 'required|string|max:255',
-            'lokasi'          => 'required|string|max:255',  
+            'lokasi'          => 'required|string|max:255',
             'pic_perusahaan'  => 'nullable|string|max:255',
             'pic_admin'       => 'nullable|string|max:255',
         ]);
