@@ -45,32 +45,45 @@
 
         .menu-item {
             position: relative;
-            overflow: hidden;
+            overflow: visible;
         }
 
+        /* Remove background hover effects */
         .menu-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 0;
-            height: 100%;
-            background: linear-gradient(90deg, rgba(60, 255, 0, 0.1) 0%, transparent 100%);
-            transition: width 0.3s ease;
+            display: none;
         }
 
-        .menu-item:hover::before,
-        .menu-item.active::before {
-            width: 100%;
+        /* Hover effect only on icon and text */
+        .menu-item:hover svg {
+            color: #008817 !important;
+            transform: scale(1.1);
+        }
+
+        .menu-item:hover .menu-label span {
+            color: #008817;
+        }
+
+        /* Active state - only icon and text color change */
+        .menu-item.active svg {
+            color: #008817 !important;
+        }
+
+        .menu-item.active .menu-label span {
+            color: #008817;
+            font-weight: 600;
         }
 
         .menu-item.active {
-            background: rgba(59, 130, 246, 0.05);
+            background: transparent;
         }
 
-        .sidebar-collapsed .menu-item {
-            padding: 0.75rem;
-            justify-content: center;
+        /* Smooth transitions */
+        .menu-item svg {
+            transition: all 0.2s ease;
+        }
+
+        .menu-item .menu-label span {
+            transition: color 0.2s ease;
         }
 
         .sidebar-collapsed .sidebar-header {
@@ -93,9 +106,8 @@
 
         /* Center icons when sidebar is collapsed */
         .sidebar-collapsed .menu-item {
-            display: flex;
-            align-items: center;
             justify-content: center;
+            margin-left: 6px;
         }
 
         /* Dropdown Styles */
@@ -122,15 +134,42 @@
             padding-left: 3.5rem;
         }
 
+        /* Submenu hover - only text and icon */
+        .submenu-item:hover svg {
+            color: #008817 !important;
+            transform: scale(1.1);
+        }
+
+        .submenu-item:hover span {
+            color: #008817;
+        }
+
         .submenu-item:hover::before,
         .submenu-item.active::before {
-            background: #3B82F6;
-            width: 0.75rem;
-            height: 0.75rem;
+            display: none;
+        }
+
+        /* Submenu active state */
+        .submenu-item.active svg {
+            color: #008817 !important;
+        }
+
+        .submenu-item.active span {
+            color: #008817;
+            font-weight: 600;
         }
 
         .submenu-item.active {
-            background: rgba(59, 130, 246, 0.05);
+            background: transparent;
+        }
+
+        /* Submenu transitions */
+        .submenu-item svg {
+            transition: all 0.2s ease;
+        }
+
+        .submenu-item span {
+            transition: color 0.2s ease;
         }
 
         /* Tooltip styles */
