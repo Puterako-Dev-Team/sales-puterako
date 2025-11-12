@@ -104,6 +104,48 @@
         .animate-spin {
             animation: spin 1s linear infinite;
         }
+
+        #formPanel {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        /* Custom Scrollbar */
+        #formPanel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #formPanel::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+
+        #formPanel::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        #formPanel::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Form content wrapper untuk proper spacing */
+        .form-content {
+            padding-bottom: 80px; /* Space untuk button yang fixed */
+        }
+
+        /* Fixed bottom button */
+        .form-footer {
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            padding: 1rem;
+            margin-top: auto;
+        }
     </style>
 
     <div class="container mx-auto p-8">
@@ -205,68 +247,97 @@
         </div>
     </div>
 
-    <!-- Slide-over Form (tetap sama) -->
+        <!-- Slide-over Form dengan Scrollbar -->
     <div id="formSlide" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden">
-        <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-lg p-8 transition-transform transform translate-x-full"
+        <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-lg transition-transform transform translate-x-full"
             id="formPanel">
-            <div class="flex justify-between items-center mb-4">
-                <h2 id="formTitle" class="text-xl font-bold">Tambah Penawaran</h2>
-                <button id="closeForm" class="text-gray-500 hover:text-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-x" width="24" height="24"
-                        fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 6 6 18" />
-                        <path d="m6 6 12 12" />
-                    </svg>
-                </button>
-            </div>
-            <form id="penawaranForm" method="POST" action="{{ route('penawaran.store') }}">
-                @csrf
-                <input type="hidden" id="methodField" name="_method" value=""> {{-- diisi PUT saat edit --}}
-                <input type="hidden" id="editId" value="">
-                <div class="mb-4">
-                    <label class="block mb-1 font-medium text-sm">Perihal</label>
-                    <input type="text" name="perihal" id="f_perihal" class="w-full border rounded px-3 py-2 text-sm" required>
-                </div>
-                <div class="mb-4">
-                    <label class="block mb-1 font-medium text-sm">Nama Perusahaan</label>
-                    <select name="nama_perusahaan" id="f_nama_perusahaan" class="w-full border rounded px-3 py-2 text-sm" required>
-                        <option value="">Pilih Perusahaan...</option>
-                        @foreach($mitras as $mitra)
-                            <option value="{{ $mitra['nama'] }}" 
-                                    data-kota="{{ $mitra['kota'] }}" 
-                                    data-provinsi="{{ $mitra['provinsi'] }}">
-                                {{ $mitra['display'] }}
-                            </option>
-                        @endforeach
-                    </select>
-                    
-                </div>
-                <div class="mb-4">
-                    <label class="block mb-1 font-medium text-sm">Lokasi</label>
-                    <input type="text" name="lokasi" id="f_lokasi" class="w-full border rounded px-3 py-2 text-sm " required readonly>
-                    <p class="text-xs text-gray-500 mt-1">Akan otomatis terisi jika pilih dari Mitra</p>
-                </div>
-                <div class="mb-4">
-                    <label class="block mb-1 font-medium text-sm">PIC Perusahaan</label>
-                    <input type="text" name="pic_perusahaan" id="f_pic_perusahaan" class="w-full border rounded px-3 py-2 text-sm" required>
-                </div>
-                <div class="mb-4 add-only" id="noPenawaranGroup">
-                    <label class="block mb-1 font-medium text-sm">No Penawaran</label>
-                    <div class="flex items-center space-x-2">
-                        <span
-                            class="text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded border">PIB/SS-SBY/JK/{{ Auth::id() }}-</span>
-                        <input type="text" name="no_penawaran_suffix" id="f_no_penawaran_suffix"
-                            class="flex-1 border rounded px-3 py-2 text-sm" placeholder="VII/2025">
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">Otomatis dibuat saat tambah. Disembunyikan saat edit.</p>
-                </div>
-                <div class="absolute bottom-0 left-0 w-full p-4 bg-white border-t">
-                    <button type="submit"
-                        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition w-full text-sm">
-                        Simpan
+            
+            <!-- Header (Fixed) -->
+            <div class="sticky top-0 bg-white border-b border-gray-100 p-6 z-10">
+                <div class="flex justify-between items-center">
+                    <h2 id="formTitle" class="text-xl font-bold">Tambah Penawaran</h2>
+                    <button id="closeForm" class="text-gray-500 hover:text-gray-700 p-1 hover:bg-gray-100 rounded">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-x" width="24" height="24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                        </svg>
                     </button>
                 </div>
-            </form>
+            </div>
+
+            <!-- Form Content (Scrollable) -->
+            <div class="form-content p-6">
+                <form id="penawaranForm" method="POST" action="{{ route('penawaran.store') }}">
+                    @csrf
+                    <input type="hidden" id="methodField" name="_method" value="">
+                    <input type="hidden" id="editId" value="">
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block mb-2 font-medium text-sm text-gray-700">Perihal</label>
+                            <input type="text" name="perihal" id="f_perihal" 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                   required>
+                        </div>
+                        
+                        <div>
+                            <label class="block mb-2 font-medium text-sm text-gray-700">Nama Perusahaan</label>
+                            <select name="nama_perusahaan" id="f_nama_perusahaan" 
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                    required>
+                                <option value="">Pilih Perusahaan...</option>
+                                @foreach($mitras as $mitra)
+                                    <option value="{{ $mitra['nama'] }}" 
+                                            data-kota="{{ $mitra['kota'] }}" 
+                                            data-provinsi="{{ $mitra['provinsi'] }}">
+                                        {{ $mitra['display'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block mb-2 font-medium text-sm text-gray-700">Lokasi</label>
+                            <input type="text" name="lokasi" id="f_lokasi" 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                   required readonly>
+                            <p class="text-xs text-gray-500 mt-1">Akan otomatis terisi jika pilih dari Mitra</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block mb-2 font-medium text-sm text-gray-700">PIC Perusahaan</label>
+                            <input type="text" name="pic_perusahaan" id="f_pic_perusahaan" 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                   required>
+                        </div>
+                        
+                        <div class="add-only" id="noPenawaranGroup">
+                            <label class="block mb-2 font-medium text-sm text-gray-700">No Penawaran</label>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-lg border border-gray-300 whitespace-nowrap">
+                                    PIB/SS-SBY/JK/{{ Auth::id() }}-
+                                </span>
+                                <input type="text" name="no_penawaran_suffix" id="f_no_penawaran_suffix"
+                                       class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                       placeholder="VII/2025">
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Otomatis dibuat saat tambah. Disembunyikan saat edit.</p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Footer Button (Fixed) -->
+            <div class="form-footer">
+                <button type="submit" form="penawaranForm"
+                        class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 font-medium">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    Simpan Penawaran
+                </button>
+            </div>
         </div>
     </div>
 
