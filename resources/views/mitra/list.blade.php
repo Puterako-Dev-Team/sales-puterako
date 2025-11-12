@@ -80,6 +80,24 @@
         #formPanelMitra {
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        .error-text {
+            display: none;
+        }
+
+        .error-text.show {
+            display: block;
+        }
+
+        .input-error {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+        }
+
+        .input-error:focus {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+        }
     </style>
 
     <div class="container mx-auto p-8">
@@ -170,22 +188,26 @@
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">Nama Perusahaan</label>
                     <input type="text" name="nama_mitra" id="f_nama_mitra" class="w-full border rounded px-3 py-2 text-sm" required>
+                    <div id="error_nama_mitra" class="error-text text-red-500 text-xs mt-1 hidden"></div>
                 </div>
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">Provinsi</label>
                     <select name="provinsi" id="provinsiSelect" class="w-full border rounded px-3 py-2 text-sm">
                         <option value="">Pilih Provinsi...</option>
                     </select>
+                    <div id="error_provinsi" class="error-text text-red-500 text-xs mt-1 hidden"></div>
                 </div>
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">Kota/Kabupaten</label>
                     <select name="kota" id="kotaSelect" class="w-full border rounded px-3 py-2 text-sm" required disabled>
                         <option value="">Pilih Kota/Kabupaten...</option>
                     </select>
+                    <div id="error_kota" class="error-text text-red-500 text-xs mt-1 hidden"></div>
                 </div>
                 <div class="mb-4">
                     <label class="block mb-1 font-medium text-sm">Alamat</label>
                     <textarea name="alamat" id="f_alamat" rows="3" class="w-full border rounded px-3 py-2 text-sm"></textarea>
+                    <div id="error_alamat" class="error-text text-red-500 text-xs mt-1 hidden"></div>
                 </div>
                 <div class="absolute bottom-0 left-0 w-full p-4 bg-white border-t">
                     <button type="submit"
@@ -411,20 +433,216 @@ formMitra.addEventListener('submit', function(e){
         },
         body: fd
     })
-    .then(r => r.json().catch(()=>({})))
-    .then(res => {
-        submitBtn.disabled = false;
-        submitBtn.classList.remove('opacity-70','cursor-not-allowed');
-        closeSlide();
-        performFilter();
-        toastSafe(res.notify ?? {type:'success',title:'Sukses',message: mode==='add'?'Mitra ditambahkan':'Mitra diperbarui'});
+    .then(r => {
+        // Handle both success (200) and validation error (422)
+        return r.json().then(data => ({ status: r.status, data }));
     })
-    .catch(err=>{
+    .then(({ status, data }) => {
         submitBtn.disabled = false;
         submitBtn.classList.remove('opacity-70','cursor-not-allowed');
-        toastSafe({type:'error',title:'Error',message:'Gagal simpan data'});
+        
+        if (status === 422) {
+            // Validation error - tampilkan pesan tapi jangan tutup modal
+            toastSafe(data.notify ?? {
+                type: 'error', 
+                title: 'Error', 
+                message: 'Data duplikat atau tidak valid'
+            });
+            return; // Jangan tutup modal & jangan reload
+        }
+        
+        if (data.success) {
+            closeSlide();
+            performFilter();
+            toastSafe(data.notify ?? {
+                type: 'success',
+                title: 'Sukses',
+                message: mode === 'add' ? 'Mitra ditambahkan' : 'Mitra diperbarui'
+            });
+        }
+    })
+    .catch(err => {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-70','cursor-not-allowed');
+        toastSafe({
+            type: 'error',
+            title: 'Error',
+            message: 'Gagal simpan data'
+        });
     });
 });
+
+/* ================== ERROR HANDLING HELPERS ================== */
+function clearAllErrors() {
+    // Clear error texts
+    document.querySelectorAll('.error-text').forEach(el => {
+        el.classList.remove('show');
+        el.classList.add('hidden');
+        el.textContent = '';
+    });
+    
+    // Clear error input styling
+    document.querySelectorAll('.input-error').forEach(el => {
+        el.classList.remove('input-error');
+    });
+}
+
+function showFieldError(fieldName, message) {
+    const errorEl = document.getElementById(`error_${fieldName}`);
+    const inputEl = document.getElementById(`f_${fieldName}`) || 
+                   document.getElementById(`${fieldName}Select`);
+    
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.remove('hidden');
+        errorEl.classList.add('show');
+    }
+    
+    if (inputEl) {
+        inputEl.classList.add('input-error');
+        
+        // Auto clear error saat user mulai edit
+        const clearError = () => {
+            errorEl?.classList.remove('show');
+            errorEl?.classList.add('hidden');
+            inputEl.classList.remove('input-error');
+            inputEl.removeEventListener('input', clearError);
+            inputEl.removeEventListener('change', clearError);
+        };
+        
+        inputEl.addEventListener('input', clearError);
+        inputEl.addEventListener('change', clearError);
+    }
+}
+
+function showValidationErrors(errors) {
+    Object.keys(errors).forEach(field => {
+        const messages = Array.isArray(errors[field]) ? errors[field] : [errors[field]];
+        showFieldError(field, messages[0]); // tampilkan error pertama
+    });
+}
+
+/* ================== SUBMIT FORM (UPDATED WITH FIELD ERRORS) ================== */
+formMitra.addEventListener('submit', function(e){
+    e.preventDefault();
+    clearAllErrors(); // Clear previous errors
+    
+    const mode = formMitra.dataset.mode || 'add';
+    const fd = new FormData(formMitra);
+
+    // Provinsi: simpan nama (bukan ID)
+    const provText = provinsiSelect.value ?
+        provinsiSelect.options[provinsiSelect.selectedIndex].text :
+        '';
+    fd.set('provinsi', provText);
+
+    if(mode === 'edit'){
+        fd.append('_method','PUT');
+    }
+
+    const submitBtn = formMitra.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-70','cursor-not-allowed');
+
+    const url = mode === 'add' ? ROUTES.store : `${ROUTES.base}/${mitraEditId.value}`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers:{
+            'X-CSRF-TOKEN': CSRF_TOKEN,
+            'X-Requested-With':'XMLHttpRequest'
+        },
+        body: fd
+    })
+    .then(r => {
+        return r.json().then(data => ({ status: r.status, data }));
+    })
+    .then(({ status, data }) => {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-70','cursor-not-allowed');
+        
+        if (status === 422) {
+            // Validation error - show field errors
+            if (data.errors) {
+                showValidationErrors(data.errors);
+            }
+            
+            // Show toast notification
+            toastSafe(data.notify ?? {
+                type: 'error', 
+                title: 'Error', 
+                message: 'Periksa data yang diinputkan'
+            });
+            return; // Jangan tutup modal
+        }
+        
+        if (data.success) {
+            clearAllErrors();
+            closeSlide();
+            performFilter();
+            toastSafe(data.notify ?? {
+                type: 'success',
+                title: 'Sukses',
+                message: mode === 'add' ? 'Mitra ditambahkan' : 'Mitra diperbarui'
+            });
+        }
+    })
+    .catch(err => {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-70','cursor-not-allowed');
+        toastSafe({
+            type: 'error',
+            title: 'Error',
+            message: 'Gagal simpan data'
+        });
+    });
+});
+
+/* ================== CLEAR ERRORS WHEN OPENING FORM ================== */
+function setupAdd(){
+    resetForm();
+    clearAllErrors(); // Clear errors saat buka form add
+    mitraFormTitle.textContent = 'Tambah Mitra';
+    formMitra.dataset.mode = 'add';
+    openSlide();
+}
+
+function setupEdit(id){
+    clearAllErrors(); // Clear errors saat buka form edit
+    fetch(`${ROUTES.base}/${id}/edit`, {
+        headers:{'X-Requested-With':'XMLHttpRequest'}
+    })
+    .then(r => {
+        if(!r.ok) throw new Error('Gagal load data');
+        return r.json();
+    })
+    .then(d => {
+        mitraFormTitle.textContent = 'Edit Mitra';
+        formMitra.dataset.mode = 'edit';
+        mitraMethodField.value = 'PUT';
+        mitraEditId.value = id;
+
+        f_nama_mitra.value = d.nama_mitra ?? '';
+        f_alamat.value = d.alamat ?? '';
+        
+        // Set provinsi & kota
+        if(d.provinsi) {
+            Array.from(provinsiSelect.options).forEach(opt => {
+                if(opt.textContent === d.provinsi) {
+                    provinsiSelect.value = opt.value;
+                    loadRegencies(opt.value).then(()=>{
+                        kotaSelect.value = d.kota ?? '';
+                    });
+                }
+            });
+        }
+
+        openSlide();
+    })
+    .catch(e=>{
+        toastSafe({type:'error',title:'Error',message:e.message});
+    });
+}
 
 /* ================== HAPUS ================== */
 function openConfirmDelete(id){

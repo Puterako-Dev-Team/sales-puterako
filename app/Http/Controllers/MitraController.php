@@ -67,15 +67,44 @@ class MitraController extends Controller
     {
         $data = $request->validate([
             'nama_mitra' => 'required|string|max:255',
-            'provinsi'        => 'nullable|string|max:150',
-            'kota'            => 'required|string|max:150',
-            'alamat'          => 'nullable|string',
+            'provinsi'   => 'nullable|string|max:150',
+            'kota'       => 'required|string|max:150',
+            'alamat'     => 'nullable|string',
         ]);
+
+        // Cek duplikat
+        $existing = Mitra::where('nama_mitra', $data['nama_mitra'])
+                        ->where('kota', $data['kota'])
+                        ->first();
+
+        if ($existing) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => [
+                        'nama_mitra' => ["Mitra '{$data['nama_mitra']}' sudah ada di {$data['kota']}"]
+                    ],
+                    'notify' => [
+                        'type' => 'error',
+                        'title' => 'Duplikat',
+                        'message' => "Mitra sudah terdaftar di kota tersebut"
+                    ]
+                ], 422);
+            }
+            return back()->withErrors(['nama_mitra' => "Mitra '{$data['nama_mitra']}' sudah ada di {$data['kota']}"]);
+        }
 
         Mitra::create($data);
 
         if ($request->ajax()) {
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true,
+                'notify' => [
+                    'type' => 'success',
+                    'title' => 'Berhasil',
+                    'message' => 'Mitra berhasil ditambahkan'
+                ]
+            ]);
         }
         return redirect()->route('mitra.list')->with('success', 'Mitra ditambahkan');
     }
@@ -91,14 +120,42 @@ class MitraController extends Controller
         $mitra = Mitra::findOrFail($id);
         $data = $request->validate([
             'nama_mitra' => 'required|string|max:255',
-            'provinsi'        => 'nullable|string|max:150',
-            'kota'            => 'required|string|max:150',
-            'alamat'          => 'nullable|string',
+            'provinsi'   => 'nullable|string|max:150',
+            'kota'       => 'required|string|max:150',
+            'alamat'     => 'nullable|string',
         ]);
+
+        // Cek duplikat kecuali record saat ini
+        $existing = Mitra::where('nama_mitra', $data['nama_mitra'])
+                        ->where('kota', $data['kota'])
+                        ->where('id_mitra', '!=', $id) // EXCLUDE current record
+                        ->first();
+
+        if ($existing) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'notify' => [
+                        'type' => 'error',
+                        'title' => 'Duplikat',
+                        'message' => "Mitra '{$data['nama_mitra']}' sudah ada di {$data['kota']}"
+                    ]
+                ], 422);
+            }
+            return back()->withErrors(['nama_mitra' => "Mitra '{$data['nama_mitra']}' sudah ada di {$data['kota']}"]);
+        }
+
         $mitra->update($data);
 
         if ($request->ajax()) {
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true,
+                'notify' => [
+                    'type' => 'success',
+                    'title' => 'Berhasil',
+                    'message' => 'Mitra diperbarui'
+                ]
+            ]);
         }
         return back()->with('success','Mitra diperbarui');
     }
