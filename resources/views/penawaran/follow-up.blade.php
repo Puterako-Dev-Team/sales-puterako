@@ -315,20 +315,6 @@
                                         </div>
                                     @endif
 
-                                    <!-- Call to action untuk system reminder -->
-                                    @if ($followUp->is_system_generated)
-                                        <div class="mt-3 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
-                                            <div class="flex items-center justify-between">
-                                                <span class="text-sm text-yellow-800 font-medium">⚡ Segera lakukan follow
-                                                    up!</span>
-                                                <button onclick="quickFollowUp({{ $penawaran->id_penawaran }})"
-                                                    class="px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 transition">
-                                                    Follow Up Sekarang
-                                                </button>
-                                            </div>
-                                        </div>
-                                    @endif
-
                                     <div class="flex justify-end mt-3">
                                         <span class="text-xs text-gray-400">
                                             {{ \Carbon\Carbon::parse($followUp->created_at)->diffForHumans() }}
@@ -417,79 +403,79 @@
 
     <!-- Slide-over Form Modal -->
     <div id="formSlide" class="fixed inset-0 bg-black bg-opacity-30 z-50 hidden">
-        <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-lg p-8 transition-transform transform translate-x-full"
+        <div class="absolute right-0 top-0 h-full w-full max-w-md p-6 bg-white shadow-lg transition-transform transform translate-x-full overflow-y-auto"
             id="formPanel">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">Tambah Follow Up</h2>
-                <button id="closeForm" class="text-gray-500 hover:text-gray-700">
-                    <x-lucide-x class="w-6 h-6" />
-                </button>
-            </div>
-
-            <form id="followUpForm" method="POST"
-                action="{{ route('penawaran.followUp.store', $penawaran->id_penawaran) }}">
-                @csrf
-
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Follow Up</label>
-                    <input type="text" name="nama" id="namaFollowUp"
-                        class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="Contoh: Follow up proposal awal" required>
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Follow Up</label>
-                    <select name="jenis" id="jenisFollowUp"
-                        class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                        required>
-                        <option value="">Pilih Jenis...</option>
-                        <option value="telepon">Telepon</option>
-                        <option value="email">Email</option>
-                        <option value="whatsapp">WhatsApp</option>
-                        <option value="kunjungan">Kunjungan</option>
-                    </select>
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">PIC Perusahaan</label>
-                    <input type="text" name="pic_perusahaan" id="picPerusahaanFollowUp"
-                        class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="Nama PIC yang dihubungi">
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
-                    <textarea name="deskripsi" id="deskripsiFollowUp" rows="3"
-                        class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="Tujuan atau rencana follow up ini..." required></textarea>
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Hasil Progress</label>
-                    <textarea name="hasil_progress" id="hasilProgressFollowUp" rows="3"
-                        class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="Hasil dari follow up (opsional)"></textarea>
-                </div>
-
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                    <select name="status" id="statusFollowUp"
-                        class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                        required>
-                        <option value="progress">Progress</option>
-                        <option value="deal">Deal</option>
-                        <option value="closed">Closed</option>
-                    </select>
-                </div>
-
-                <div class="absolute bottom-0 left-0 w-full p-4 bg-white border-t">
-                    <button type="submit"
-                        class="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm">
-                        <x-lucide-save class="w-4 h-4" />
-                        Simpan Follow Up
+            <!-- Header -->
+            <div class="p-4 border-b">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-bold">Tambah Follow Up</h2>
+                    <button id="closeForm" class="text-gray-500 hover:text-gray-700">
+                        <x-lucide-x class="w-5 h-5" />
                     </button>
                 </div>
-            </form>
+            </div>
+            <!-- Form Content -->
+            <div class="p-4">
+                <form id="followUpForm" method="POST"
+                    action="{{ route('penawaran.followUp.store', $penawaran->id_penawaran) }}">
+                    @csrf
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Nama Follow Up</label>
+                        <input type="text" name="nama" id="namaFollowUp"
+                            class="w-full border rounded px-3 py-2 text-sm" placeholder="Contoh: Follow up proposal awal"
+                            required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Jenis</label>
+                        <select name="jenis" id="jenisFollowUp" class="w-full border rounded px-3 py-2 text-sm"
+                            required>
+                            <option value="">Pilih Jenis...</option>
+                            <option value="telepon">Telepon</option>
+                            <option value="email">Email</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="kunjungan">Kunjungan</option>
+                            <option value="meeting">Meeting</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">PIC Perusahaan</label>
+                        <input type="text" name="pic_perusahaan" id="picPerusahaanFollowUp"
+                            class="w-full border rounded px-3 py-2 text-sm" placeholder="Nama PIC yang dihubungi">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Kontak</label>
+                        <input type="text" name="kontak" id="kontakFollowUp"
+                            class="w-full border rounded px-3 py-2 text-sm" placeholder="Nomor telepon/email">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Deskripsi</label>
+                        <textarea name="deskripsi" id="deskripsiFollowUp" rows="3" class="w-full border rounded px-3 py-2 text-sm"
+                            placeholder="Tujuan atau rencana follow up..." required></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Hasil Progress</label>
+                        <textarea name="hasil_progress" id="hasilProgressFollowUp" rows="3"
+                            class="w-full border rounded px-3 py-2 text-sm" placeholder="Hasil dari follow up (opsional)"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Status</label>
+                        <select name="status" id="statusFollowUp" class="w-full border rounded px-3 py-2 text-sm"
+                            required>
+                            <option value="progress">Progress</option>
+                            <option value="deal">Deal</option>
+                            <option value="pending">Pending</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </div>
+                    <!-- Submit Button -->
+                    <div class="border-t pt-4">
+                        <button type="submit"
+                            class="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
+                            Simpan Follow Up
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 @endsection
@@ -511,7 +497,6 @@
                 return;
             }
 
-            // Open modal function - PINDAHKAN KE GLOBAL SCOPE
             window.openSlide = function() {
                 console.log('Opening slide...');
                 formSlide.classList.remove('hidden');
@@ -521,18 +506,7 @@
                 });
             }
 
-            // Quick follow up function - PINDAHKAN KE GLOBAL SCOPE
-            window.quickFollowUp = function(penawaranId) {
-                console.log('Quick follow up for penawaran:', penawaranId);
-                
-                // Auto-fill form dengan data default
-                document.getElementById('namaFollowUp').value = 'Follow up response to reminder';
-                document.getElementById('jenisFollowUp').value = 'telepon';
-                document.getElementById('deskripsiFollowUp').value = 'Follow up berdasarkan reminder sistem untuk update status penawaran';
-
-                // Open modal
-                window.openSlide();
-            }
+        
 
             // Close modal
             function closeSlide() {
@@ -567,7 +541,8 @@
                     const submitBtn = this.querySelector('button[type="submit"]');
 
                     submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Loading...';
+                    submitBtn.innerHTML =
+                        '<svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Loading...';
 
                     fetch(this.action, {
                             method: 'POST',
@@ -608,7 +583,8 @@
                         })
                         .finally(() => {
                             submitBtn.disabled = false;
-                            submitBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path></svg> Simpan Follow Up';
+                            submitBtn.innerHTML =
+                                '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path></svg> Simpan Follow Up';
                         });
                 });
             }
