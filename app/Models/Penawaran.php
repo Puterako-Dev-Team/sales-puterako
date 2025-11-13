@@ -50,4 +50,17 @@ class Penawaran extends Model
     {
         return $this->hasMany(PenawaranVersion::class, 'penawaran_id');
     }
+
+    public function followUps()
+    {
+        return $this->hasMany(FollowUp::class, 'penawaran_id', 'id_penawaran')
+                    ->orderBy('created_at', 'desc');
+    }
+
+    public function systemFollowUps()
+    {
+        return $this->hasMany(FollowUp::class, 'penawaran_id', 'id_penawaran')
+                    ->where('is_system_generated', true)
+                    ->orderBy('created_at', 'desc');
+    }
 }

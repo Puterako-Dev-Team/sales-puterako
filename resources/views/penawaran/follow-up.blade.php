@@ -127,6 +127,23 @@
             padding: 3rem 1rem;
             color: #6b7280;
         }
+
+        .hasil-progress-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .hasil-progress-text {
+            flex: 1;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .hasil-progress-icon {
+            flex-shrink: 0;
+            margin-top: 0.125rem;
+        }
     </style>
 
     <div class="container mx-auto p-6">
@@ -203,25 +220,35 @@
 
                     <div id="timelineContainer">
                         @if ($followUps && $followUps->count() > 0)
+                            <!-- Update di follow-up.blade.php bagian timeline -->
                             @foreach ($followUps as $followUp)
-                                <div class="bg-white rounded-md border-l-4 border-green-500 shadow-lg p-4 mb-4 hover:shadow-xl hover:shadow-green-500/10 hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 ease-out cursor-pointer">
-
-                                    <!-- Header: Nama Follow Up + Tanggal -->
+                                <div class="bg-white rounded-md border-l-4 {{ $followUp->is_system_generated ? 'border-yellow-500 bg-yellow-50' : 'border-green-500' }} shadow-lg p-4 mb-4 hover:shadow-xl transition-all duration-300 ease-out cursor-pointer">
+                                    <!-- Header dengan icon khusus untuk system reminder -->
                                     <div class="flex justify-between items-start mb-3">
-                                        <h4 class="font-semibold text-gray-800 text-sm">{{ $followUp->nama }}</h4>
+                                        <div class="flex items-center gap-2">
+                                            @if ($followUp->is_system_generated)
+                                                <x-lucide-bell class="w-4 h-4 text-yellow-600" />
+                                                <h4 class="font-semibold text-yellow-800 text-sm">{{ $followUp->nama }}
+                                                </h4>
+                                                <span
+                                                    class="px-2 py-1 text-xs bg-yellow-200 text-yellow-800 rounded-full">SYSTEM</span>
+                                            @else
+                                                <h4 class="font-semibold text-gray-800 text-sm">{{ $followUp->nama }}</h4>
+                                            @endif
+                                        </div>
 
                                         <div class="text-right text-sm text-gray-500">
                                             <div>{{ \Carbon\Carbon::parse($followUp->created_at)->format('d M Y') }}</div>
-                                            {{-- <div class="text-xs">
-                                                {{ \Carbon\Carbon::parse($followUp->created_at)->format('H:i') }}</div> --}}
                                         </div>
                                     </div>
 
-                                    <!-- Jenis + PIC + Status dalam satu baris flex -->
+                                    <!-- Jenis dengan styling khusus untuk reminder -->
                                     <div class="flex justify-between items-center mb-3">
-                                        <!-- Kiri: Jenis Follow Up -->
                                         <div class="flex items-center gap-2">
-                                            @if ($followUp->jenis == 'telepon')
+                                            @if ($followUp->jenis == 'reminder')
+                                                <x-lucide-clock class="w-4 h-4 text-yellow-600" />
+                                                <span class="text-sm text-yellow-600 font-medium">Reminder Sistem</span>
+                                            @elseif ($followUp->jenis == 'telepon')
                                                 <x-lucide-phone class="w-4 h-4 text-blue-600" />
                                                 <span class="text-sm text-blue-600">Telepon</span>
                                             @elseif($followUp->jenis == 'email')
@@ -259,19 +286,28 @@
                                         </div>
                                     </div>
 
-                                    <!-- Deskripsi -->
+                                    <!-- Deskripsi dengan styling berbeda untuk system -->
                                     <div class="mb-3">
-                                        <p class="text-sm text-gray-700 leading-relaxed">{{ $followUp->deskripsi }}</p>
+                                        <p
+                                            class="text-sm {{ $followUp->is_system_generated ? 'text-yellow-700 font-medium' : 'text-gray-700' }} leading-relaxed">
+                                            {{ $followUp->deskripsi }}
+                                        </p>
                                     </div>
 
-                                    <!-- Hasil Progress jika ada -->
                                     @if ($followUp->hasil_progress)
-                                        <div class="bg-gray-50 rounded-lg p-2 mt-3">
-                                            <div class="flex items-start gap-2">
-                                                <x-lucide-clipboard-check
-                                                    class="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                                <div>
-                                                    <div class="font-medium text-sm text-gray-800 mb-1">Hasil Progress:
+                                        <div
+                                            class="{{ $followUp->is_system_generated ? 'bg-yellow-50' : 'bg-gray-50' }} rounded-lg p-3 mt-3">
+                                            <div class="hasil-progress-container">
+                                                @if ($followUp->is_system_generated)
+                                                    <x-lucide-alert-triangle
+                                                        class="w-4 h-4 text-yellow-600 hasil-progress-icon" />
+                                                @else
+                                                    <x-lucide-clipboard-check
+                                                        class="w-4 h-4 text-green-600 hasil-progress-icon" />
+                                                @endif
+                                                <div class="hasil-progress-text">
+                                                    <div class="font-medium text-sm text-gray-800 mb-1">
+                                                        {{ $followUp->is_system_generated ? 'Tindakan yang Disarankan:' : 'Hasil Progress:' }}
                                                     </div>
                                                     <p class="text-sm text-gray-700">{{ $followUp->hasil_progress }}</p>
                                                 </div>
@@ -279,7 +315,20 @@
                                         </div>
                                     @endif
 
-                                    <!-- Time Ago -->
+                                    <!-- Call to action untuk system reminder -->
+                                    @if ($followUp->is_system_generated)
+                                        <div class="mt-3 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-sm text-yellow-800 font-medium">⚡ Segera lakukan follow
+                                                    up!</span>
+                                                <button onclick="quickFollowUp({{ $penawaran->id_penawaran }})"
+                                                    class="px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 transition">
+                                                    Follow Up Sekarang
+                                                </button>
+                                            </div>
+                                        </div>
+                                    @endif
+
                                     <div class="flex justify-end mt-3">
                                         <span class="text-xs text-gray-400">
                                             {{ \Carbon\Carbon::parse($followUp->created_at)->diffForHumans() }}
@@ -327,13 +376,24 @@
                         <!-- Follow Ups dari Database -->
                         @if ($followUps && $followUps->count() > 0)
                             @foreach ($followUps->sortBy('created_at') as $index => $followUp)
-                                <div class="flex items-center gap-3 relative">
+                                <div
+                                    class="flex items-center gap-3 relative {{ $followUp->is_system_generated ? 'bg-yellow-50 border border-yellow-200 rounded-lg p-2 -ml-2' : '' }}">
                                     <div
-                                        class="w-4 h-4 rounded-full bg-green-500 border-2 border-white shadow-sm z-10">
+                                        class="w-4 h-4 rounded-full 
+            {{ $followUp->is_system_generated ? 'bg-yellow-500 border-2 border-white shadow-lg ring-2 ring-yellow-200 animate-pulse' : 'bg-green-500 border-2 border-white' }} 
+            shadow-sm z-10">
                                     </div>
                                     <div>
-                                        <div class="font-medium">Follow Up {{ $index + 1 }}</div>
-                                        <div class="text-gray-600 text-sm">
+                                        <div
+                                            class="font-medium {{ $followUp->is_system_generated ? 'text-yellow-800' : '' }}">
+                                            {{ $followUp->is_system_generated ? '🔔 Reminder' : 'Follow Up ' . ($index + 1) }}
+                                            @if ($followUp->is_system_generated)
+                                                <span
+                                                    class="inline-block w-2 h-2 bg-yellow-400 rounded-full ml-2 animate-ping"></span>
+                                            @endif
+                                        </div>
+                                        <div
+                                            class="text-gray-600 text-xs {{ $followUp->is_system_generated ? 'text-yellow-700' : '' }}">
                                             {{ \Carbon\Carbon::parse($followUp->created_at)->format('d M Y, H:i') }}
                                         </div>
                                     </div>
@@ -435,108 +495,125 @@
 @endsection
 
 @push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded');
-    
-    // Modal elements
-    const btnTambah = document.getElementById('btnTambahFollowUp');
-    const formSlide = document.getElementById('formSlide');
-    const formPanel = document.getElementById('formPanel');
-    const closeFormBtn = document.getElementById('closeForm');
-    const followUpForm = document.getElementById('followUpForm');
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded');
 
-    if (!btnTambah) {
-        console.error('Button tidak ditemukan!');
-        return;
-    }
+            // Modal elements
+            const btnTambah = document.getElementById('btnTambahFollowUp');
+            const formSlide = document.getElementById('formSlide');
+            const formPanel = document.getElementById('formPanel');
+            const closeFormBtn = document.getElementById('closeForm');
+            const followUpForm = document.getElementById('followUpForm');
 
-    // Open modal
-    function openSlide() {
-        console.log('Opening slide...');
-        formSlide.classList.remove('hidden');
-        requestAnimationFrame(() => {
-            formPanel.classList.remove('translate-x-full');
-            formPanel.classList.add('translate-x-0');
-        });
-    }
+            if (!btnTambah) {
+                console.error('Button tidak ditemukan!');
+                return;
+            }
 
-    // Close modal
-    function closeSlide() {
-        formPanel.classList.remove('translate-x-0');
-        formPanel.classList.add('translate-x-full');
-        setTimeout(() => formSlide.classList.add('hidden'), 350);
-    }
+            // Open modal function - PINDAHKAN KE GLOBAL SCOPE
+            window.openSlide = function() {
+                console.log('Opening slide...');
+                formSlide.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    formPanel.classList.remove('translate-x-full');
+                    formPanel.classList.add('translate-x-0');
+                });
+            }
 
-    // Event listeners
-    btnTambah.addEventListener('click', function(e) {
-        console.log('Button clicked!');
-        e.preventDefault();
-        openSlide();
-    });
+            // Quick follow up function - PINDAHKAN KE GLOBAL SCOPE
+            window.quickFollowUp = function(penawaranId) {
+                console.log('Quick follow up for penawaran:', penawaranId);
+                
+                // Auto-fill form dengan data default
+                document.getElementById('namaFollowUp').value = 'Follow up response to reminder';
+                document.getElementById('jenisFollowUp').value = 'telepon';
+                document.getElementById('deskripsiFollowUp').value = 'Follow up berdasarkan reminder sistem untuk update status penawaran';
 
-    if (closeFormBtn) {
-        closeFormBtn.addEventListener('click', closeSlide);
-    }
+                // Open modal
+                window.openSlide();
+            }
 
-    if (formSlide) {
-        formSlide.addEventListener('click', e => {
-            if (e.target === formSlide) closeSlide();
-        });
-    }
+            // Close modal
+            function closeSlide() {
+                formPanel.classList.remove('translate-x-0');
+                formPanel.classList.add('translate-x-full');
+                setTimeout(() => formSlide.classList.add('hidden'), 350);
+            }
 
-    // Form submit with AJAX
-    if (followUpForm) {
-        followUpForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const submitBtn = this.querySelector('button[type="submit"]');
-            
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Loading...';
-            
-            fetch(this.action, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    this.reset();
-                    
-                    if (window.toast) {
-                        toast(data.notify);
-                    } else {
-                        alert('Follow up berhasil ditambahkan');
-                    }
-                    
-                    closeSlide();
-                    
-                    // Auto reload halaman untuk update sidebar dan timeline
-                    setTimeout(() => window.location.reload(), 500);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                if (window.toast) {
-                    toast({type: 'error', title: 'Error', message: 'Gagal menyimpan follow up'});
-                } else {
-                    alert('Gagal menyimpan follow up');
-                }
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path></svg> Simpan Follow Up';
+            // Event listeners
+            btnTambah.addEventListener('click', function(e) {
+                console.log('Button tambah clicked!');
+                e.preventDefault();
+                window.openSlide();
             });
+
+            if (closeFormBtn) {
+                closeFormBtn.addEventListener('click', closeSlide);
+            }
+
+            if (formSlide) {
+                formSlide.addEventListener('click', e => {
+                    if (e.target === formSlide) closeSlide();
+                });
+            }
+
+            // Form submit with AJAX
+            if (followUpForm) {
+                followUpForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+                    const submitBtn = this.querySelector('button[type="submit"]');
+
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Loading...';
+
+                    fetch(this.action, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                this.reset();
+
+                                if (window.toast) {
+                                    toast(data.notify);
+                                } else {
+                                    alert('Follow up berhasil ditambahkan');
+                                }
+
+                                closeSlide();
+
+                                // Auto reload halaman untuk update sidebar dan timeline
+                                setTimeout(() => window.location.reload(), 500);
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            if (window.toast) {
+                                toast({
+                                    type: 'error',
+                                    title: 'Error',
+                                    message: 'Gagal menyimpan follow up'
+                                });
+                            } else {
+                                alert('Gagal menyimpan follow up');
+                            }
+                        })
+                        .finally(() => {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path></svg> Simpan Follow Up';
+                        });
+                });
+            }
+
+            console.log('Setup complete!');
         });
-    }
-    
-    console.log('Setup complete!');
-});
-</script>
+    </script>
 @endpush

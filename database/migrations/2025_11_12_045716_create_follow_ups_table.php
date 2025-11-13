@@ -14,9 +14,10 @@ return new class extends Migration
             $table->string('nama');
             $table->text('deskripsi');
             $table->text('hasil_progress')->nullable();
-            $table->enum('jenis', ['whatsapp', 'email', 'telepon', 'kunjungan']);
+            $table->string('jenis')->nullable();
             $table->string('pic_perusahaan')->nullable();
-            $table->enum('status', ['progress', 'deal', 'closed'])->default('progress');
+            $table->string('status')->default('progress');
+            $table->boolean('is_system_generated')->default(false);
             $table->timestamps();
             
             $table->foreign('penawaran_id')->references('id_penawaran')->on('penawarans')->onDelete('cascade');
