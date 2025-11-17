@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('penawaran_id');
             $table->integer('version');
-            $table->string('notes')->nullable();
+            $table->text('notes')->nullable();
             $table->string('status')->default('draft'); // draft/done/loss
             $table->timestamps();
 

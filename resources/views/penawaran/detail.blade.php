@@ -80,7 +80,7 @@
                 @else
                     @foreach ($versions as $v)
                         <option value="{{ $v->version }}" {{ $v->version == $activeVersion ? 'selected' : '' }}>
-                            Rev {{ $v->version }} {{ $v->notes ? '- ' . $v->notes : '' }}
+                            Revisi {{ $v->version }} 
                         </option>
                     @endforeach
                 @endif
@@ -675,7 +675,8 @@
                                     <tr>
                                         <td class="border border-gray-300 px-3 py-2 text-center">1</td>
                                         <td class="border border-gray-300 px-3 py-2">
-                                            {{ $versionRow->jasa_ringkasan ?? '' }}</td>
+                                            <pre class="whitespace-pre-wrap font-sans text-sm m-0">{{ $versionRow->jasa_ringkasan ?? '' }}</pre>
+                                        </td>
                                         <td class="border border-gray-300 px-3 py-2 text-center">1</td>
                                         <td class="border border-gray-300 px-3 py-2 text-center">Lot</td>
                                         <td class="border border-gray-300 px-3 py-2 text-right">
@@ -807,13 +808,7 @@
                         <div class="mt-8 border-t pt-6">
                             <h4 class="font-bold mb-3">NOTE:</h4>
                             @if (!empty($versionRow->notes))
-                                <ol class="list-decimal list-inside space-y-1 text-sm">
-                                    @foreach (explode("\n", $versionRow->notes) as $note)
-                                        @if (trim($note) !== '')
-                                            <li>{{ $note }}</li>
-                                        @endif
-                                    @endforeach
-                                </ol>
+                                <pre class="whitespace-pre-wrap font-sans text-sm leading-relaxed">{{ $versionRow->notes }}</pre>
                             @else
                                 <p class="text-gray-500 text-sm">Belum ada catatan untuk versi ini.</p>
                             @endif
