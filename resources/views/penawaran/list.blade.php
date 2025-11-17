@@ -132,7 +132,7 @@
 
         /* Form content wrapper untuk proper spacing */
         .form-content {
-            padding-bottom: 80px; /* Space untuk button yang fixed */
+            padding-bottom: 20px; /* Space untuk button yang fixed */
         }
 
         /* Fixed bottom button */
@@ -325,19 +325,20 @@
                             <p class="text-xs text-gray-500 mt-1">Otomatis dibuat saat tambah. Disembunyikan saat edit.</p>
                         </div>
                     </div>
+                    <!-- Submit Button -->
+                    <div class="mt-8 pt-6 border-t border-gray-100">
+                        <button type="submit"
+                                class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            Simpan Penawaran
+                        </button>
+                    </div>
                 </form>
             </div>
 
             <!-- Footer Button (Fixed) -->
-            <div class="form-footer">
-                <button type="submit" form="penawaranForm"
-                        class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 font-medium">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
-                    </svg>
-                    Simpan Penawaran
-                </button>
-            </div>
         </div>
     </div>
 
