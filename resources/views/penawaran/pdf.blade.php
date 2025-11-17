@@ -238,20 +238,23 @@
             font-size: 11px;
         }
 
-        .notes ol {
-            margin-left: 18px;
-            padding-left: 0;
-        }
-
-        .notes ol li {
-            margin-bottom: 3px;
+        .notes pre {
+            font-family: Arial, sans-serif; /* Sama dengan body font */
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            font-size: 11px;
             line-height: 1.4;
         }
 
-        .notes ol li .indent {
-            display: block;
-            margin-left: 0;
-            margin-top: 2px;
+        /* Style untuk ringkasan jasa di table */
+        table td pre {
+            font-family: Arial, sans-serif; /* Sama dengan body font */
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            font-size: 10px; /* Sesuai dengan font size table */
+            line-height: 1.4;
         }
 
         /* Footer */
@@ -430,7 +433,7 @@
                                 <td>
                                     @if (!empty($row->is_mitra))
                                         <span style="color:#3498db;font-weight:bold; font-style: italic;">by
-                                            Mitra</span>
+                                            User</span>
                                     @else
                                         {{ $row->harga_satuan > 0 ? number_format($row->harga_satuan, 0, ',', '.') : '' }}
                                     @endif
@@ -477,7 +480,9 @@
                 <tr>
                     <td>1</td>
                     <td>Jasa</td>
-                    <td>{{ $versionRow->jasa_ringkasan ?? '' }}</td>
+                    <td>
+                        <pre>{{ $versionRow->jasa_ringkasan ?? '' }}</pre>
+                    </td>
                     <td>1</td>
                     <td>Lot</td>
                     <td>Rp {{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
@@ -521,16 +526,10 @@
         <!-- Notes -->
         <div class="notes">
             <h4>NOTE:</h4>
-            @if (!empty($penawaran->note))
-                <ol>
-                    @foreach (explode("\n", $penawaran->note) as $note)
-                        @if (trim($note) !== '')
-                            <li>{{ $note }}</li>
-                        @endif
-                    @endforeach
-                </ol>
+            @if (!empty($versionRow->notes))
+                <pre>{{ $versionRow->notes }}</pre>
             @else
-                <p style="color: #666; font-size: 10px;">Belum ada catatan penawaran.</p>
+                <p class="text-gray-500 text-sm">Belum ada catatan untuk versi ini.</p>
             @endif
         </div>
 
