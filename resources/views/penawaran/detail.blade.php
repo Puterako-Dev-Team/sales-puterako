@@ -80,7 +80,11 @@
                 @else
                     @foreach ($versions as $v)
                         <option value="{{ $v->version }}" {{ $v->version == $activeVersion ? 'selected' : '' }}>
-                            Revisi {{ $v->version }} 
+                            @if($v->version == 0)
+                                Versi Awal (0)
+                            @else
+                                Revisi {{ $v->version }}
+                            @endif
                         </option>
                     @endforeach
                 @endif
@@ -829,7 +833,7 @@
         @endsection
 
         <script>
-            const activeVersion = {{ $activeVersion }};
+            const activeVersion = {{ $activeVersion ?? 0 }};
         </script>
 
         @push('scripts')
@@ -1487,7 +1491,7 @@
                                     pph: parseNumber(document.getElementById('jasaPphInput').value) ||
                                         0,
                                     sections: allSectionsData,
-                                    version: {{ $activeVersion ? $activeVersion : 1 }}
+                                    version: {{ $activeVersion ?? 0 }}
                                 })
                             })
                             .then(res => res.json())

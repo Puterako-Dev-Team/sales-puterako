@@ -327,9 +327,27 @@ class PenawaranController extends Controller
 
         $penawaran = \App\Models\Penawaran::find($id);
 
+        $hasVersions = \App\Models\PenawaranVersion::where('penawaran_id', $id)->exists();
+        if (!$hasVersions) {
+            \App\Models\PenawaranVersion::create([
+                'penawaran_id' => $id,
+                'version' => 0, 
+                'status' => 'draft'
+            ]);
+        }
+
         // Ambil versi aktif
         $activeVersion = $version ?? \App\Models\PenawaranVersion::where('penawaran_id', $id)->max('version');
         $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)->where('version', $activeVersion)->first();
+        if (!$versionRow) {
+            $versionRow = \App\Models\PenawaranVersion::create([
+                'penawaran_id' => $id,
+                'version' => 0,
+                'status' => 'draft'
+            ]);
+            $activeVersion = 0;
+        }
+        
         $activeVersionId = $versionRow ? $versionRow->id : null;
 
         $details = PenawaranDetail::where('version_id', $activeVersionId)
@@ -406,7 +424,7 @@ class PenawaranController extends Controller
         $sections = $data['sections'] ?? [];
         $profit = $data['profit'] ?? 0;
         $ppnPersen = $data['ppn_persen'] ?? 11; // Default 11%
-        $version = $data['version'] ?? 1;
+        $version = $data['version'] ?? 0;
 
         if (!$penawaranId) {
             Log::warning('PenawaranController::save missing penawaran_id', $data);
@@ -417,8 +435,7 @@ class PenawaranController extends Controller
         if (!$versionRow) {
             $versionRow = \App\Models\PenawaranVersion::create([
                 'penawaran_id' => $penawaranId,
-                'version' => 1,
-                'notes' => 'Penawaran Awal',
+                'version' => 0,
                 'status' => 'draft'
             ]);
         }
@@ -731,16 +748,16 @@ class PenawaranController extends Controller
         // Ambil versi terakhir
         $lastVersion = \App\Models\PenawaranVersion::where('penawaran_id', $id)->max('version');
 
-        // Jika belum ada versi sama sekali, buat versi 1 terlebih dahulu
-        if (!$lastVersion) {
-            $lastVersion = 0;
+        // Jika belum ada versi sama sekali, buat versi 0 (bukan 1)
+        if ($lastVersion === null) {
+            $lastVersion = -1; // Set ke -1 agar newVersion jadi 0
         }
 
         $newVersion = $lastVersion + 1;
 
         // Copy versi sebelumnya jika ada
         $oldVersion = null;
-        if ($lastVersion > 0) {
+        if ($lastVersion >= 0) { // Ubah kondisi dari > 0 ke >= 0
             $oldVersion = \App\Models\PenawaranVersion::where('penawaran_id', $id)
                 ->where('version', $lastVersion)
                 ->first();
@@ -802,7 +819,7 @@ class PenawaranController extends Controller
                     'grand_total'    => $oldJasa->grand_total,
                 ]);
 
-                // Copy JasaDetail dengan query langsung
+                // Copy JasaDetail
                 $oldJasaDetails = \App\Models\JasaDetail::where('version_id', $oldVersion->id)->get();
                 foreach ($oldJasaDetails as $jasaDetail) {
                     \App\Models\JasaDetail::create([

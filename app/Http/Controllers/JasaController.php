@@ -34,7 +34,6 @@ class JasaController extends Controller
             $versionRow = \App\Models\PenawaranVersion::create([
                 'penawaran_id' => $penawaranId,
                 'version' => $version,
-                'notes' => 'Penawaran Awal',
                 'status' => 'draft'
             ]);
         }
