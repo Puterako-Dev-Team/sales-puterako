@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PenawaranController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MitraController;
+use App\Http\Controllers\RekapController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -62,5 +63,18 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{id}/edit', [MitraController::class, 'edit'])->name('edit');
         Route::put('/{id}', [MitraController::class, 'update'])->name('update');
         Route::delete('/{id}', [MitraController::class, 'destroy'])->name('destroy');
+    });
+
+    // Rekap routes (protected)
+    Route::prefix('rekap')->group(function () {
+        Route::get('/list', [RekapController::class, 'index'])->name('rekap.list');
+        Route::get('/create', [RekapController::class, 'create'])->name('rekap.create');
+        Route::post('/store', [RekapController::class, 'store'])->name('rekap.store');
+        Route::get('/{id}', [RekapController::class, 'show'])->name('rekap.show');
+        Route::get('/{id}/edit', [RekapController::class, 'edit'])->name('rekap.edit');
+        Route::put('/{id}', [RekapController::class, 'update'])->name('rekap.update');
+        Route::delete('/{id}', [RekapController::class, 'destroy'])->name('rekap.delete');
+        Route::post('/{rekap_id}/add-item', [RekapController::class, 'addItem'])->name('rekap.addItem');
+        Route::post('/{rekap_id}/update-items', [RekapController::class, 'updateItems'])->name('rekap.updateItems');    
     });
 });

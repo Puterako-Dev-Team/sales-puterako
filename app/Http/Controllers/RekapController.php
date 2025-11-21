@@ -1,0 +1,197 @@
+<?php
+namespace App\Http\Controllers;
+
+use App\Models\Rekap;
+use App\Models\Penawaran;
+use App\Models\RekapKategori;
+use App\Models\RekapItem;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class RekapController extends Controller
+{
+    // List page
+    public function index()
+    {
+        $rekaps = Rekap::with(['user', 'items'])->paginate(10);
+        $penawarans = Penawaran::all();
+        $kategoris = RekapKategori::all();  
+        return view('rekap.list', compact('rekaps', 'penawarans', 'kategoris'));
+    }
+
+    // Show detail rekap
+    public function show($id)
+    {
+        $rekap = Rekap::with(['items.kategori', 'user', 'penawaran'])->findOrFail($id);
+        $penawarans = Penawaran::all();
+        $kategoris = RekapKategori::all();
+
+        // Kumpulkan data kategori dan item untuk preview horizontal
+        $previewKategori = [];
+        foreach ($rekap->items as $item) {
+            $kategoriNama = $item->kategori->nama ?? '-';
+            if (!isset($previewKategori[$kategoriNama])) {
+                $previewKategori[$kategoriNama] = ['nama' => $kategoriNama, 'items' => []];
+            }
+            $previewKategori[$kategoriNama]['items'][] = [
+                'nama_item' => $item->nama_item,
+                'detail' => $item->detail ?? [],
+            ];
+        }
+        $previewKategori = array_values($previewKategori);
+
+        // Kumpulkan semua nama detail unik untuk baris horizontal
+        $detailNames = [];
+        foreach ($rekap->items as $item) {
+            foreach ($item->detail ?? [] as $d) {
+                $detailNames[] = $d['nama_detail'];
+            }
+        }
+        $previewDetails = array_unique($detailNames);
+
+        $isEdit = $rekap->exists;
+
+        return view('rekap.detail', compact('rekap', 'penawarans', 'kategoris', 'previewKategori', 'previewDetails', 'isEdit'));
+    }
+
+    // Form tambah rekap
+    public function create()
+    {
+        $penawarans = Penawaran::all();
+        $kategoris = RekapKategori::all();
+        return view('rekap.detail', compact('penawarans', 'kategoris'));
+    }
+
+    // Simpan rekap baru beserta items dan detail JSON
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'penawaran_id' => 'required|exists:penawarans,id_penawaran',
+            'nama_perusahaan' => 'required|string|max:255',
+            
+            // Tambahkan validasi keterangan jika perlu
+        ]);
+
+        $penawaran = Penawaran::findOrFail($request->penawaran_id);
+
+        $rekap = Rekap::create([
+            'penawaran_id' => $penawaran->id_penawaran,
+            'user_id' => Auth::id(),
+            'nama' => $request->nama,
+            'no_penawaran' => $penawaran->no_penawaran,
+            'nama_perusahaan' => $request->nama_perusahaan,
+        ]);
+
+        return redirect()->route('rekap.list')->with('success', 'Rekap berhasil ditambahkan');
+    }
+
+    public function addItem(Request $request, $rekap_id)
+    {
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.rekap_kategori_id' => 'required|exists:rekap_kategoris,id',
+            'items.*.nama_item' => 'required|string|max:255',
+            'items.*.detail' => 'required|array|min:1',
+            'items.*.detail.*.nama_detail' => 'required|string|max:255',
+            'items.*.detail.*.jumlah' => 'required|integer|min:1',
+        ]);
+
+        foreach ($request->items as $item) {
+            RekapItem::create([
+                'rekap_id' => $rekap_id,
+                'rekap_kategori_id' => $item['rekap_kategori_id'],
+                'nama_item' => $item['nama_item'],
+                'detail' => $item['detail'], // otomatis array->json via casts
+            ]);
+        }
+
+        return redirect()->route('rekap.show', $rekap_id)->with('success', 'Item berhasil ditambahkan');
+    }
+
+    // Form edit rekap
+    public function edit($id)
+    {
+        $rekap = Rekap::with('items')->findOrFail($id);
+        $penawarans = Penawaran::all();
+        $kategoris = RekapKategori::all();
+        return view('rekap.detail', compact('rekap', 'penawarans', 'kategoris'));
+    }
+
+    // Update rekap beserta items dan detail JSON
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'penawaran_id' => 'required|exists:penawarans,id_penawaran',
+            'nama_perusahaan' => 'required|string|max:255',
+            'items' => 'required|array|min:1',
+            'items.*.rekap_kategori_id' => 'required|exists:rekap_kategoris,id',
+            'items.*.nama_item' => 'required|string|max:255',
+            'items.*.detail' => 'required|array|min:1',
+            'items.*.detail.*.nama_detail' => 'required|string|max:255',
+            'items.*.detail.*.jumlah' => 'required|integer|min:1',
+        ]);
+
+        $rekap = Rekap::findOrFail($id);
+        $penawaran = Penawaran::findOrFail($request->penawaran_id);
+
+        $rekap->update([
+            'penawaran_id' => $penawaran->id_penawaran,
+            'nama' => $request->nama,
+            'no_penawaran' => $penawaran->no_penawaran,
+            'nama_perusahaan' => $request->nama_perusahaan,
+        ]);
+
+        // Hapus semua item lama, lalu insert ulang
+        $rekap->items()->delete();
+        foreach ($request->items as $item) {
+            RekapItem::create([
+                'rekap_id' => $rekap->id,
+                'rekap_kategori_id' => $item['rekap_kategori_id'],
+                'nama_item' => $item['nama_item'],
+                'detail' => $item['detail'],
+            ]);
+        }
+
+        return redirect()->route('rekap.show', $rekap->id)->with('success', 'Rekap berhasil diupdate');
+    }
+
+    public function updateItems(Request $request, $rekap_id)
+    {
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.rekap_kategori_id' => 'required|exists:rekap_kategoris,id',
+            'items.*.nama_item' => 'required|string|max:255',
+            'items.*.detail' => 'required|array|min:1',
+            'items.*.detail.*.nama_detail' => 'required|string|max:255',
+            'items.*.detail.*.jumlah' => 'required|integer|min:1',
+        ]);
+
+        $rekap = Rekap::findOrFail($rekap_id);
+
+        // Hapus semua item lama
+        $rekap->items()->delete();
+
+        // Insert ulang item dari form
+        foreach ($request->items as $item) {
+            RekapItem::create([
+                'rekap_id' => $rekap_id,
+                'rekap_kategori_id' => $item['rekap_kategori_id'],
+                'nama_item' => $item['nama_item'],
+                'detail' => $item['detail'],
+            ]);
+        }
+
+        return redirect()->route('rekap.show', $rekap_id)->with('success', 'Item berhasil diupdate');
+    }
+
+    // Hapus rekap
+    public function destroy($id)
+    {
+        $rekap = Rekap::findOrFail($id);
+        $rekap->items()->delete();
+        $rekap->delete();
+        return redirect()->route('rekap.list')->with('success', 'Rekap berhasil dihapus');
+    }
+}
