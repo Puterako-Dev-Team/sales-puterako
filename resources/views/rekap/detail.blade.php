@@ -138,7 +138,7 @@
                                     <label class="block text-sm font-medium mb-1 text-gray-700">Jumlah</label>
                                     <input type="number" name="items[0][detail][0][jumlah]"
                                         class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200"
-                                        placeholder="Jumlah" min="1" required>
+                                        placeholder="Jumlah" min="0.01" step="any" required>
                                 </div>
                                 <div class="flex-1">
                                     <label class="block text-sm font-medium mb-1 text-gray-700">Keterangan</label>
@@ -202,7 +202,7 @@
                 </div>
                 <div class="flex-1">
                     <label class="block text-sm font-medium mb-1 text-gray-700">Jumlah</label>
-                    <input type="number" name="items[${idx}][detail][0][jumlah]" class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" placeholder="Jumlah" min="1" required>
+                    <input type="number" name="items[${idx}][detail][0][jumlah]" class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" placeholder="Jumlah" min="0.01" step="any" required>
                 </div>
                 <div class="flex-1">
                     <label class="block text-sm font-medium mb-1 text-gray-700">Keterangan</label>
@@ -239,7 +239,7 @@
                 </div>
                 <div class="flex-1">
                     <label class="block text-sm font-medium mb-1 text-gray-700">Jumlah</label>
-                    <input type="number" name="items[${itemIdx}][detail][${detailIdx}][jumlah]" class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" placeholder="Jumlah" min="1" required>
+                    <input type="number" name="items[${itemIdx}][detail][${detailIdx}][jumlah]" class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" placeholder="Jumlah" min="0.01" step="any" required>
                 </div>
                 <div class="flex-1">
                     <label class="block text-sm font-medium mb-1 text-gray-700">Keterangan</label>
@@ -347,7 +347,7 @@
                     </div>
                     <div class="flex-1">
                         <label class="block text-sm font-medium mb-1 text-gray-700">Jumlah</label>
-                        <input type="number" name="items[0][detail][0][jumlah]" class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" placeholder="Jumlah" min="1" required>
+                        <input type="number" name="items[0][detail][0][jumlah]" class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" placeholder="Jumlah" min="0.01" step="any" required>
                     </div>
                     <div class="flex-1">
                         <label class="block text-sm font-medium mb-1 text-gray-700">Keterangan</label>
@@ -407,7 +407,7 @@
                                 </div>
                                 <div class="flex-1">
                                     <label class="block text-sm font-medium mb-1 text-gray-700">Jumlah</label>
-                                    <input type="number" name="items[${idx}][detail][${didx}][jumlah]" class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" value="${d.jumlah}" min="1" required>
+                                    <input type="number" name="items[${idx}][detail][${didx}][jumlah]" class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" value="${d.jumlah}" min="0.01" step="any" required>
                                 </div>
                                 <div class="flex-1">
                                     <label class="block text-sm font-medium mb-1 text-gray-700">Keterangan</label>

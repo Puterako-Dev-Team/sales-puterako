@@ -94,7 +94,7 @@ class RekapController extends Controller
             'items.*.nama_item' => 'required|string|max:255',
             'items.*.detail' => 'required|array|min:1',
             'items.*.detail.*.nama_detail' => 'required|string|max:255',
-            'items.*.detail.*.jumlah' => 'required|integer|min:1',
+            'items.*.detail.*.jumlah' => 'required|numeric|min:0.01',
         ]);
 
         foreach ($request->items as $item) {
@@ -130,7 +130,7 @@ class RekapController extends Controller
             'items.*.nama_item' => 'required|string|max:255',
             'items.*.detail' => 'required|array|min:1',
             'items.*.detail.*.nama_detail' => 'required|string|max:255',
-            'items.*.detail.*.jumlah' => 'required|integer|min:1',
+            'items.*.detail.*.jumlah' => 'required|numeric|min:0.01',
         ]);
 
         $rekap = Rekap::findOrFail($id);
@@ -165,7 +165,7 @@ class RekapController extends Controller
             'items.*.nama_item' => 'required|string|max:255',
             'items.*.detail' => 'required|array|min:1',
             'items.*.detail.*.nama_detail' => 'required|string|max:255',
-            'items.*.detail.*.jumlah' => 'required|integer|min:1',
+            'items.*.detail.*.jumlah' => 'required|numeric|min:0.01',
         ]);
 
         $rekap = Rekap::findOrFail($rekap_id);
