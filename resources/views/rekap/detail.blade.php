@@ -15,63 +15,71 @@
 
         {{-- DIV ATAS: Preview Item --}}
         <div class="overflow-auto bg-white p-6 rounded shadow">
-            <table class="min-w-full bg-white text-sm border border-gray-300 rounded">
-                <thead>
-                    <tr class="bg-green-100">
-                        <th rowspan="2" class="px-2 py-2 border border-gray-300 font-semibold">Detail</th>
-                        @foreach ($previewKategori as $kategori)
-                            <th class="px-2 py-2 border border-gray-300 font-semibold text-center"
-                                colspan="{{ count($kategori['items']) }}">
-                                {{ $kategori['nama'] }}
-                            </th>
-                        @endforeach
-                    </tr>
-                    <tr class="bg-green-50">
-                        @foreach ($previewKategori as $kategori)
-                            @foreach ($kategori['items'] as $item)
-                                <th class="px-2 py-2 border border-gray-300 font-normal text-center">
-                                    {{ $item['nama_item'] }}
+            @if($rekap->items->count() == 0)
+                <div class="flex flex-col items-center justify-center py-12 text-gray-400">
+                    <x-lucide-grid-2x2-x class="w-16 h-16 mb-4" />
+                    <div class="text-lg font-semibold mb-2">Belum ada data rekap</div>
+                    <div class="text-sm">Silakan tambahkan rekap item terlebih dahulu.</div>
+                </div>
+            @else
+                <table class="min-w-full bg-white text-sm border border-gray-300 rounded">
+                    <thead>
+                        <tr class="bg-green-100">
+                            <th rowspan="2" class="px-2 py-2 border border-gray-300 font-semibold">Detail</th>
+                            @foreach ($previewKategori as $kategori)
+                                <th class="px-2 py-2 border border-gray-300 font-semibold text-center"
+                                    colspan="{{ count($kategori['items']) }}">
+                                    {{ $kategori['nama'] }}
                                 </th>
                             @endforeach
+                        </tr>
+                        <tr class="bg-green-50">
+                            @foreach ($previewKategori as $kategori)
+                                @foreach ($kategori['items'] as $item)
+                                    <th class="px-2 py-2 border border-gray-300 font-normal text-center">
+                                        {{ $item['nama_item'] }}
+                                    </th>
+                                @endforeach
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($previewDetails as $detailName)
+                            <tr>
+                                <td class="px-2 py-2 border border-gray-300 font-semibold">{{ $detailName }}</td>
+                                @foreach ($previewKategori as $kategori)
+                                    @foreach ($kategori['items'] as $item)
+                                        @php
+                                            $found = collect($item['detail'])->firstWhere('nama_detail', $detailName);
+                                        @endphp
+                                        <td class="px-2 py-2 border border-gray-300 text-center">
+                                            {{ $found['jumlah'] ?? '-' }}
+                                            <br>
+                                            <span class="text-xs text-gray-500">{{ $found['keterangan'] ?? '' }}</span>
+                                        </td>
+                                    @endforeach
+                                @endforeach
+                            </tr>
                         @endforeach
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($previewDetails as $detailName)
-                        <tr>
-                            <td class="px-2 py-2 border border-gray-300 font-semibold">{{ $detailName }}</td>
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-green-100 font-semibold">
+                            <td class="px-2 py-2 border border-gray-300 text-center">Total</td>
                             @foreach ($previewKategori as $kategori)
                                 @foreach ($kategori['items'] as $item)
                                     @php
-                                        $found = collect($item['detail'])->firstWhere('nama_detail', $detailName);
+                                        $total = collect($item['detail'])->sum('jumlah');
+                                        $rounded = $total > 0 ? ceil($total) : 0;
                                     @endphp
                                     <td class="px-2 py-2 border border-gray-300 text-center">
-                                        {{ $found['jumlah'] ?? '-' }}
-                                        <br>
-                                        <span class="text-xs text-gray-500">{{ $found['keterangan'] ?? '' }}</span>
+                                        {{ $rounded }}
                                     </td>
                                 @endforeach
                             @endforeach
                         </tr>
-                    @endforeach
-                </tbody>
-                <tfoot>
-                    <tr class="bg-green-100 font-semibold">
-                        <td class="px-2 py-2 border border-gray-300 text-center">Total</td>
-                        @foreach ($previewKategori as $kategori)
-                            @foreach ($kategori['items'] as $item)
-                                @php
-                                    $total = collect($item['detail'])->sum('jumlah');
-                                    $rounded = $total > 0 ? ceil($total) : 0;
-                                @endphp
-                                <td class="px-2 py-2 border border-gray-300 text-center">
-                                    {{ $rounded }}
-                                </td>
-                            @endforeach
-                        @endforeach
-                    </tr>
-                </tfoot>
-            </table>
+                    </tfoot>
+                </table>
+            @endif
         </div>
 
         {{-- DIV BAWAH: Form Input --}}
