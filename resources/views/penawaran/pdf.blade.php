@@ -441,7 +441,7 @@
                                 <td>
                                     @if (!empty($row->is_mitra))
                                         <span style="color:#3498db;font-weight:bold; font-style: italic;">by
-                                            Mitra</span>
+                                            User</span>
                                     @else
                                         {{ $row->harga_total > 0 ? number_format($row->harga_total, 0, ',', '.') : '' }}
                                     @endif
