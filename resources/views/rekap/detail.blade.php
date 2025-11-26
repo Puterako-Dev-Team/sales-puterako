@@ -55,6 +55,21 @@
                         </tr>
                     @endforeach
                 </tbody>
+                <tfoot>
+                    <tr class="bg-green-100 font-semibold">
+                        <td class="px-2 py-2 border border-gray-300 text-center">Total</td>
+                        @foreach ($previewKategori as $kategori)
+                            @foreach ($kategori['items'] as $item)
+                                @php
+                                    $total = collect($item['detail'])->sum('jumlah');
+                                @endphp
+                                <td class="px-2 py-2 border border-gray-300 text-center">
+                                    {{ $total > 0 ? $total : '-' }}
+                                </td>
+                            @endforeach
+                        @endforeach
+                    </tr>
+                </tfoot>
             </table>
         </div>
 
