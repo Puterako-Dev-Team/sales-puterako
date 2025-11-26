@@ -26,28 +26,44 @@ class RekapController extends Controller
         $penawarans = Penawaran::all();
         $kategoris = RekapKategori::all();
 
-        // Kumpulkan data kategori dan item untuk preview horizontal
-        $previewKategori = [];
-        foreach ($rekap->items as $item) {
-            $kategoriNama = $item->kategori->nama ?? '-';
-            if (!isset($previewKategori[$kategoriNama])) {
-                $previewKategori[$kategoriNama] = ['nama' => $kategoriNama, 'items' => []];
-            }
-            $previewKategori[$kategoriNama]['items'][] = [
-                'nama_item' => $item->nama_item,
-                'detail' => $item->detail ?? [],
-            ];
-        }
-        $previewKategori = array_values($previewKategori);
-
-        // Kumpulkan semua nama detail unik untuk baris horizontal
+        // Gabungkan semua nama detail unik
         $detailNames = [];
         foreach ($rekap->items as $item) {
             foreach ($item->detail ?? [] as $d) {
                 $detailNames[] = $d['nama_detail'];
             }
         }
-        $previewDetails = array_unique($detailNames);
+        $previewDetails = array_values(array_unique($detailNames));
+
+        // Gabungkan detail dengan nama_detail sama dan jumlahkan
+        $previewKategori = [];
+        foreach ($rekap->items as $item) {
+            $kategoriNama = $item->kategori->nama ?? '-';
+            if (!isset($previewKategori[$kategoriNama])) {
+                $previewKategori[$kategoriNama] = ['nama' => $kategoriNama, 'items' => []];
+            }
+
+            // Gabungkan detail per nama_detail
+            $detailMap = [];
+            foreach ($item->detail ?? [] as $d) {
+                $nama = $d['nama_detail'];
+                if (!isset($detailMap[$nama])) {
+                    $detailMap[$nama] = [
+                        'nama_detail' => $nama,
+                        'jumlah' => floatval($d['jumlah']),
+                        'keterangan' => $d['keterangan'] ?? '',
+                    ];
+                } else {
+                    $detailMap[$nama]['jumlah'] += floatval($d['jumlah']);
+                }
+            }
+
+            $previewKategori[$kategoriNama]['items'][] = [
+                'nama_item' => $item->nama_item,
+                'detail' => array_values($detailMap),
+            ];
+        }
+        $previewKategori = array_values($previewKategori);
 
         $isEdit = $rekap->exists;
 
