@@ -62,9 +62,10 @@
                             @foreach ($kategori['items'] as $item)
                                 @php
                                     $total = collect($item['detail'])->sum('jumlah');
+                                    $rounded = $total > 0 ? ceil($total) : 0;
                                 @endphp
                                 <td class="px-2 py-2 border border-gray-300 text-center">
-                                    {{ $total > 0 ? $total : '-' }}
+                                    {{ $rounded }}
                                 </td>
                             @endforeach
                         @endforeach
