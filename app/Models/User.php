@@ -22,7 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'departemen', 
+        'departemen',
         'kantor',
         'nohp'
     ];
@@ -52,5 +52,10 @@ class User extends Authenticatable
     public function penawarans()
     {
         return $this->hasMany(\App\Models\Penawaran::class, 'user_id');
+    }
+
+    public function rekaps()
+    {
+        return $this->hasMany(\App\Models\Rekap::class, 'user_id');
     }
 }

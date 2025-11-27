@@ -11,12 +11,37 @@ use Illuminate\Support\Facades\Auth;
 class RekapController extends Controller
 {
     // List page
-    public function index()
+    public function index(Request $request)
     {
-        $rekaps = Rekap::with(['user', 'items'])->paginate(10);
+        $query = Rekap::with(['user', 'items']);
+
+        if ($request->filled('tanggal_dari')) {
+            $query->whereDate('created_at', '>=', $request->tanggal_dari);
+        }
+        if ($request->filled('nama_rekap')) {
+            $query->where('nama', 'like', '%' . $request->nama_rekap . '%');
+        }
+        if ($request->filled('no_penawaran')) {
+            $query->where('no_penawaran', 'like', '%' . $request->no_penawaran . '%');
+        }
+        if ($request->filled('nama_perusahaan')) {
+            $query->where('nama_perusahaan', 'like', '%' . $request->nama_perusahaan . '%');
+        }
+        if ($request->filled('pic_admin')) {
+            $query->whereHas('user', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->pic_admin . '%');
+            });
+        }
+
+        $rekaps = $query->paginate(10)->appends($request->query());
         $penawarans = Penawaran::all();
-        $kategoris = RekapKategori::all();  
-        return view('rekap.list', compact('rekaps', 'penawarans', 'kategoris'));
+        $kategoris = RekapKategori::all();
+        $picAdmins = \App\Models\User::whereHas('rekaps')->distinct('name')->orderBy('name')->pluck('name');
+
+        if ($request->ajax()) {
+            return view('rekap.list', compact('rekaps', 'penawarans', 'kategoris', 'picAdmins'))->render();
+        }
+        return view('rekap.list', compact('rekaps', 'penawarans', 'kategoris', 'picAdmins'));
     }
 
     // Show detail rekap

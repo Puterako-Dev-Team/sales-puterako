@@ -2,6 +2,37 @@
 @extends('layouts.app')
 
 @section('content')
+    <style>
+        .loading-overlay {
+            position: relative;
+        }
+
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            display: none;
+        }
+
+        .loading-overlay.loading .loading-spinner {
+            display: block;
+        }
+
+        .loading-overlay.loading #tableContent {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .filter-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+    </style>
     <div class="container mx-auto p-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-xl font-bold">Daftar Rekap</h1>
@@ -12,8 +43,71 @@
             </button>
         </div>
 
-        <div class="bg-white shadow rounded-lg" id="tableContainer">
-            @include('rekap.table-content', ['rekaps' => $rekaps])
+        <!-- Filter Section -->
+        <div class="filter-card ">
+            <form id="filterFormRekap">
+                <div class="flex items-end gap-4 flex-wrap">
+                    <div class="flex flex-col" style="flex: 0 0 160px;">
+                        <label for="tanggal_dari" class="text-xs font-semibold mb-1">Tanggal Dari</label>
+                        <input type="date" id="tanggal_dari" name="tanggal_dari" value="{{ request('tanggal_dari') }}"
+                            class="filter-input border rounded px-3 py-2 text-sm focus:ring focus:ring-green-200">
+                    </div>
+                    <div class="flex flex-col" style="flex: 1 1 180px;">
+                        <label for="no_penawaran" class="text-xs font-semibold mb-1">No Penawaran</label>
+                        <input type="text" id="no_penawaran" name="no_penawaran" placeholder="Cari no penawaran..."
+                            value="{{ request('no_penawaran') }}"
+                            class="filter-input border rounded px-3 py-2 text-sm focus:ring focus:ring-green-200">
+                    </div>
+                    <div class="flex flex-col" style="flex: 1 1 220px;">
+                        <label for="nama_perusahaan" class="text-xs font-semibold mb-1">Nama Perusahaan</label>
+                        <input type="text" id="nama_perusahaan" name="nama_perusahaan"
+                            placeholder="Cari nama perusahaan..." value="{{ request('nama_perusahaan') }}"
+                            class="filter-input border rounded px-3 py-2 text-sm focus:ring focus:ring-green-200">
+                    </div>
+                    <div class="flex flex-col" style="flex: 0 0 150px;">
+                        <label for="nama_rekap" class="text-xs font-semibold mb-1">Nama Rekap</label>
+                        <input type="text" id="nama_rekap" name="nama_rekap" placeholder="Cari nama rekap..."
+                            value="{{ request('nama_rekap') }}"
+                            class="filter-input border rounded px-3 py-2 text-sm focus:ring focus:ring-green-200">
+                    </div>
+                    <div class="flex flex-col" style="flex: 0 0 150px;">
+                        <label for="pic_admin" class="text-xs font-semibold mb-1">PIC Admin</label>
+                        <select id="pic_admin" name="pic_admin"
+                            class="filter-input border rounded px-3 py-2 text-sm focus:ring focus:ring-green-200">
+                            <option value="">Semua PIC</option>
+                            @foreach ($picAdmins ?? [] as $pic)
+                                <option value="{{ $pic }}" {{ request('pic_admin') == $pic ? 'selected' : '' }}>
+                                    {{ $pic }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="flex flex-col" style="flex: 0 0 auto;">
+                        <label class="text-xs opacity-0 mb-1">&nbsp;</label>
+                        <button type="button" id="resetFilterRekap"
+                            class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition flex items-center gap-2 text-sm">
+                            <x-lucide-refresh-cw class="w-4 h-4" />
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white shadow rounded-lg loading-overlay" id="tableContainer" style="position:relative;">
+            <div class="loading-spinner" id="rekapLoadingSpinner" style="display:none;">
+                <svg class="animate-spin h-8 w-8 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                    </circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
+            </div>
+            <div id="tableContent">
+                @include('rekap.table-content', ['rekaps' => $rekaps])
+            </div>
         </div>
 
         <div class="mt-6">
@@ -115,6 +209,94 @@
             f_nama_perusahaan.value = perusahaan || '';
         });
 
+
         document.addEventListener('DOMContentLoaded', updatePreview);
     </script>
 @endsection
+
+@push('scripts')
+    <script>
+        const tableContainer = document.getElementById('tableContainer');
+        const tableContent = document.getElementById('tableContent');
+        const paginationContainer = document.querySelector('.mt-6');
+
+        function showLoading() {
+            tableContainer.classList.add('loading');
+            document.getElementById('rekapLoadingSpinner').style.display = 'block';
+        }
+
+        function hideLoading() {
+            tableContainer.classList.remove('loading');
+            document.getElementById('rekapLoadingSpinner').style.display = 'none';
+        }
+
+        function fetchRekapTable(params = {}) {
+            showLoading();
+            let url = "{{ route('rekap.list') }}";
+            if (Object.keys(params).length > 0) {
+                url += '?' + new URLSearchParams(params).toString();
+            }
+            fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(res => res.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newTable = doc.querySelector('#tableContent').innerHTML;
+                    const newPagination = doc.querySelector('.mt-6').innerHTML;
+                    tableContent.innerHTML = newTable;
+                    paginationContainer.innerHTML = newPagination;
+                    hideLoading();
+                })
+                .catch(() => hideLoading());
+        }
+
+        document.querySelectorAll('#filterFormRekap .filter-input').forEach(el => {
+            if (el.type === 'text') {
+                el.addEventListener('input', function() {
+                    clearTimeout(window.filterTimeoutId);
+                    window.filterTimeoutId = setTimeout(() => {
+                        const params = Object.fromEntries(new FormData(document.getElementById(
+                            'filterFormRekap')));
+                        fetchRekapTable(params);
+                    }, 700);
+                });
+            } else {
+                el.addEventListener('change', function() {
+                    const params = Object.fromEntries(new FormData(document.getElementById(
+                        'filterFormRekap')));
+                    fetchRekapTable(params);
+                });
+            }
+        });
+        document.getElementById('resetFilterRekap').addEventListener('click', function() {
+            document.getElementById('filterFormRekap').reset();
+            fetchRekapTable({});
+        });
+
+        // Pagination AJAX
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('pagination-link')) {
+                e.preventDefault();
+                showLoading();
+                fetch(e.target.href, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(res => res.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        tableContainer.innerHTML = doc.querySelector('#tableContainer').innerHTML;
+                        paginationContainer.innerHTML = doc.querySelector('.mt-6').innerHTML;
+                        hideLoading();
+                    })
+                    .catch(() => hideLoading());
+            }
+        });
+    </script>
+@endpush
