@@ -38,7 +38,7 @@ class PenawaranController extends Controller
 
         // PERBAIKI: Filter berdasarkan PIC Admin dari tabel users
         if ($request->filled('pic_admin')) {
-            $query->whereHas('user', function($q) use ($request) {
+            $query->whereHas('user', function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->pic_admin . '%');
             });
         }
@@ -110,7 +110,7 @@ class PenawaranController extends Controller
 
         // PERBAIKI: Filter PIC Admin berdasarkan user name
         if ($request->filled('pic_admin')) {
-            $query->whereHas('user', function($q) use ($request) {
+            $query->whereHas('user', function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->pic_admin . '%');
             });
         }
@@ -172,7 +172,7 @@ class PenawaranController extends Controller
             'table' => $table,
             'info' => $info,
             'pagination' => $pagination,
-            'mitras' => $mitras 
+            'mitras' => $mitras
         ]);
     }
 
@@ -202,7 +202,7 @@ class PenawaranController extends Controller
         }
 
         \App\Models\Penawaran::create($data);
-        
+
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
@@ -268,7 +268,7 @@ class PenawaranController extends Controller
     public function followUp($id)
     {
         $penawaran = Penawaran::with('user')->findOrFail($id);
-        
+
         // Ambil follow ups dari database
         $followUps = DB::table('follow_ups')
             ->where('penawaran_id', $id)
@@ -331,14 +331,27 @@ class PenawaranController extends Controller
         if (!$hasVersions) {
             \App\Models\PenawaranVersion::create([
                 'penawaran_id' => $id,
-                'version' => 0, 
+                'version' => 0,
                 'status' => 'draft'
             ]);
         }
 
-        // Ambil versi aktif
-        $activeVersion = $version ?? \App\Models\PenawaranVersion::where('penawaran_id', $id)->max('version');
-        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)->where('version', $activeVersion)->first();
+        // PERBAIKAN: Handle version 0 explicitly
+        if ($version === null || $version === '') {
+            // Jika tidak ada version di URL, ambil version tertinggi
+            $activeVersion = \App\Models\PenawaranVersion::where('penawaran_id', $id)->max('version');
+            // Jika masih null, default ke 0
+            $activeVersion = $activeVersion ?? 0;
+        } else {
+            // Gunakan version dari URL (bisa 0, 1, 2, dst)
+            $activeVersion = intval($version);
+        }
+
+        // Ambil version row berdasarkan activeVersion
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)
+            ->where('version', $activeVersion)
+            ->first();
+
         if (!$versionRow) {
             $versionRow = \App\Models\PenawaranVersion::create([
                 'penawaran_id' => $id,
@@ -347,9 +360,9 @@ class PenawaranController extends Controller
             ]);
             $activeVersion = 0;
         }
-        
-        $activeVersionId = $versionRow ? $versionRow->id : null;
 
+        $activeVersionId = $versionRow->id;
+        
         $details = PenawaranDetail::where('version_id', $activeVersionId)
             ->orderBy('id_penawaran_detail', 'asc')
             ->get();
@@ -359,9 +372,7 @@ class PenawaranController extends Controller
 
         $totalPenawaran = $details->sum('harga_total');
         $grandTotalJasa = $jasa ? $jasa->grand_total : 0;
-
         $grandTotal = $totalPenawaran + $grandTotalJasa;
-
 
         // Ambil field dinamis dari versionRow
         $ppnPersen = $versionRow->ppn_persen ?? 11;

@@ -68,7 +68,7 @@
     </div>
     <?php
     $versions = \App\Models\PenawaranVersion::where('penawaran_id', $penawaran->id_penawaran)->orderBy('version')->get();
-    $activeVersion = request('version') ?? ($versions->max('version') ?? 1); ?>
+    $activeVersion = request('version') ?? ($versions->max('version') ?? 0); ?>
 
     <div class="flex items-center justify-end gap-4 mx-auto p-8 container">
         <form method="GET" action="{{ route('penawaran.show') }}" class="flex items-center gap-2">
@@ -2007,7 +2007,7 @@
                                     best_price: parseNumber(document.getElementById('bestPriceInput')
                                         .value) || 0,
                                     sections: allSectionsData,
-                                    version: {{ $activeVersion ? $activeVersion : 1 }}
+                                    version: {{ $activeVersion ? $activeVersion : 0 }}
                                 })
                             })
                             .then(async res => {
