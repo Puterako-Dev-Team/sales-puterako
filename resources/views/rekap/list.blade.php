@@ -17,7 +17,7 @@
         </div>
 
         <div class="mt-6">
-            {{ $rekaps->links() }}
+            @include('rekap.pagination', ['rekaps' => $rekaps])
         </div>
     </div>
 
