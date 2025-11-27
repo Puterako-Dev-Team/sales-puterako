@@ -270,7 +270,7 @@
                                     <div class="flex items-center gap-2">
                                         <input type="number" id="ppnInput"
                                             class="border rounded px-3 py-2 bg-white w-24 text-right" min="0"
-                                            step="0.01" value="{{ $ppn_persen ?? 11 }}">
+                                            step="0.01" value="{{ $versionRow->ppn_persen ?? 11 }}">
                                         <span class="text-sm text-gray-600">%</span>
                                     </div>
                                 </div>
@@ -306,7 +306,7 @@
 
                                 <!-- PPN Nominal -->
                                 <div class="flex justify-between items-center text-md font-semibold">
-                                    <span>PPN (<span id="ppnPersenDisplay">11</span>%):</span>
+                                    <span>PPN (<span id="ppnPersenDisplay">{11}</span>%):</span>
                                     <span>Rp <span id="ppnNominal">0</span></span>
                                 </div>
 
