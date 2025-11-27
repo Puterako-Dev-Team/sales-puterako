@@ -343,7 +343,7 @@
     </div>
 
     <!-- Modal Konfirmasi Hapus -->
-    <div id="confirmModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded shadow p-6 w-full max-w-sm">
             <h3 class="text-lg font-semibold mb-2">Hapus Penawaran?</h3>
             <p class="text-sm text-gray-600 mb-4">Data akan dihapus sementara (soft delete) dan bisa dipulihkan.</p>
