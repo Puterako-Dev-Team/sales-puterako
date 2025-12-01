@@ -262,8 +262,7 @@
                         <!-- User Info (hidden on mobile) -->
                         <div class="hidden md:block text-left">
                             <p class="text-sm font-medium text-gray-900">{{ Auth::user()->name }}</p>
-                            <p class="text-xs text-gray-500">{{ Auth::user()->email }}</p>
-                            <p class="text-xs text-gray-400">Role: {{ ucfirst(Auth::user()->role ?? 'N/A') }}</p>
+                            <p class="text-xs text-gray-400 mt-1">Role: {{ ucfirst(Auth::user()->role ?? 'N/A') }}</p>
                         </div>
                         
                         <!-- Dropdown Arrow -->
