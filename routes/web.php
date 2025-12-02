@@ -9,6 +9,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MitraController;
 use App\Http\Controllers\RekapController;
+use App\Http\Controllers\UserController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -74,5 +75,15 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{id}', [RekapController::class, 'destroy'])->name('rekap.delete');
         Route::post('/{rekap_id}/add-item', [RekapController::class, 'addItem'])->name('rekap.addItem');
         Route::post('/{rekap_id}/update-items', [RekapController::class, 'updateItems'])->name('rekap.updateItems');    
+    });
+    Route::prefix('users')->group(function () {
+    Route::get('/', [UserController::class, 'index'])->name('users.index');
+    Route::get('/filter', [UserController::class, 'filter'])->name('users.filter');
+    Route::post('/', [UserController::class, 'store'])->name('users.store');
+    Route::get('/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::put('/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    Route::get('/permissions', [UserController::class, 'permissions'])->name('users.permissions');
+    Route::post('/{user}/permissions', [UserController::class, 'updatePermissions'])->name('users.permissions.update');
     });
 });

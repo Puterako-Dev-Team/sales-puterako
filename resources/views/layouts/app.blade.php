@@ -421,7 +421,6 @@
                                 </div>
                             </div>
                         </div>
-                        
 
                          <!-- Klien (dengan Dropdown) -->
                         <div>
@@ -472,6 +471,56 @@
                             </div>
                         </div>
 
+                        <!-- User Management (hanya untuk administrator) -->
+                        @if(Auth::user()->role === 'administrator')
+                        <div>
+                            <button id="userManagementDropdown" type="button"
+                                class="menu-item group flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-200 relative">
+                                <div class="flex items-center space-x-3">
+                                    <div
+                                        class="w-10 h-10 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+                                        <svg class="w-6 h-6 transition-colors text-gray-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z">
+                                            </path>
+                                        </svg>
+                                    </div>
+                                    <div class="menu-label show text-left">
+                                        <span class="font-medium transition-colors">User Management</span>
+                                        <p class="text-xs text-gray-500 mt-0.5">Kelola user & hak akses</p>
+                                    </div>
+                                </div>
+                                <svg class="w-4 h-4 text-gray-400 dropdown-icon menu-label show" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                                <div class="menu-tooltip">User Management</div>
+                            </button>
+
+                            <!-- Dropdown Menu -->
+                            <div id="userManagementMenu" class="dropdown-menu">
+                                <div class="space-y-1 py-2">
+                                    <a href="{{ route('users.index') }}"
+                                        class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                        </svg>
+                                        <span class="menu-label show text-sm text-gray-700">List Users</span>
+                                    </a>
+                                    <a href="{{ route('users.permissions') }}"
+                                        class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                        </svg>
+                                        <span class="menu-label show text-sm text-gray-700">Atur Hak Akses</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
 
                     </div>
                 </nav>
@@ -497,6 +546,28 @@
         let expanded = true;
         let penawaranDropdownOpen = false;
         let klienDropdownOpen = false;
+        
+        // User Management Dropdown (sidebar)
+        const userManagementDropdown = document.getElementById('userManagementDropdown');
+        const userManagementMenu = document.getElementById('userManagementMenu');
+        const userManagementDropdownIcon = userManagementDropdown ? userManagementDropdown.querySelector('.dropdown-icon') : null;
+        let userManagementDropdownOpen = false;
+
+        // User Management Dropdown Toggle (sidebar)
+        if (userManagementDropdown) {
+            userManagementDropdown.addEventListener('click', function() {
+                if (expanded) {
+                    userManagementDropdownOpen = !userManagementDropdownOpen;
+                    if (userManagementDropdownOpen) {
+                        userManagementMenu.classList.add('open');
+                        userManagementDropdownIcon.classList.add('rotate');
+                    } else {
+                        userManagementMenu.classList.remove('open');
+                        userManagementDropdownIcon.classList.remove('rotate');
+                    }
+                }
+            });
+        }
 
         // Sidebar Toggle
         toggleBtn.addEventListener('click', function() {
@@ -525,6 +596,11 @@
                     klienMenu.classList.remove('open');
                     klienDropdownIcon.classList.remove('rotate');
                     klienDropdownOpen = false;
+                }
+                if (userManagementDropdownOpen && userManagementMenu) {
+                    userManagementMenu.classList.remove('open');
+                    userManagementDropdownIcon.classList.remove('rotate');
+                    userManagementDropdownOpen = false;
                 }
             }
         });
@@ -565,8 +641,8 @@
                 item.classList.add('active');
                 // If it's a submenu item, open the parent dropdown
                 if (item.classList.contains('submenu-item')) {
-                    // Check if it's under penawaran
-                    const parentDropdown = item.closest('#penawaranMenu, #klienMenu');
+                    // Check parent dropdown
+                    const parentDropdown = item.closest('#penawaranMenu, #klienMenu, #userManagementMenu');
                     if (parentDropdown && parentDropdown.id === 'penawaranMenu') {
                         penawaranMenu.classList.add('open');
                         penawaranDropdownIcon.classList.add('rotate');
@@ -575,6 +651,10 @@
                         klienMenu.classList.add('open');
                         klienDropdownIcon.classList.add('rotate');
                         klienDropdownOpen = true;
+                    } else if (parentDropdown && parentDropdown.id === 'userManagementMenu') {
+                        userManagementMenu.classList.add('open');
+                        userManagementDropdownIcon.classList.add('rotate');
+                        userManagementDropdownOpen = true;
                     }
                 }
             }
