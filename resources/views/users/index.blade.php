@@ -68,12 +68,12 @@
         }
 
         .loading-spinner {
-            width: 32px;
-            height: 32px;
-            border: 3px solid #e5e7eb;
-            border-top: 3px solid #10b981;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 11;
         }
 
         .loading-overlay.loading .loading-spinner {
@@ -161,12 +161,17 @@
         <!-- Results Info -->
         <div id="resultsInfo" class="mb-4 text-sm text-gray-600"></div>
 
-        <!-- Table Container with Loading Overlay -->
+        <!-- Table Container with Loading -->
         <div class="bg-white shadow rounded-lg loading-overlay" id="tableContainer">
-            <div id="tableContent">
-                @include('users.table-content')
+            <div class="loading-spinner">
+                <svg class="animate-spin h-8 w-8 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
             </div>
-            <div class="loading-spinner" style="display: none;"></div>
+            <div id="tableContent">
+                @include('users.table-content', ['users' => $users])
+            </div>
         </div>
 
         <!-- Pagination -->
