@@ -267,4 +267,88 @@ class UserController extends Controller
         $this->checkAdminAccess();
         return $this->index($request);
     }
+
+    public function profile()
+    {
+        return view('users.profile', [
+            'user' => Auth::user()
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)->whereNull('deleted_at')],
+            'departemen' => 'required|string|max:100',
+            'kantor' => 'required|string|max:100',
+            'nohp' => 'nullable|string|max:20',
+        ]);
+
+        $updateData = [
+            'name' => $request->name,
+            'email' => $request->email,
+            'departemen' => $request->departemen,
+            'kantor' => $request->kantor,
+            'nohp' => $request->nohp,
+        ];
+
+        $user->update($updateData);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'notify' => [
+                    'type' => 'success',
+                    'title' => 'Berhasil',
+                    'message' => 'Data diri berhasil diupdate'
+                ]
+            ]);
+        }
+
+        return redirect()->route('profile')->with('success', 'Data diri berhasil diupdate');
+    }
+
+    public function changePassword(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        
+        $request->validate([
+            'current_password' => 'required',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        // Check if current password is correct
+        if (!Hash::check($request->current_password, $user->password)) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'notify' => [
+                        'type' => 'error',
+                        'title' => 'Gagal',
+                        'message' => 'Password saat ini tidak benar'
+                    ]
+                ], 400);
+            }
+            return back()->withErrors(['current_password' => 'Password saat ini tidak benar']);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'notify' => [
+                    'type' => 'success',
+                    'title' => 'Berhasil',
+                    'message' => 'Password berhasil diubah'
+                ]
+            ]);
+        }
+
+        return redirect()->route('profile')->with('success', 'Password berhasil diubah');
+    }
 }
