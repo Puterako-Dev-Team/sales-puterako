@@ -18,7 +18,7 @@
                         <canvas id="dateLineChart"></canvas>
                     </div>
                 </div>
-                <div class="flex gap-4 overflow-x-auto">
+                <div class="flex gap-4 overflow-x-auto mt-6">
                     <!-- Perusahaan Terbanyak -->
                     <div class="bg-gray-50 p-4 rounded-lg flex-shrink-0" style="width: 350px;">
                         <h3 class="font-semibold text-sm mb-3 text-center">Top Perusahaan Penawaran</h3>
