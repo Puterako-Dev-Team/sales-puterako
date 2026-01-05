@@ -138,11 +138,16 @@ class PenawaranController extends Controller
         $info = '';
         if ($request->hasAny(['tanggal_dari', 'no_penawaran', 'nama_perusahaan', 'status', 'pic_admin'])) {
             $activeFilters = [];
-            if ($request->tanggal_dari) $activeFilters[] = 'Tanggal';
-            if ($request->no_penawaran) $activeFilters[] = 'No Penawaran';
-            if ($request->nama_perusahaan) $activeFilters[] = 'Perusahaan';
-            if ($request->status) $activeFilters[] = 'Status';
-            if ($request->pic_admin) $activeFilters[] = 'PIC';
+            if ($request->tanggal_dari)
+                $activeFilters[] = 'Tanggal';
+            if ($request->no_penawaran)
+                $activeFilters[] = 'No Penawaran';
+            if ($request->nama_perusahaan)
+                $activeFilters[] = 'Perusahaan';
+            if ($request->status)
+                $activeFilters[] = 'Status';
+            if ($request->pic_admin)
+                $activeFilters[] = 'PIC';
 
             $info = view('penawaran.filter-info', [
                 'count' => $penawarans->count(),
@@ -226,19 +231,22 @@ class PenawaranController extends Controller
     {
         $penawaran = Penawaran::findOrFail($id);
         $data = $request->validate([
-            'perihal'         => 'required|string|max:255',
+            'perihal' => 'required|string|max:255',
             'nama_perusahaan' => 'required|string|max:255',
-            'lokasi'          => 'required|string|max:255',
-            'pic_perusahaan'  => 'nullable|string|max:255',
+            'lokasi' => 'required|string|max:255',
+            'pic_perusahaan' => 'nullable|string|max:255',
         ]);
         $penawaran->update($data);
 
         if ($request->ajax()) {
-            return response()->json(['success' => true, 'notify' => [
-                'type' => 'success',
-                'title' => 'Updated',
-                'message' => 'Penawaran diperbarui'
-            ]]);
+            return response()->json([
+                'success' => true,
+                'notify' => [
+                    'type' => 'success',
+                    'title' => 'Updated',
+                    'message' => 'Penawaran diperbarui'
+                ]
+            ]);
         }
         return back()->with('success', 'Penawaran diperbarui');
     }
@@ -249,11 +257,14 @@ class PenawaranController extends Controller
         $penawaran->delete();
 
         if ($request->ajax()) {
-            return response()->json(['success' => true, 'notify' => [
-                'type' => 'success',
-                'title' => 'Deleted',
-                'message' => 'Penawaran dihapus (soft)'
-            ]]);
+            return response()->json([
+                'success' => true,
+                'notify' => [
+                    'type' => 'success',
+                    'title' => 'Deleted',
+                    'message' => 'Penawaran dihapus (soft)'
+                ]
+            ]);
         }
         return back()->with('success', 'Penawaran dihapus');
     }
@@ -362,7 +373,7 @@ class PenawaranController extends Controller
         }
 
         $activeVersionId = $versionRow->id;
-        
+
         $details = PenawaranDetail::where('version_id', $activeVersionId)
             ->orderBy('id_penawaran_detail', 'asc')
             ->get();
@@ -401,6 +412,7 @@ class PenawaranController extends Controller
                         'harga_total' => $d->harga_total,
                         'hpp' => $d->hpp,
                         'is_mitra' => $d->is_mitra,
+                        'color_code' => $d->color_code,
                         'added_cost' => $d->added_cost,
                     ];
                 })->toArray()
@@ -492,7 +504,8 @@ class PenawaranController extends Controller
                         'profit' => $profit,
                         'nama_section' => $namaSection,
                         'area' => $area,
-                        'is_mitra' => isset($row['is_mitra']) ? (int)$row['is_mitra'] : 0,
+                        'is_mitra' => isset($row['is_mitra']) ? (int) $row['is_mitra'] : 0,
+                        'color_code' => isset($row['color_code']) ? (int) $row['color_code'] : 1,
                         'added_cost' => $row['added_cost'] ?? 0,
                         'version_id' => $version_id, // pastikan selalu isi version_id
                     ];
@@ -599,6 +612,7 @@ class PenawaranController extends Controller
                         'harga_total' => $d->harga_total,
                         'hpp' => $d->hpp,
                         'is_mitra' => $d->is_mitra,
+                        'color_code' => $d->color_code ?? 1,
                     ];
                 })->toArray()
             ];
@@ -776,39 +790,40 @@ class PenawaranController extends Controller
 
         // Buat versi baru
         $newVersionRow = \App\Models\PenawaranVersion::create([
-            'penawaran_id'        => $id,
-            'version'             => $newVersion,
-            'notes'               => $oldVersion ? ($oldVersion->notes ?? null) : null,
-            'status'              => 'draft',
-            'jasa_ringkasan'      => $oldVersion ? ($oldVersion->jasa_ringkasan ?? null) : null,
+            'penawaran_id' => $id,
+            'version' => $newVersion,
+            'notes' => $oldVersion ? ($oldVersion->notes ?? null) : null,
+            'status' => 'draft',
+            'jasa_ringkasan' => $oldVersion ? ($oldVersion->jasa_ringkasan ?? null) : null,
             'jasa_profit_percent' => $oldVersion ? ($oldVersion->jasa_profit_percent ?? 0) : 0,
-            'jasa_profit_value'   => $oldVersion ? ($oldVersion->jasa_profit_value ?? 0) : 0,
-            'jasa_pph_percent'    => $oldVersion ? ($oldVersion->jasa_pph_percent ?? 0) : 0,
-            'jasa_pph_value'      => $oldVersion ? ($oldVersion->jasa_pph_value ?? 0) : 0,
-            'jasa_bpjsk_percent'  => $oldVersion ? ($oldVersion->jasa_bpjsk_percent ?? 0) : 0,
-            'jasa_bpjsk_value'    => $oldVersion ? ($oldVersion->jasa_bpjsk_value ?? 0) : 0,
-            'jasa_grand_total'    => $oldVersion ? ($oldVersion->jasa_grand_total ?? 0) : 0,
+            'jasa_profit_value' => $oldVersion ? ($oldVersion->jasa_profit_value ?? 0) : 0,
+            'jasa_pph_percent' => $oldVersion ? ($oldVersion->jasa_pph_percent ?? 0) : 0,
+            'jasa_pph_value' => $oldVersion ? ($oldVersion->jasa_pph_value ?? 0) : 0,
+            'jasa_bpjsk_percent' => $oldVersion ? ($oldVersion->jasa_bpjsk_percent ?? 0) : 0,
+            'jasa_bpjsk_value' => $oldVersion ? ($oldVersion->jasa_bpjsk_value ?? 0) : 0,
+            'jasa_grand_total' => $oldVersion ? ($oldVersion->jasa_grand_total ?? 0) : 0,
         ]);
 
         // Copy penawaran_detail hanya jika ada versi sebelumnya
         if ($oldVersion && $oldVersion->details) {
             foreach ($oldVersion->details as $detail) {
                 \App\Models\PenawaranDetail::create([
-                    'version_id'    => $newVersionRow->id,
-                    'id_penawaran'  => $detail->id_penawaran,
-                    'area'          => $detail->area,
-                    'nama_section'  => $detail->nama_section,
-                    'no'            => $detail->no,
-                    'tipe'          => $detail->tipe,
-                    'deskripsi'     => $detail->deskripsi,
-                    'qty'           => $detail->qty,
-                    'satuan'        => $detail->satuan,
-                    'harga_satuan'  => $detail->harga_satuan,
-                    'harga_total'   => $detail->harga_total,
-                    'hpp'           => $detail->hpp,
-                    'is_mitra'      => $detail->is_mitra,
-                    'added_cost'    => $detail->added_cost,
-                    'profit'        => $detail->profit,
+                    'version_id' => $newVersionRow->id,
+                    'id_penawaran' => $detail->id_penawaran,
+                    'area' => $detail->area,
+                    'nama_section' => $detail->nama_section,
+                    'no' => $detail->no,
+                    'tipe' => $detail->tipe,
+                    'deskripsi' => $detail->deskripsi,
+                    'qty' => $detail->qty,
+                    'satuan' => $detail->satuan,
+                    'harga_satuan' => $detail->harga_satuan,
+                    'harga_total' => $detail->harga_total,
+                    'hpp' => $detail->hpp,
+                    'is_mitra' => $detail->is_mitra,
+                    'color_code' => $detail->color_code,
+                    'added_cost' => $detail->added_cost,
+                    'profit' => $detail->profit,
                 ]);
             }
         }
@@ -818,35 +833,35 @@ class PenawaranController extends Controller
             $oldJasa = \App\Models\Jasa::where('version_id', $oldVersion->id)->first();
             if ($oldJasa) {
                 $newJasa = \App\Models\Jasa::create([
-                    'version_id'     => $newVersionRow->id,
-                    'id_penawaran'   => $id,
-                    'ringkasan'      => $oldJasa->ringkasan,
+                    'version_id' => $newVersionRow->id,
+                    'id_penawaran' => $id,
+                    'ringkasan' => $oldJasa->ringkasan,
                     'profit_percent' => $oldJasa->profit_percent,
-                    'profit_value'   => $oldJasa->profit_value,
-                    'pph_percent'    => $oldJasa->pph_percent,
-                    'pph_value'      => $oldJasa->pph_value,
-                    'bpjsk_percent'  => $oldJasa->bpjsk_percent,
-                    'bpjsk_value'    => $oldJasa->bpjsk_value,
-                    'grand_total'    => $oldJasa->grand_total,
+                    'profit_value' => $oldJasa->profit_value,
+                    'pph_percent' => $oldJasa->pph_percent,
+                    'pph_value' => $oldJasa->pph_value,
+                    'bpjsk_percent' => $oldJasa->bpjsk_percent,
+                    'bpjsk_value' => $oldJasa->bpjsk_value,
+                    'grand_total' => $oldJasa->grand_total,
                 ]);
 
                 // Copy JasaDetail
                 $oldJasaDetails = \App\Models\JasaDetail::where('version_id', $oldVersion->id)->get();
                 foreach ($oldJasaDetails as $jasaDetail) {
                     \App\Models\JasaDetail::create([
-                        'version_id'    => $newVersionRow->id,
-                        'id_jasa'       => $newJasa->id_jasa,
-                        'id_penawaran'  => $jasaDetail->id_penawaran,
-                        'nama_section'  => $jasaDetail->nama_section,
-                        'no'            => $jasaDetail->no,
-                        'deskripsi'     => $jasaDetail->deskripsi,
-                        'vol'           => $jasaDetail->vol,
-                        'hari'          => $jasaDetail->hari,
-                        'orang'         => $jasaDetail->orang,
-                        'unit'          => $jasaDetail->unit,
-                        'total'         => $jasaDetail->total,
-                        'pembulatan'    => $jasaDetail->pembulatan,
-                        'profit'        => $jasaDetail->profit,
+                        'version_id' => $newVersionRow->id,
+                        'id_jasa' => $newJasa->id_jasa,
+                        'id_penawaran' => $jasaDetail->id_penawaran,
+                        'nama_section' => $jasaDetail->nama_section,
+                        'no' => $jasaDetail->no,
+                        'deskripsi' => $jasaDetail->deskripsi,
+                        'vol' => $jasaDetail->vol,
+                        'hari' => $jasaDetail->hari,
+                        'orang' => $jasaDetail->orang,
+                        'unit' => $jasaDetail->unit,
+                        'total' => $jasaDetail->total,
+                        'pembulatan' => $jasaDetail->pembulatan,
+                        'profit' => $jasaDetail->profit,
                     ]);
                 }
             }

@@ -239,7 +239,8 @@
         }
 
         .notes pre {
-            font-family: Arial, sans-serif; /* Sama dengan body font */
+            font-family: Arial, sans-serif;
+            /* Sama dengan body font */
             white-space: pre-wrap;
             word-wrap: break-word;
             margin: 0;
@@ -249,11 +250,13 @@
 
         /* Style untuk ringkasan jasa di table */
         table td pre {
-            font-family: Arial, sans-serif; /* Sama dengan body font */
+            font-family: Arial, sans-serif;
+            /* Sama dengan body font */
             white-space: pre-wrap;
             word-wrap: break-word;
             margin: 0;
-            font-size: 10px; /* Sesuai dengan font size table */
+            font-size: 10px;
+            /* Sesuai dengan font size table */
             line-height: 1.4;
         }
 
@@ -323,6 +326,29 @@
                 display: table-footer-group;
             }
         }
+
+        <style>.color-1 {
+            color: #000000;
+        }
+
+        /* Hitam - BOQ / Klien */
+        .color-2 {
+            color: #8e44ad;
+        }
+
+        /* Ungu - Detail */
+        .color-3 {
+            color: #2980b9;
+        }
+
+        /* Biru - Puterako */
+
+        .by-user {
+            font-style: italic;
+            font-weight: bold;
+        }
+    </style>
+
     </style>
 </head>
 
@@ -345,8 +371,8 @@
 
             <p style="margin-top: 20px;"><strong>Perihal:</strong> {{ $penawaran->perihal }}</p>
             <p><strong>No:</strong> {{ $penawaran->no_penawaran }}@if ($activeVersion > 1)
-                    -Rev{{ $activeVersion }}
-                @endif
+                -Rev{{ $activeVersion }}
+            @endif
             </p>
             <p class="greeting" style="margin-top: 20px;"><strong>Dengan Hormat,</strong></p>
             <p>Bersama ini kami PT. Puterako Inti Buana memberitahukan Penawaran Harga {{ $penawaran->perihal }} dengan
@@ -423,8 +449,9 @@
                         @foreach ($rows as $row)
                             @php
                                 $subtotal += $row->harga_total;
+                                $fontClass = 'color-' . ($row->color_code ?? 1);
                             @endphp
-                            <tr>
+                            <tr class="{{ $fontClass }}">
                                 <td>{{ $row->no }}</td>
                                 <td>{{ $row->tipe }}</td>
                                 <td>{{ $row->deskripsi }}</td>

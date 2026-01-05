@@ -269,8 +269,8 @@
                                     <label class="text-sm font-semibold text-gray-700">PPN (%):</label>
                                     <div class="flex items-center gap-2">
                                         <input type="number" id="ppnInput"
-                                            class="border rounded px-3 py-2 bg-white w-24 text-right" min="0"
-                                            step="0.01" value="{{ $versionRow->ppn_persen ?? 11 }}">
+                                            class="border rounded px-3 py-2 bg-white w-24 text-right" min="0" step="0.01"
+                                            value="{{ $versionRow->ppn_persen ?? 11 }}">
                                         <span class="text-sm text-gray-600">%</span>
                                     </div>
                                 </div>
@@ -278,8 +278,8 @@
                                 {{-- <!-- Best Price toggle + input -->
                                 <div class="flex items-center gap-4 mt-3">
                                     <label class="flex items-center gap-2">
-                                        <input type="checkbox" id="isBestPrice"
-                                            {{ $penawaran->is_best_price ?? false ? 'checked' : '' }} />
+                                        <input type="checkbox" id="isBestPrice" {{ $penawaran->is_best_price ?? false ?
+                                        'checked' : '' }} />
                                         <span class="text-sm font-medium">Gunakan Best Price</span>
                                     </label>
 
@@ -337,13 +337,13 @@
                     <div class="flex gap-4 mb-4">
                         <div>
                             <label class="block text-sm font-semibold mb-1">Profit (%)</label>
-                            <input type="number" id="jasaProfitInput" class="border rounded px-3 py-2 bg-white w-24"
-                                min="0" step="0.1" value="{{ $versionRow->jasa_profit_percent ?? 0 }}">
+                            <input type="number" id="jasaProfitInput" class="border rounded px-3 py-2 bg-white w-24" min="0"
+                                step="0.1" value="{{ $versionRow->jasa_profit_percent ?? 0 }}">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold mb-1">PPH (%)</label>
-                            <input type="number" id="jasaPphInput" class="border rounded px-3 py-2 bg-white w-24"
-                                min="0" step="0.1" value="{{ $versionRow->jasa_pph_percent ?? 0 }}">
+                            <input type="number" id="jasaPphInput" class="border rounded px-3 py-2 bg-white w-24" min="0"
+                                step="0.1" value="{{ $versionRow->jasa_pph_percent ?? 0 }}">
                         </div>
                         <div class="flex-1 flex justify-end items-end gap-2 mb-4">
                             <button id="jasaAddSectionBtn"
@@ -403,7 +403,8 @@
                                                 )</span>
                                         </div>
                                         <div class="font-semibold text-blue-700 text-md">Rp
-                                            {{ number_format($versionRow->jasa_bpjsk_value ?? 0, 0, ',', '.') }}</div>
+                                            {{ number_format($versionRow->jasa_bpjsk_value ?? 0, 0, ',', '.') }}
+                                        </div>
                                     </div>
                                     <div class="flex justify-between items-center">
                                         <div class="font-bold text-md">Total Jasa Setelah BPJS</div>
@@ -417,11 +418,11 @@
                     </div>
 
                     <script>
-                        document.addEventListener('DOMContentLoaded', function() {
+                        document.addEventListener('DOMContentLoaded', function () {
                             const input = document.getElementById('ringkasanJasa');
                             const previewSpan = document.getElementById('ringkasanJasaPreview');
                             if (input && previewSpan) {
-                                input.addEventListener('input', function() {
+                                input.addEventListener('input', function () {
                                     previewSpan.textContent = input.value;
                                 });
                             }
@@ -496,6 +497,15 @@
                                 margin: 1cm;
                             }
                         }
+                        .color-1 { color: #000000; } /* Hitam */
+                        .color-2 { color: #8e44ad; } /* Ungu */
+                        .color-3 { color: #2980b9; } /* Biru */
+
+                        .by-user {
+                            font-style: italic;
+                            font-weight: bold;
+                            color: #3498db;
+                        }
                     </style>
 
                     <!-- Action Buttons -->
@@ -503,8 +513,7 @@
                         <a href="{{ route('penawaran.exportPdf', ['id' => $penawaran->id_penawaran, 'version' => $activeVersion]) }}"
                             target="_blank"
                             class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition font-semibold shadow-md">
-                            <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
                                 </path>
@@ -582,7 +591,9 @@
                         @endphp
 
                         @foreach ($groupedSections as $namaSection => $sectionGroup)
-                            @php $sectionNumber++; @endphp
+                            @php 
+                            $sectionNumber++;
+                            $fontClass = 'color-' . ($row->color_code ?? 1); @endphp
                             <div class="mb-8 break-inside-avoid">
                                 <h3 class="font-bold text-lg mb-3">
                                     {{ convertToRoman($sectionNumber) }}.
@@ -591,7 +602,7 @@
                                 <div class="overflow-x-auto">
                                     <table class="w-full border-collapse border border-gray-300 text-sm">
                                         <thead class="bg-gray-100">
-                                            <tr>
+                                <tr >
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-12">No</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-center">Tipe</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-center">Deskripsi</th>
@@ -623,23 +634,42 @@
                                                 @foreach ($areaRows as $section)
                                                     @foreach ($section['data'] as $row)
                                                         @php $subtotal += $row['harga_total']; @endphp
-                                                        <tr>
+                                                        <tr class="color-{{ $row['color_code'] ?? 1 }}">
                                                             <td class="border border-gray-300 px-3 py-2 text-center">
-                                                                {{ $row['no'] }}</td>
+                                                                {{ $row['no'] }}
+                                                            </td>
                                                             <td class="border border-gray-300 px-3 py-2">
-                                                                {{ $row['tipe'] }}</td>
+                                                                {{ $row['tipe'] }}
+                                                            </td>
                                                             <td class="border border-gray-300 px-3 py-2">
-                                                                {{ $row['deskripsi'] }}</td>
+                                                                {{ $row['deskripsi'] }}
+                                                            </td>
                                                             <td class="border border-gray-300 px-3 py-2 text-center">
-                                                                {{ number_format($row['qty'], 0) }}</td>
+                                                                {{ number_format($row['qty'], 0) }}
+                                                            </td>
                                                             <td class="border border-gray-300 px-3 py-2">
-                                                                {{ $row['satuan'] }}</td>
-                                                            <td class="border border-gray-300 px-3 py-2 text-right">
-                                                                {{ $row['harga_satuan'] > 0 ? 'Rp ' . number_format($row['harga_satuan'], 0, ',', '.') : '' }}
+                                                                {{ $row['satuan'] }}
                                                             </td>
                                                             <td class="border border-gray-300 px-3 py-2 text-right">
-                                                                {{ $row['harga_total'] > 0 ? 'Rp ' . number_format($row['harga_total'], 0, ',', '.') : '' }}
-                                                            </td>
+    @if ((int) $row['is_mitra'] === 1)
+        <span style="color:#3498db;font-weight:bold;font-style:italic;">
+            by User
+        </span>
+    @else
+        {{ $row['harga_satuan'] > 0 ? 'Rp ' . number_format($row['harga_satuan'], 0, ',', '.') : '' }}
+    @endif
+</td>
+
+<td class="border border-gray-300 px-3 py-2 text-right">
+    @if ((int) $row['is_mitra'] === 1)
+        <span style="color:#3498db;font-weight:bold;font-style:italic;">
+            by User
+        </span>
+    @else
+        {{ $row['harga_total'] > 0 ? 'Rp ' . number_format($row['harga_total'], 0, ',', '.') : '' }}
+    @endif
+</td>
+                                                            
                                                         </tr>
                                                     @endforeach
                                                 @endforeach
@@ -679,7 +709,8 @@
                                     <tr>
                                         <td class="border border-gray-300 px-3 py-2 text-center">1</td>
                                         <td class="border border-gray-300 px-3 py-2">
-                                            <pre class="whitespace-pre-wrap font-sans text-sm m-0">{{ $versionRow->jasa_ringkasan ?? '' }}</pre>
+                                            <pre
+                                                class="whitespace-pre-wrap font-sans text-sm m-0">{{ $versionRow->jasa_ringkasan ?? '' }}</pre>
                                         </td>
                                         <td class="border border-gray-300 px-3 py-2 text-center">1</td>
                                         <td class="border border-gray-300 px-3 py-2 text-center">Lot</td>
@@ -710,12 +741,12 @@
                                             @php
                                                 // Hitung total dari section penawaran
                                                 $totalPenawaran = 0;
-                                                foreach($sections as $section) {
-                                                    foreach($section['data'] as $row) {
+                                                foreach ($sections as $section) {
+                                                    foreach ($section['data'] as $row) {
                                                         $totalPenawaran += $row['harga_total'];
                                                     }
                                                 }
-                                                
+
                                                 // Total keseluruhan = total penawaran + jasa grand total
                                                 $totalKeseluruhan = $totalPenawaran + ($versionRow->jasa_grand_total ?? 0);
                                             @endphp
@@ -731,8 +762,7 @@
                                             @csrf
                                             <input type="hidden" name="version" value="{{ $activeVersion }}">
                                             <label class="flex items-center gap-2">
-                                                <input type="checkbox" name="is_best_price" id="isBestPrice"
-                                                    value="1" {{ $isBest ?? false ? 'checked' : '' }} />
+                                                <input type="checkbox" name="is_best_price" id="isBestPrice" value="1" {{ $isBest ?? false ? 'checked' : '' }} />
                                                 <span class="text-sm font-medium">Best Price</span>
                                             </label>
                                             <span class="ml-2 text-sm text-gray-600">Rp</span>
@@ -742,8 +772,8 @@
                                             <button type="submit"
                                                 class="ml-4 bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 transition font-semibold shadow-md">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                    stroke-linecap="round" stroke-linejoin="round"
                                                     class="lucide lucide-circle-check-big-icon lucide-circle-check-big">
                                                     <path d="M21.801 10A10 10 0 1 1 17 3.335" />
                                                     <path d="m9 11 3 3L22 4" />
@@ -761,7 +791,8 @@
                                         </tr>
                                     @endif
                                     <tr>
-                                        <td class="py-2 font-semibold">PPN {{ number_format($ppnPersen, 0, ',', '.') }}%</td>
+                                        <td class="py-2 font-semibold">PPN {{ number_format($ppnPersen, 0, ',', '.') }}%
+                                        </td>
                                         <td class="py-2 text-right">Rp
                                             @php
                                                 $baseAmountForPPN = $isBest && $bestPrice > 0 ? $bestPrice : $totalKeseluruhan;
@@ -789,7 +820,8 @@
                             @csrf
                             <input type="hidden" name="version" value="{{ $activeVersion }}">
                             <label for="ringkasan" class="font-bold mb-2 block">Ringkasan Jasa:</label>
-                            <textarea rows="7" class="border rounded w-full p-3 text-sm mb-2" name="ringkasan" id="ringkasan"
+                            <textarea rows="7" class="border rounded w-full p-3 text-sm mb-2" name="ringkasan"
+                                id="ringkasan"
                                 placeholder="Masukkan Ringkasan Jasa">{{ old('ringkasan', $versionRow->jasa_ringkasan ?? '') }}</textarea>
                             <button type="submit"
                                 class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition font-semibold shadow-md">
@@ -802,9 +834,10 @@
                             <form method="POST" action="{{ route('penawaran.saveNotes', $penawaran->id_penawaran) }}">
                                 @csrf
                                 <input type="hidden" name="version" value="{{ $activeVersion }}">
-                                <textarea rows="7" name="note" class="w-full border rounded px-3 py-2" 
-                                        placeholder="Masukkan catatan untuk versi {{ $activeVersion }} ini...">{{ old('note', $versionRow->notes ?? '') }}</textarea>
-                                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mt-2">
+                                <textarea rows="7" name="note" class="w-full border rounded px-3 py-2"
+                                    placeholder="Masukkan catatan untuk versi {{ $activeVersion }} ini...">{{ old('note', $versionRow->notes ?? '') }}</textarea>
+                                <button type="submit"
+                                    class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mt-2">
                                     Simpan Notes
                                 </button>
                             </form>
@@ -812,7 +845,8 @@
                         <div class="mt-8 border-t pt-6">
                             <h4 class="font-bold mb-3">NOTE:</h4>
                             @if (!empty($versionRow->notes))
-                                <pre class="whitespace-pre-wrap font-sans text-sm leading-relaxed">{{ $versionRow->notes }}</pre>
+                                <pre
+                                    class="whitespace-pre-wrap font-sans text-sm leading-relaxed">{{ $versionRow->notes }}</pre>
                             @else
                                 <p class="text-gray-500 text-sm">Belum ada catatan untuk versi ini.</p>
                             @endif
@@ -830,7 +864,7 @@
                     </div>
                 </div>
             </div>
-        @endsection
+@endsection
 
         <script>
             const activeVersion = {{ $activeVersion ?? 0 }};
@@ -884,7 +918,7 @@
                 }
 
                 // Close modal when clicking outside
-                document.getElementById('statusModal').addEventListener('click', function(e) {
+                document.getElementById('statusModal').addEventListener('click', function (e) {
                     if (e.target === this) {
                         closeStatusModal();
                     }
@@ -892,7 +926,7 @@
             </script>
 
             <script>
-                document.addEventListener("DOMContentLoaded", function() {
+                document.addEventListener("DOMContentLoaded", function () {
                     // =====================================================
                     // DEKLARASI VARIABEL
                     // =====================================================
@@ -919,7 +953,7 @@
                     const tabPanels = document.querySelectorAll('.tab-panel');
 
                     tabButtons.forEach(button => {
-                        button.addEventListener('click', function() {
+                        button.addEventListener('click', function () {
                             const targetTab = this.getAttribute('data-tab');
 
                             // Update button styles
@@ -955,12 +989,12 @@
                     function parseNumber(value) {
                         if (typeof value === "string") {
                             value = value.trim();
-                            
+
                             // Handle currency format (Rp 123.456 atau Rp 123,456)
                             if (value.includes('Rp')) {
                                 value = value.replace(/Rp\s?/g, ''); // Hapus 'Rp '
                             }
-                            
+
                             // Handle format Indonesia: titik sebagai pemisah ribuan, koma sebagai desimal
                             if (value.indexOf('.') !== -1 && value.indexOf(',') !== -1) {
                                 value = value.replace(/\./g, '').replace(/,/g, '.');
@@ -1042,12 +1076,12 @@
                     });
 
                     document.getElementById('jasaEditModeBtn').addEventListener('click', () => {
-                    if (jasaSections.length === 0) {
-                        // buat satu section kosong ketika belum ada data
-                        createJasaSection(null, true);
-                    }
-                    toggleJasaEditMode(true);
-                });
+                        if (jasaSections.length === 0) {
+                            // buat satu section kosong ketika belum ada data
+                            createJasaSection(null, true);
+                        }
+                        toggleJasaEditMode(true);
+                    });
 
                     document.getElementById('jasaCancelEditBtn').addEventListener('click', () => {
                         if (confirm('Batalkan perubahan dan kembali ke mode view?')) {
@@ -1058,10 +1092,10 @@
                     function toggleJasaEditMode(enable) {
                         jasaIsEditMode = enable;
 
-                        const btnEdit   = document.getElementById('jasaEditModeBtn');
+                        const btnEdit = document.getElementById('jasaEditModeBtn');
                         const btnCancel = document.getElementById('jasaCancelEditBtn');
-                        const btnSave   = document.getElementById('jasaSaveAllBtn');
-                        const btnAdd    = document.getElementById('jasaAddSectionBtn');
+                        const btnSave = document.getElementById('jasaSaveAllBtn');
+                        const btnAdd = document.getElementById('jasaAddSectionBtn');
 
                         if (jasaHasExistingData) {
                             btnEdit.classList.toggle('hidden', enable);
@@ -1184,101 +1218,101 @@
                         ];
 
                         const sectionHTML = `
-                        <div class="section-card p-4 mb-6 bg-white" id="${sectionId}">
-                            <div class="flex justify-between items-center mb-3">
-                                <div class="flex items-center gap-4">
-                                    <h3 class="text-lg font-bold text-gray-700">Section Jasa ${jasaSectionCounter}</h3>
-                                    <input type="text" class="nama-section-input border rounded px-3 py-1" 
-                                        placeholder="Ex: Pekerjaan Instalasi" 
-                                        value="${sectionData && sectionData.nama_section ? sectionData.nama_section : ''}">
-                                </div>
-                                <div class="flex items-center ml-4">
-                                    <label class="block text-sm font-semibold mr-2">Pembulatan:</label>
-                                    <input type="number" class="pembulatan-input border rounded px-3 py-1 w-48" 
-                                        min="0" step="1" value="${sectionData && typeof sectionData.pembulatan !== 'undefined' ? sectionData.pembulatan : 0}">
-                                </div>
-                                <div class="flex gap-2">
-                                    <button class="flex items-center add-row-btn bg-[#02ADB8] text-white px-3 py-1 rounded hover:bg-blue-700 transition text-sm">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Tambah Baris
-                                    </button>
-                                    <button class="flex items-center delete-row-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700 transition text-sm">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Hapus Baris
-                                    </button>
-                                    <button class="delete-section-btn bg-white text-red-500 px-3 py-1 rounded hover:bg-red-500 hover:text-white transition text-sm">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                                    </button>
-                                </div>
-                            </div>
+                                    <div class="section-card p-4 mb-6 bg-white" id="${sectionId}">
+                                        <div class="flex justify-between items-center mb-3">
+                                            <div class="flex items-center gap-4">
+                                                <h3 class="text-lg font-bold text-gray-700">Section Jasa ${jasaSectionCounter}</h3>
+                                                <input type="text" class="nama-section-input border rounded px-3 py-1" 
+                                                    placeholder="Ex: Pekerjaan Instalasi" 
+                                                    value="${sectionData && sectionData.nama_section ? sectionData.nama_section : ''}">
+                                            </div>
+                                            <div class="flex items-center ml-4">
+                                                <label class="block text-sm font-semibold mr-2">Pembulatan:</label>
+                                                <input type="number" class="pembulatan-input border rounded px-3 py-1 w-48" 
+                                                    min="0" step="1" value="${sectionData && typeof sectionData.pembulatan !== 'undefined' ? sectionData.pembulatan : 0}">
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <button class="flex items-center add-row-btn bg-[#02ADB8] text-white px-3 py-1 rounded hover:bg-blue-700 transition text-sm">
+                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Tambah Baris
+                                                </button>
+                                                <button class="flex items-center delete-row-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700 transition text-sm">
+                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Hapus Baris
+                                                </button>
+                                                <button class="delete-section-btn bg-white text-red-500 px-3 py-1 rounded hover:bg-red-500 hover:text-white transition text-sm">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                                </button>
+                                            </div>
+                                        </div>
 
-                            <div class="spreadsheet-scroll-wrapper" style="overflow-x:auto;">
-                                <div id="${spreadsheetId}"></div>
-                            </div>
+                                        <div class="spreadsheet-scroll-wrapper" style="overflow-x:auto;">
+                                            <div id="${spreadsheetId}"></div>
+                                        </div>
 
-                            <div class="mt-3 flex items-start">
-                                <div class="flex-1"></div>
-                                <div class="w-full lg:w-56 flex flex-col items-end text-right space-y-1">
-                                    <div class="text-right font-semibold">Subtotal: Rp <span id="${sectionId}-subtotal">0</span></div>
-                                    <div class="text-sm">Profit: Rp <span class="${sectionId}-profit-val">0</span></div>
-                                    <div class="text-sm">PPH: Rp <span class="${sectionId}-pph-val">0</span></div>
-                                    <div class="text-sm">Pembulatan: Rp <span class="${sectionId}-pembulatan-val">0</span></div>
-                                </div>
-                            </div>
-                        </div>`;
+                                        <div class="mt-3 flex items-start">
+                                            <div class="flex-1"></div>
+                                            <div class="w-full lg:w-56 flex flex-col items-end text-right space-y-1">
+                                                <div class="text-right font-semibold">Subtotal: Rp <span id="${sectionId}-subtotal">0</span></div>
+                                                <div class="text-sm">Profit: Rp <span class="${sectionId}-profit-val">0</span></div>
+                                                <div class="text-sm">PPH: Rp <span class="${sectionId}-pph-val">0</span></div>
+                                                <div class="text-sm">Pembulatan: Rp <span class="${sectionId}-pembulatan-val">0</span></div>
+                                            </div>
+                                        </div>
+                                    </div>`;
 
                         document.getElementById('jasaSectionsContainer').insertAdjacentHTML('beforeend', sectionHTML);
 
                         const spreadsheet = jspreadsheet(document.getElementById(spreadsheetId), {
                             data: initialData,
                             columns: [{
-                                    title: 'No',
-                                    width: 60
-                                },
-                                {
-                                    title: 'Deskripsi',
-                                    width: 250,
-                                    wordWrap: true
-                                },
-                                {
-                                    title: 'Vol',
-                                    width: 80,
-                                    type: 'numeric'
-                                },
-                                {
-                                    title: 'Hari',
-                                    width: 80,
-                                    type: 'numeric'
-                                },
-                                {
-                                    title: 'Orang',
-                                    width: 80,
-                                    type: 'numeric'
-                                },
-                                {
-                                    title: 'Unit',
-                                    width: 100,
-                                    type: 'numeric',
-                                    mask: 'Rp #.##0',
-                                    decimal: ',',
-                                },
-                                {
-                                    title: 'Total',
-                                    width: 120,
-                                    type: 'numeric',
-                                    readOnly: true,
-                                    mask: 'Rp #.##0',
-                                    decimal: ',',
-                                },
+                                title: 'No',
+                                width: 60
+                            },
+                            {
+                                title: 'Deskripsi',
+                                width: 250,
+                                wordWrap: true
+                            },
+                            {
+                                title: 'Vol',
+                                width: 80,
+                                type: 'numeric'
+                            },
+                            {
+                                title: 'Hari',
+                                width: 80,
+                                type: 'numeric'
+                            },
+                            {
+                                title: 'Orang',
+                                width: 80,
+                                type: 'numeric'
+                            },
+                            {
+                                title: 'Unit',
+                                width: 100,
+                                type: 'numeric',
+                                mask: 'Rp #.##0',
+                                decimal: ',',
+                            },
+                            {
+                                title: 'Total',
+                                width: 120,
+                                type: 'numeric',
+                                readOnly: true,
+                                mask: 'Rp #.##0',
+                                decimal: ',',
+                            },
                             ],
                             tableOverflow: true,
                             tableWidth: '100%',
                             tableHeight: '100%',
                             editable: editable,
-                            onchange: function(instance, cell, col, row, value) {
+                            onchange: function (instance, cell, col, row, value) {
                                 if (col >= 2 && col <= 5) {
                                     setTimeout(() => recalcJasaRow(spreadsheet, row), 50);
                                 }
                             },
-                            onafterchanges: function(instance, records) {
+                            onafterchanges: function (instance, records) {
                                 const rowsToRecalc = new Set();
                                 records.forEach(r => {
                                     if (r.x >= 2 && r.x <= 5) rowsToRecalc.add(r.y);
@@ -1414,12 +1448,12 @@
                     }
 
                     // Input profit jasa - hanya untuk informasi, tidak mempengaruhi perhitungan
-                    document.getElementById('jasaProfitInput').addEventListener('input', function() {
+                    document.getElementById('jasaProfitInput').addEventListener('input', function () {
                         jasaProfit = parseNumber(this.value) || 0;
                         jasaSections.forEach(s => computeJasaSectionTotals(s));
                     });
 
-                    document.getElementById('jasaPphInput').addEventListener('input', function() {
+                    document.getElementById('jasaPphInput').addEventListener('input', function () {
                         jasaPph = parseNumber(this.value) || 0;
                         jasaSections.forEach(s => computeJasaSectionTotals(s));
                     });
@@ -1429,7 +1463,7 @@
                         const filtered = [];
                         (section.data || []).forEach(r => {
                             const key =
-                                `${section.nama_section||''}||${String(r.no||'')}||${String((r.deskripsi||'').trim())}||${String(r.total||'')}`;
+                                `${section.nama_section || ''}||${String(r.no || '')}||${String((r.deskripsi || '').trim())}||${String(r.total || '')}`;
                             if (!seen.has(key)) {
                                 seen.add(key);
                                 filtered.push(r);
@@ -1479,21 +1513,21 @@
                         });
 
                         fetch("{{ route('jasa.save') }}", {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                                },
-                                body: JSON.stringify({
-                                    penawaran_id: {{ $penawaran->id_penawaran }},
-                                    profit: parseNumber(document.getElementById('jasaProfitInput')
-                                        .value) || 0,
-                                    pph: parseNumber(document.getElementById('jasaPphInput').value) ||
-                                        0,
-                                    sections: allSectionsData,
-                                    version: {{ $activeVersion ?? 0 }}
-                                })
-                            })
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify({
+                                penawaran_id: {{ $penawaran->id_penawaran }},
+                                profit: parseNumber(document.getElementById('jasaProfitInput')
+                                    .value) || 0,
+                                pph: parseNumber(document.getElementById('jasaPphInput').value) ||
+                                    0,
+                                sections: allSectionsData,
+                                version: {{ $activeVersion ?? 0 }}
+                                            })
+                        })
                             .then(res => res.json())
                             .then(data => {
                                 console.log('✅ Jasa data saved successfully:', data);
@@ -1533,7 +1567,7 @@
                         let hpp = parseNumber(row[7]);
                         let qty = parseNumber(row[3]);
                         let isMitra = row[8] ? true : false;
-                        let addedCost = parseNumber(row[9]) || 0;
+                        let addedCost = parseNumber(row[10]) || 0;
 
                         let hargaSatuan = 0;
                         let total = 0;
@@ -1567,7 +1601,7 @@
                                 const hpp = parseNumber(row[7]);
                                 const qty = parseNumber(row[3]);
                                 const isMitra = row[8] ? true : false;
-                                const addedCost = parseNumber(row[9]) || 0;
+                                const addedCost = parseNumber(row[10]) || 0;
 
                                 let hargaSatuan = 0;
                                 let total = 0;
@@ -1652,42 +1686,43 @@
                             row.harga_total || 0,
                             row.hpp || 0,
                             row.is_mitra ? true : false,
+                            row.color_code || 1,
                             row.added_cost || 0
                         ]) : [
-                            ['', '', '', 0, '', 0, 0, 0, false, 0],
-                            ['', '', '', 0, '', 0, 0, 0, false, 0],
+                            ['', '', '', 0, '', 0, 0, 0, false, 1, 0],
+                            ['', '', '', 0, '', 0, 0, 0, false, 1,  0],
                         ];
 
                         const sectionHTML = `
-                    <div class="section-card p-4 mb-6 bg-white" id="${sectionId}">
-                        <div class="flex justify-between items-center mb-4">
-                            <div class="flex items-center gap-4">
-                                <h3 class="text-lg font-bold text-gray-700">Section ${sectionCounter}</h3>
-                                <input type="text" class="nama-section-input border rounded px-3 py-1 ml-2" placeholder="Ex: Main Unit" value="${sectionData && sectionData.nama_section ? sectionData.nama_section : ''}">
-                                <div class="flex items-center">
-                                    <label class="block text-sm font-semibold mr-2">Area Pemasangan:</label>
-                                    <input type="text" class="area-select border rounded px-3 py-1 ml-2" placeholder="Ex: Kantor" value="${sectionData && sectionData.area ? sectionData.area : ''}">
-                                </div>
-                            </div>
-                            <div class="flex gap-2 items-center">
-                            <button class="flex items-center add-row-btn bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition text-sm">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Tambah Baris
-                            </button>
-                            <button class="flex items-center delete-row-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700 transition text-sm">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Hapus Baris
-                            </button>
-                            <button class="delete-section-btn bg-white text-red-500 px-3 py-1 rounded hover:bg-red-500 hover:text-white transition text-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                            </button>
-                        </div>
-                        </div>
-                        <div class="spreadsheet-scroll-wrapper" style="overflow-x:auto;">
-                            <div id="${spreadsheetId}"></div>
-                        </div>
-                        <div class="text-right mt-3 font-semibold text-gray-700">
-                            Subtotal: Rp <span id="${sectionId}-subtotal">0</span>
-                        </div>
-                    </div>`;
+                                <div class="section-card p-4 mb-6 bg-white" id="${sectionId}">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <div class="flex items-center gap-4">
+                                            <h3 class="text-lg font-bold text-gray-700">Section ${sectionCounter}</h3>
+                                            <input type="text" class="nama-section-input border rounded px-3 py-1 ml-2" placeholder="Ex: Main Unit" value="${sectionData && sectionData.nama_section ? sectionData.nama_section : ''}">
+                                            <div class="flex items-center">
+                                                <label class="block text-sm font-semibold mr-2">Area Pemasangan:</label>
+                                                <input type="text" class="area-select border rounded px-3 py-1 ml-2" placeholder="Ex: Kantor" value="${sectionData && sectionData.area ? sectionData.area : ''}">
+                                            </div>
+                                        </div>
+                                        <div class="flex gap-2 items-center">
+                                        <button class="flex items-center add-row-btn bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition text-sm">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Tambah Baris
+                                        </button>
+                                        <button class="flex items-center delete-row-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700 transition text-sm">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Hapus Baris
+                                        </button>
+                                        <button class="delete-section-btn bg-white text-red-500 px-3 py-1 rounded hover:bg-red-500 hover:text-white transition text-sm">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                        </button>
+                                    </div>
+                                    </div>
+                                    <div class="spreadsheet-scroll-wrapper" style="overflow-x:auto;">
+                                        <div id="${spreadsheetId}"></div>
+                                    </div>
+                                    <div class="text-right mt-3 font-semibold text-gray-700">
+                                        Subtotal: Rp <span id="${sectionId}-subtotal">0</span>
+                                    </div>
+                                </div>`;
 
                         document.getElementById('sectionsContainer').insertAdjacentHTML('beforeend', sectionHTML);
 
@@ -1724,6 +1759,17 @@
                                 },
                                 { title: 'Mitra', width: 80, type: 'checkbox' },
                                 {
+                                    title: 'Warna',
+                                    width: 160,
+                                    type: 'dropdown',
+                                    source: [
+                                        { id: 1, name: 'Hitam - BOQ / Klien' },
+                                        { id: 2, name: 'Ungu - Detail / Breakdown' },
+                                        { id: 3, name: 'Biru - Rekomendasi Puterako' },
+                                    ],
+                                    default: 1
+                                },
+                                {
                                     title: 'Added Cost',
                                     width: 120,
                                     type: 'numeric',
@@ -1735,18 +1781,18 @@
                             tableWidth: '100%',
                             tableHeight: '100%',
                             editable: isEditMode,
-                            onchange: function(instance, cell, colIndex, rowIndex, value) {
+                            onchange: function (instance, cell, colIndex, rowIndex, value) {
                                 console.log('📝 Spreadsheet onChange:', {
                                     spreadsheetId,
                                     colIndex,
                                     rowIndex,
                                     value,
                                     columnName: ['No', 'Tipe', 'Deskripsi', 'QTY', 'Satuan',
-                                        'Harga Satuan', 'Harga Total', 'HPP', 'Mitra', 'Added Cost'
+                                        'Harga Satuan', 'Harga Total', 'HPP', 'Mitra', 'Warna', 'Added Cost'
                                     ][colIndex]
                                 });
 
-                                if (colIndex == 3 || colIndex == 7 || colIndex == 8 || colIndex == 9) {
+                                if (colIndex == 3 || colIndex == 7 || colIndex == 8 || colIndex == 10) {
                                     console.log('✨ Triggering recalculateRow with new value:', value);
                                     recalculateRow(spreadsheet, rowIndex, colIndex, value);
                                 } else {
@@ -1799,8 +1845,8 @@
                                     }
 
                                     if (confirm(
-                                            `Hapus ${validRows.length} baris: ${validRows.sort((a,b) => a-b).join(', ')}?`
-                                        )) {
+                                        `Hapus ${validRows.length} baris: ${validRows.sort((a, b) => a - b).join(', ')}?`
+                                    )) {
                                         validRows.forEach(rowNum => {
                                             spreadsheet.deleteRow(rowNum - 1, 1);
                                         });
@@ -1932,7 +1978,7 @@
                     setBestPriceInputState();
 
                     // ganti listener existing supaya juga set state + update totals
-                    document.getElementById('isBestPrice').addEventListener('change', function() {
+                    document.getElementById('isBestPrice').addEventListener('change', function () {
                         setBestPriceInputState();
                         updateTotalKeseluruhan();
                     });
@@ -1943,7 +1989,7 @@
                     // EVENT LISTENERS PENAWARAN
                     // =====================================================
 
-                    document.getElementById('profitInput').addEventListener('input', function() {
+                    document.getElementById('profitInput').addEventListener('input', function () {
                         console.log('💰 Profit input changed to:', this.value);
                         recalculateAll();
                     });
@@ -1960,7 +2006,7 @@
                         }
                     });
 
-                    document.getElementById('saveAllBtn').addEventListener('click', function() {
+                    document.getElementById('saveAllBtn').addEventListener('click', function () {
                         const btn = this;
                         btn.innerHTML = "⏳ Menyimpan...";
                         btn.disabled = true;
@@ -1984,32 +2030,33 @@
                                     harga_total: parseNumber(row[6]),
                                     hpp: parseNumber(row[7]),
                                     is_mitra: row[8] ? 1 : 0,
-                                    added_cost: parseNumber(row[9]) || 0
+                                    color_code: row[9] || 1,
+                                    added_cost: parseNumber(row[10]) || 0
                                 }))
                             };
                         });
 
                         fetch("{{ route('penawaran.save') }}", {
-                                credentials: 'same-origin',
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                                },
-                                body: JSON.stringify({
-                                    penawaran_id: {{ $penawaran->id_penawaran }},
-                                    profit: parseNumber(document.getElementById('profitInput').value) ||
-                                        0,
-                                    ppn_persen: parseNumber(document.getElementById('ppnInput')
-                                        .value) || 11,
-                                    is_best_price: document.getElementById('isBestPrice').checked ? 1 :
-                                        0,
-                                    best_price: parseNumber(document.getElementById('bestPriceInput')
-                                        .value) || 0,
-                                    sections: allSectionsData,
-                                    version: {{ $activeVersion ? $activeVersion : 0 }}
-                                })
-                            })
+                            credentials: 'same-origin',
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify({
+                                penawaran_id: {{ $penawaran->id_penawaran }},
+                                profit: parseNumber(document.getElementById('profitInput').value) ||
+                                    0,
+                                ppn_persen: parseNumber(document.getElementById('ppnInput')
+                                    .value) || 11,
+                                is_best_price: document.getElementById('isBestPrice').checked ? 1 :
+                                    0,
+                                best_price: parseNumber(document.getElementById('bestPriceInput')
+                                    .value) || 0,
+                                sections: allSectionsData,
+                                version: {{ $activeVersion ? $activeVersion : 0 }}
+                                            })
+                        })
                             .then(async res => {
                                 const text = await res.text();
                                 try {
