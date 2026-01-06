@@ -8,7 +8,10 @@
     <title>Puterako Super App</title>
 
     <link rel="stylesheet" href="//cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
     <script src="//cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -246,11 +249,11 @@
                     <img src="{{ asset('assets/puterako_logo.png') }}" alt="Puterako Logo" class="h-5 w-auto">
                 </div>
             </div>
-            
+
             <div class="flex items-center space-x-4">
                 <!-- User Profile Dropdown -->
                 <div class="relative user-dropdown-container">
-                    <button id="userDropdown" type="button" 
+                    <button id="userDropdown" type="button"
                         class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none">
                         <!-- User Avatar -->
                         <div class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
@@ -258,23 +261,25 @@
                                 {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                             </span>
                         </div>
-                        
+
                         <!-- User Info (hidden on mobile) -->
                         <div class="hidden md:block text-left">
                             <p class="text-sm font-medium text-gray-900">{{ Auth::user()->name }}</p>
                             <p class="text-xs text-gray-400 mt-1">Role: {{ ucfirst(Auth::user()->role ?? 'N/A') }}</p>
                         </div>
-                        
+
                         <!-- Dropdown Arrow -->
-                        <svg class="w-4 h-4 text-gray-400 user-dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        <svg class="w-4 h-4 text-gray-400 user-dropdown-arrow" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
                         </svg>
                     </button>
-                    
+
                     <!-- Dropdown Menu -->
-                    <div id="userDropdownMenu" 
+                    <div id="userDropdownMenu"
                         class="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-30 user-dropdown-menu">
-                        
+
                         <!-- User Info in Dropdown -->
                         <div class="px-4 py-3 border-b border-gray-100">
                             <div class="flex items-center space-x-3">
@@ -286,40 +291,47 @@
                                 <div>
                                     <p class="font-medium text-gray-900">{{ Auth::user()->name }}</p>
                                     <p class="text-sm text-gray-500">{{ Auth::user()->email }}</p>
-                                    <p class="text-xs text-gray-400">Role: {{ ucfirst(Auth::user()->role ?? 'N/A') }}</p>
+                                    <p class="text-xs text-gray-400">Role: {{ ucfirst(Auth::user()->role ?? 'N/A') }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Menu Items -->
                         <div class="py-2">
-                            <a href="{{ route('profile') }}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            <a href="{{ route('profile') }}"
+                                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                 </svg>
                                 Profile
                             </a>
-                            
+
                             <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                                    </path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 </svg>
                                 Settings
                             </a>
                         </div>
-                        
+
                         <!-- Logout Button -->
                         <div class="border-t border-gray-100 pt-2">
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
-                                <button type="submit" 
+                                <button type="submit"
                                     class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
                                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1">
+                                        </path>
                                     </svg>
                                     Logout
                                 </button>
@@ -360,8 +372,8 @@
                             class="menu-item group flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 relative">
                             <div
                                 class="w-10 h-10 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-                                <svg class="w-6 h-6 transition-colors text-gray-600" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-6 h-6 transition-colors text-gray-600" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
                                     </path>
@@ -406,15 +418,21 @@
                                 <div class="space-y-1 py-2">
                                     <a href="{{ route('penawaran.list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                            </path>
                                         </svg>
                                         <span class="menu-label show text-sm text-gray-700">List Penawaran</span>
                                     </a>
                                     <a href="{{ route('rekap.list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                            </path>
                                         </svg>
                                         <span class="menu-label show text-sm text-gray-700">Rekap Survey</span>
                                     </a>
@@ -422,7 +440,7 @@
                             </div>
                         </div>
 
-                         <!-- Klien (dengan Dropdown) -->
+                        <!-- Klien (dengan Dropdown) -->
                         <div>
                             <button id="klienDropdown" type="button"
                                 class="menu-item group flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-200 relative">
@@ -449,16 +467,23 @@
                                 <div class="space-y-1 py-2">
                                     <a href="{{ route('mitra.list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z">
+                                            </path>
                                         </svg>
                                         <span class="menu-label show text-sm text-gray-700">List Customer</span>
                                     </a>
                                     <a href="#"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                                            </path>
                                         </svg>
                                         <span class="menu-label show text-sm text-gray-700">Detail Klien</span>
                                     </a>
@@ -468,47 +493,54 @@
 
                         <!-- User Management (hanya untuk administrator) -->
                         @if(Auth::user()->role === 'administrator')
-                        <div>
-                            <button id="userManagementDropdown" type="button"
-                                class="menu-item group flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-200 relative">
-                                <div class="flex items-center space-x-3">
-                                    <div
-                                        class="w-10 h-10 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-                                        <x-lucide-user-round-pen name="users" class="w-6 h-6 transition-colors text-gray-600" />
+                            <div>
+                                <button id="userManagementDropdown" type="button"
+                                    class="menu-item group flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-200 relative">
+                                    <div class="flex items-center space-x-3">
+                                        <div
+                                            class="w-10 h-10 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+                                            <x-lucide-user-round-pen name="users"
+                                                class="w-6 h-6 transition-colors text-gray-600" />
+                                        </div>
+                                        <div class="menu-label show text-left">
+                                            <span class="font-medium transition-colors">Users</span>
+                                            <p class="text-xs text-gray-500 mt-0.5">Kelola user & hak akses</p>
+                                        </div>
                                     </div>
-                                    <div class="menu-label show text-left">
-                                        <span class="font-medium transition-colors">Users</span>
-                                        <p class="text-xs text-gray-500 mt-0.5">Kelola user & hak akses</p>
-                                    </div>
-                                </div>
-                                <svg class="w-4 h-4 text-gray-400 dropdown-icon menu-label show" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7"></path>
-                                </svg>
-                                <div class="menu-tooltip">Users</div>
-                            </button>
+                                    <svg class="w-4 h-4 text-gray-400 dropdown-icon menu-label show" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                    <div class="menu-tooltip">Users</div>
+                                </button>
 
-                            <!-- Dropdown Menu -->
-                            <div id="userManagementMenu" class="dropdown-menu">
-                                <div class="space-y-1 py-2">
-                                    <a href="{{ route('users.index') }}"
-                                        class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                        </svg>
-                                        <span class="menu-label show text-sm text-gray-700">List Users</span>
-                                    </a>
-                                    <a href="{{ route('users.permissions') }}"
-                                        class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                                        </svg>
-                                        <span class="menu-label show text-sm text-gray-700">Atur Hak Akses</span>
-                                    </a>
+                                <!-- Dropdown Menu -->
+                                <div id="userManagementMenu" class="dropdown-menu">
+                                    <div class="space-y-1 py-2">
+                                        <a href="{{ route('users.index') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                                                </path>
+                                            </svg>
+                                            <span class="menu-label show text-sm text-gray-700">List Users</span>
+                                        </a>
+                                        <a href="{{ route('users.permissions') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                                                </path>
+                                            </svg>
+                                            <span class="menu-label show text-sm text-gray-700">Atur Hak Akses</span>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
                         @endif
 
 
@@ -536,7 +568,7 @@
         let expanded = true;
         let penawaranDropdownOpen = false;
         let klienDropdownOpen = false;
-        
+
         // User Management Dropdown (sidebar)
         const userManagementDropdown = document.getElementById('userManagementDropdown');
         const userManagementMenu = document.getElementById('userManagementMenu');
@@ -545,7 +577,7 @@
 
         // User Management Dropdown Toggle (sidebar)
         if (userManagementDropdown) {
-            userManagementDropdown.addEventListener('click', function() {
+            userManagementDropdown.addEventListener('click', function () {
                 if (expanded) {
                     userManagementDropdownOpen = !userManagementDropdownOpen;
                     if (userManagementDropdownOpen) {
@@ -560,7 +592,7 @@
         }
 
         // Sidebar Toggle
-        toggleBtn.addEventListener('click', function() {
+        toggleBtn.addEventListener('click', function () {
             expanded = !expanded;
             if (expanded) {
                 sidebar.classList.remove('sidebar-collapsed');
@@ -596,7 +628,7 @@
         });
 
         // Penawaran Dropdown Toggle
-        penawaranDropdown.addEventListener('click', function() {
+        penawaranDropdown.addEventListener('click', function () {
             if (expanded) {
                 penawaranDropdownOpen = !penawaranDropdownOpen;
                 if (penawaranDropdownOpen) {
@@ -610,7 +642,7 @@
         });
 
         // Klien Dropdown Toggle
-        klienDropdown.addEventListener('click', function() {
+        klienDropdown.addEventListener('click', function () {
             if (expanded) {
                 klienDropdownOpen = !klienDropdownOpen;
                 if (klienDropdownOpen) {
@@ -649,6 +681,53 @@
                 }
             }
         });
+
+        // Toaster Notyf
+       // ===== NOTYF GLOBAL =====
+    window.notyf = new Notyf({
+        duration: 4000,
+        position: { x: 'right', y: 'top' },
+        dismissible: true,
+        ripple: true,
+        types: [
+            {
+                type: 'warning',
+                background: '#f59e0b',
+                icon: false
+            },
+            {
+                type: 'info',
+                background: '#3b82f6',
+                icon: false
+            }
+        ]
+    });
+
+    @if (session('success'))
+        window.notyf.success(@json(session('success')));
+    @endif
+
+    @if (session('error'))
+        window.notyf.error(@json(session('error')));
+    @endif
+
+    @if (session('warning'))
+        window.notyf.open({
+            type: 'warning',
+            message: @json(session('warning'))
+        });
+    @endif
+
+    @if (session('info'))
+        window.notyf.open({
+            type: 'info',
+            message: @json(session('info'))
+        });
+    @endif
+
+    @if ($errors->any())
+        window.notyf.error(@json($errors->first()));
+    @endif
     </script>
 
     @stack('scripts')

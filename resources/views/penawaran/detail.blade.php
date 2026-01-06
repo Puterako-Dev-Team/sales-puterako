@@ -2070,6 +2070,7 @@
                             })
                             .then(data => {
                                 console.log('✅ Data saved with totals:', data);
+                                notyf.success(data.message || 'Penawaran berhasil disimpan');
                                 btn.innerHTML = "✅ Tersimpan!";
                                 setTimeout(() => {
                                     window.location.reload();
@@ -2077,6 +2078,7 @@
                             })
                             .catch(error => {
                                 console.error('❌ Save failed:', error);
+                                notyf.error(data.message || 'Penawaran gagal disimpan');
                                 btn.innerHTML = "❌ Gagal";
                                 setTimeout(() => {
                                     btn.innerHTML = "Simpan Semua Data";
