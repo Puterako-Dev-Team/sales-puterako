@@ -887,6 +887,16 @@ class PenawaranController extends Controller
 
         $penawaran->save();
 
-        return redirect()->back()->with('success', 'Status penawaran berhasil diupdate');
+        $statusLabel = match ($request->status) {
+            'success' => 'Selesai',
+            'lost' => 'Gagal',
+            'draft' => 'Draft',
+        };
+
+        return redirect()->back()->with('toast', [
+            'type' => $request->status === 'lost' ? 'error' : 'success',
+            'message' => "Status penawaran berhasil diupdate menjadi {$statusLabel}"
+        ]);
     }
+
 }
