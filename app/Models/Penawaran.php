@@ -63,4 +63,13 @@ class Penawaran extends Model
                     ->where('is_system_generated', true)
                     ->orderBy('created_at', 'desc');
     }
+    public function followUpSchedule()
+    {
+        return $this->hasOne(FollowUpSchedule::class, 'penawaran_id', 'id_penawaran');
+    }
+
+    public function hasActiveFollowUpSchedule(): bool
+    {
+        return $this->followUpSchedule()->active()->exists();
+    }
 }
