@@ -25,6 +25,7 @@ class JasaController extends Controller
         $sections = $data['sections'] ?? [];
         $profitPercent = floatval($data['profit'] ?? 0);
         $pphPercent = floatval($data['pph'] ?? 0);
+        $useBpjs = boolval($data['use_bpjs'] ?? false);
         $ringkasan = $data['ringkasan'] ?? null;
         $version = $data['version'] ?? 1;
 
@@ -68,9 +69,14 @@ class JasaController extends Controller
 
             $totalPenawaran = floatval($versionRow->penawaran_total_awal ?? 0);
 
-            // Hitung BPJS Konstruksi
-            $bpjskPercent = $this->getBpjskPercent($totalPenawaran);
-            $bpjskValue = ($totalPenawaran + $grandTotalPembulatan) * $bpjskPercent;
+            // Hitung BPJS Konstruksi (hanya jika useBpjs = true)
+            $bpjskPercent = 0;
+            $bpjskValue = 0;
+            
+            if ($useBpjs) {
+                $bpjskPercent = $this->getBpjskPercent($totalPenawaran);
+                $bpjskValue = ($totalPenawaran + $grandTotalPembulatan) * $bpjskPercent;
+            }
 
             $grandTotalJasaFinal = $grandTotalPembulatan + $bpjskValue;
 
@@ -83,6 +89,7 @@ class JasaController extends Controller
             $versionRow->jasa_bpjsk_percent  = $bpjskPercent * 100;
             $versionRow->jasa_bpjsk_value    = $bpjskValue;
             $versionRow->jasa_grand_total    = $grandTotalJasaFinal;
+            $versionRow->jasa_use_bpjs       = $useBpjs ? 1 : 0;
             $versionRow->jasa_ringkasan      = $ringkasan;
             $versionRow->save();
 

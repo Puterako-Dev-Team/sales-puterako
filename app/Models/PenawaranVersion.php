@@ -21,6 +21,7 @@ class PenawaranVersion extends Model
         'jasa_bpjsk_percent',
         'jasa_bpjsk_value',
         'jasa_grand_total',
+        'jasa_use_bpjs',
         'jasa_ringkasan'
 
     ];

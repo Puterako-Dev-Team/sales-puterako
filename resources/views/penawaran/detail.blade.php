@@ -56,6 +56,33 @@
             background: #dcfce7;
             color: #16a34a;
         }
+
+        /* Custom styling untuk Notyf */
+        .notyf__toast--error {
+            background: #ef4444 !important;
+            color: white !important;
+        }
+
+        .notyf__toast--error .notyf__icon {
+            color: white !important;
+        }
+
+        .notyf__toast {
+            padding: 16px 20px !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        /* Tab button styling untuk locked state */
+        .tab-btn.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            color: #9ca3af !important;
+        }
+
+        .tab-btn.locked:hover {
+            color: #9ca3af !important;
+        }
     </style>
 
     <div class="flex items-center p-8 text-gray-600 -mb-8">
@@ -163,7 +190,9 @@
                 <div class="flex-1 min-w-[250px]">
                     <h3 class="font-semibold text-gray-800 mb-4">Informasi Penawaran</h3>
                     <div class="space-y-2 text-sm">
-                        <div><span class="font-medium">No. Penawaran:</span> {{ $penawaran->no_penawaran }}</div>
+                        <div><span class="font-medium">No. Penawaran:</span> {{ $penawaran->no_penawaran }}@if($activeVersion > 0)-Rev{{ $activeVersion }}
+            @endif
+                    </div>
                         <div><span class="font-medium">Perihal:</span> {{ $penawaran->perihal }}</div>
                         <div><span class="font-medium">Status:</span>
                             <span class="status-badge status-{{ $penawaran->status }}">
@@ -215,13 +244,6 @@
                     <div class="p-2 rounded-lg mb-6">
                         <div class="flex justify-between items-center">
                             <div class="flex items-center gap-4">
-
-                                <div class="flex items-center">
-                                    <label class="block text-sm font-semibold mr-2">Profit (%)</label>
-                                    <input type="number" id="profitInput" class="border rounded px-3 py-2 bg-white w-24"
-                                        min="0" step="0.1" placeholder="30" value="{{ $profit ?? '' }}">
-                                    <span class="ml-1 text-sm text-gray-600">%</span>
-                                </div>
                                 {{-- <!-- ADD: PPN input -->
                                 <div class="flex items-center">
                                     <label class="block text-sm font-semibold mr-2">PPN (%)</label>
@@ -396,20 +418,21 @@
                                         </div>
                                     </div>
                                     <div class="flex justify-between items-center mb-2">
-                                        <div>
-                                            <span class="font-semibold text-md">BPJS Konstruksi</span>
+                                        <div class="flex items-center gap-2">
+                                            <input type="checkbox" id="jasaUseBpjs" {{ $versionRow->jasa_use_bpjs ?? false ? 'checked' : '' }} class="rounded">
+                                            <label for="jasaUseBpjs" class="font-semibold text-md cursor-pointer">BPJS Konstruksi</label>
                                             <span class="ml-1 text-md">(
-                                                {{ number_format($versionRow->jasa_bpjsk_percent ?? 0, 2, ',', '.') }} %
+                                                <span id="jasaBpjsPercent">{{ $versionRow->jasa_bpjsk_percent ?? 0 }}</span> %
                                                 )</span>
                                         </div>
                                         <div class="font-semibold text-blue-700 text-md">Rp
-                                            {{ number_format($versionRow->jasa_bpjsk_value ?? 0, 0, ',', '.') }}
+                                            <span id="jasaBpjsValue">0</span>
                                         </div>
                                     </div>
                                     <div class="flex justify-between items-center">
                                         <div class="font-bold text-md">Total Jasa Setelah BPJS</div>
                                         <div class="font-bold text-green-600 text-md">Rp
-                                            <span>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</span>
+                                            <span id="jasaGrandTotal">0</span>
                                         </div>
                                     </div>
                                 </div>
@@ -546,9 +569,10 @@
                             </p>
                             <p class="mb-1"><span class="font-semibold">Perihal:</span> {{ $penawaran->perihal }}
                             </p>
-                            <p class="mb-4"><span class="font-semibold">No:</span> {{ $penawaran->no_penawaran }}
+                            <p class="mb-1"><span class="font-semibold">No:</span> {{ $penawaran->no_penawaran }}@if ($activeVersion > 0)-Rev{{ $activeVersion }}
+            @endif
                             </p>
-
+                            
                             <p class="mb-4"><strong>Dengan Hormat,</strong></p>
                             <p class="mb-6">
                                 Bersama ini kami PT. Puterako Inti Buana memberitahukan Penawaran Harga
@@ -612,6 +636,7 @@
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-32">Harga
                                                     Satuan
                                                 </th>
+                                                <th class="border border-gray-300 px-3 py-2 text-center w-32" style="color: #ef4444; font-weight: bold;">Delivery Time</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-right w-32">Harga
                                                     Total
                                                 </th>
@@ -625,7 +650,7 @@
                                             @foreach (collect($sectionGroup)->groupBy('area') as $area => $areaRows)
                                                 @if ($area)
                                                     <tr>
-                                                        <td colspan="7"
+                                                        <td colspan="8"
                                                             style="background:#67BC4B;font-weight:bold; color: white; text-align: center; padding: 8px;">
                                                             {{ $area }}
                                                         </td>
@@ -659,7 +684,7 @@
         {{ $row['harga_satuan'] > 0 ? 'Rp ' . number_format($row['harga_satuan'], 0, ',', '.') : '' }}
     @endif
 </td>
-
+<td class="border border-gray-300 px-3 py-2 text-center" style="color: #ef4444; font-weight: bold;">{{ $row['delivery_time'] ?? '-' }}</td>
 <td class="border border-gray-300 px-3 py-2 text-right">
     @if ((int) $row['is_mitra'] === 1)
         <span style="color:#3498db;font-weight:bold;font-style:italic;">
@@ -677,7 +702,7 @@
                                         </tbody>
                                         <tfoot>
                                             <tr>
-                                                <td colspan="6" class="text-center font-bold bg-gray-50">Subtotal
+                                                <td colspan="7" class="text-center font-bold bg-gray-50">Subtotal
                                                 </td>
                                                 <td class="border border-gray-300 px-3 py-2 text-right font-bold">
                                                     Rp {{ number_format($subtotal, 0, ',', '.') }}
@@ -943,7 +968,28 @@
                     let jasaProfit = 0;
                     let jasaPph = 0;
                     let jasaIsEditMode = false;
+                    
+                    // Flags untuk tracking status validasi tab
+                    let penawaranSaved = hasExistingData; // Penawaran sudah valid jika ada existing data
+                    let jasaSaved = false;
                     let jasaHasExistingData = false;
+
+                    // =====================================================
+                    // FUNGSI UPDATE TAB STATES
+                    // =====================================================
+                    function updateTabStates() {
+                        const tabButtons = document.querySelectorAll('.tab-btn');
+                        tabButtons.forEach(btn => {
+                            const tab = btn.getAttribute('data-tab');
+                            btn.classList.remove('locked');
+                            
+                            if (tab === 'Jasa' && !penawaranSaved) {
+                                btn.classList.add('locked');
+                            } else if (tab === 'preview' && !jasaSaved) {
+                                btn.classList.add('locked');
+                            }
+                        });
+                    }
 
                     // =====================================================
                     // TAB SWITCHING LOGIC
@@ -955,6 +1001,20 @@
                     tabButtons.forEach(button => {
                         button.addEventListener('click', function () {
                             const targetTab = this.getAttribute('data-tab');
+
+                            // Validasi sebelum switch tab
+                            if (targetTab === 'Jasa' && !penawaranSaved) {
+                                notyf.error('⚠️ Silakan selesaikan dan simpan data Penawaran terlebih dahulu!');
+                                return;
+                            }
+                            
+                            if (targetTab === 'preview' && !jasaSaved) {
+                                notyf.error('⚠️ Silakan selesaikan dan simpan data Rincian Jasa terlebih dahulu!');
+                                return;
+                            }
+
+                            // Save current tab to localStorage
+                            localStorage.setItem(`penawaran_active_tab_${activeVersion}`, targetTab);
 
                             // Update button styles
                             tabButtons.forEach(btn => {
@@ -974,11 +1034,7 @@
                                 }
                             });
 
-                            // Load jasa data jika tab Jasa diklik (hanya sekali)
-                            if (targetTab === 'Jasa' && jasaSections.length === 0) {
-                                console.log('🔄 Loading Jasa tab for first time...');
-                                loadJasaData();
-                            }
+                            // Jasa data sudah di-load saat page load, jadi tidak perlu load lagi
                         });
                     });
 
@@ -1026,18 +1082,25 @@
                     const jasaDetailUrl = "{{ route('jasa.detail') }}";
 
                     function loadJasaData() {
-                        const penawaranId = {{ $penawaran->id_penawaran }};
+                        return new Promise((resolve) => {
+                            const penawaranId = {{ $penawaran->id_penawaran }};
 
-                        fetch(`${jasaDetailUrl}?id=${penawaranId}&version=${activeVersion}`)
-                            .then(res => {
-                                if (!res.ok) throw new Error('Network response was not ok');
-                                return res.json();
-                            })
+                            fetch(`${jasaDetailUrl}?id=${penawaranId}&version=${activeVersion}`)
+                                .then(res => {
+                                    if (!res.ok) throw new Error('Network response was not ok');
+                                    return res.json();
+                                })
                             .then(data => {
                                 jasaInitialSections = data.sections || [];
                                 jasaProfit = data.profit || 0;
                                 jasaPph = data.pph || 0;
                                 jasaHasExistingData = jasaInitialSections.length > 0;
+                                
+                                // Set jasaSaved flag jika ada data jasa yang sudah ada
+                                if (jasaHasExistingData) {
+                                    jasaSaved = true;
+                                    updateTabStates();
+                                }
 
                                 document.getElementById('jasaProfitInput').value = jasaProfit;
                                 document.getElementById('jasaPphInput').value = jasaPph;
@@ -1068,7 +1131,11 @@
                                 }
                                 jasaHasExistingData = false;
                                 toggleJasaEditMode(true);
+                            })
+                            .finally(() => {
+                                resolve();
                             });
+                        });
                     }
 
                     document.getElementById('jasaAddSectionBtn').addEventListener('click', () => {
@@ -1252,8 +1319,8 @@
                                             <div class="flex-1"></div>
                                             <div class="w-full lg:w-56 flex flex-col items-end text-right space-y-1">
                                                 <div class="text-right font-semibold">Subtotal: Rp <span id="${sectionId}-subtotal">0</span></div>
-                                                <div class="text-sm">Profit: Rp <span class="${sectionId}-profit-val">0</span></div>
-                                                <div class="text-sm">PPH: Rp <span class="${sectionId}-pph-val">0</span></div>
+                                                <div class="text-sm"><span class="${sectionId}-profit-label">Profit:</span> Rp <span class="${sectionId}-profit-val">0</span></div>
+                                                <div class="text-sm"><span class="${sectionId}-pph-label">PPH:</span> Rp <span class="${sectionId}-pph-val">0</span></div>
                                                 <div class="text-sm">Pembulatan: Rp <span class="${sectionId}-pembulatan-val">0</span></div>
                                             </div>
                                         </div>
@@ -1410,11 +1477,16 @@
                         const grand = Math.round(afterPph);
 
                         // update UI
+                        const profitLabel = document.querySelector(`#${section.id} .${section.id}-profit-label`);
                         const profitSpan = document.querySelector(`#${section.id} .${section.id}-profit-val`);
+                        const pphLabel = document.querySelector(`#${section.id} .${section.id}-pph-label`);
                         const pphSpan = document.querySelector(`#${section.id} .${section.id}-pph-val`);
                         const grandSpan = document.querySelector(`#${section.id} .${section.id}-grand-val`);
 
+                        // Tampilkan label dengan persentase dan nilai nominal di span
+                        if (profitLabel) profitLabel.textContent = `Profit ${profitPercent}%:`;
                         if (profitSpan) profitSpan.textContent = profitDisplay.toLocaleString('id-ID');
+                        if (pphLabel) pphLabel.textContent = `PPH ${pphPercent}%:`;
                         if (pphSpan) pphSpan.textContent = pphDisplay.toLocaleString('id-ID');
                         if (grandSpan) grandSpan.textContent = grand.toLocaleString('id-ID');
 
@@ -1435,8 +1507,28 @@
                             const pembulatanSpan = sectionElement.querySelector(`.${section.id}-pembulatan-val`);
                             if (pembulatanSpan) pembulatanSpan.textContent = pembulatan.toLocaleString('id-ID');
                         });
+                        
                         const overallGrandEl = document.getElementById('jasaOverallGrand');
                         if (overallGrandEl) overallGrandEl.textContent = totalGrand.toLocaleString('id-ID');
+                        
+                        // Hitung BPJS dan Grand Total
+                        const useBpjs = document.getElementById('jasaUseBpjs').checked;
+                        const bpjsPercent = {{ $versionRow->jasa_bpjsk_percent ?? 0 }};
+                        
+                        let bpjsValue = 0;
+                        let grandTotal = totalGrand;
+                        
+                        if (useBpjs && bpjsPercent > 0) {
+                            bpjsValue = (totalGrand * bpjsPercent) / 100;
+                            grandTotal = totalGrand + bpjsValue;
+                        }
+                        
+                        // Update UI
+                        const bpjsValueEl = document.getElementById('jasaBpjsValue');
+                        if (bpjsValueEl) bpjsValueEl.textContent = Math.round(bpjsValue).toLocaleString('id-ID');
+                        
+                        const grandTotalEl = document.getElementById('jasaGrandTotal');
+                        if (grandTotalEl) grandTotalEl.textContent = Math.round(grandTotal).toLocaleString('id-ID');
                     }
 
                     function renumberJasaSections() {
@@ -1456,6 +1548,11 @@
                     document.getElementById('jasaPphInput').addEventListener('input', function () {
                         jasaPph = parseNumber(this.value) || 0;
                         jasaSections.forEach(s => computeJasaSectionTotals(s));
+                    });
+
+                    // Switch untuk BPJS
+                    document.getElementById('jasaUseBpjs').addEventListener('change', function () {
+                        updateJasaOverallSummary();
                     });
 
                     function dedupeSectionData(section) {
@@ -1509,6 +1606,7 @@
                             penawaran_id: {{ $penawaran->id_penawaran }},
                             profit: parseNumber(document.getElementById('jasaProfitInput').value),
                             pph: parseNumber(document.getElementById('jasaPphInput').value),
+                            use_bpjs: document.getElementById('jasaUseBpjs').checked,
                             sections: allSectionsData
                         });
 
@@ -1524,6 +1622,7 @@
                                     .value) || 0,
                                 pph: parseNumber(document.getElementById('jasaPphInput').value) ||
                                     0,
+                                use_bpjs: document.getElementById('jasaUseBpjs').checked ? 1 : 0,
                                 sections: allSectionsData,
                                 version: {{ $activeVersion ?? 0 }}
                                             })
@@ -1531,6 +1630,8 @@
                             .then(res => res.json())
                             .then(data => {
                                 console.log('✅ Jasa data saved successfully:', data);
+                                // Set flag bahwa Jasa sudah berhasil disimpan
+                                jasaSaved = true;
                                 btn.innerHTML = "✅ Tersimpan!";
                                 setTimeout(() => {
                                     window.location.reload();
@@ -1559,15 +1660,15 @@
                             row: spreadsheet.getRowData(rowIndex)
                         });
 
-                        const profitRaw = parseNumber(document.getElementById('profitInput').value) || 0;
-                        let profitDecimal = profitRaw;
-                        if (profitRaw > 1) profitDecimal = profitRaw / 100;
-
                         const row = spreadsheet.getRowData(rowIndex);
                         let hpp = parseNumber(row[7]);
                         let qty = parseNumber(row[3]);
                         let isMitra = row[8] ? true : false;
-                        let addedCost = parseNumber(row[10]) || 0;
+                        let profitRaw = parseNumber(row[9]) || 0;
+                        let addedCost = parseNumber(row[11]) || 0;
+
+                        let profitDecimal = profitRaw;
+                        if (profitRaw > 1) profitDecimal = profitRaw / 100;
 
                         let hargaSatuan = 0;
                         let total = 0;
@@ -1591,17 +1692,17 @@
                     }
 
                     function recalculateAll() {
-                        const profitRaw = parseNumber(document.getElementById('profitInput').value) || 0;
-                        let profitDecimal = profitRaw;
-                        if (profitRaw > 1) profitDecimal = profitRaw / 100;
-
                         sections.forEach((section, sectionIdx) => {
                             const allData = section.spreadsheet.getData();
                             allData.forEach((row, i) => {
                                 const hpp = parseNumber(row[7]);
                                 const qty = parseNumber(row[3]);
                                 const isMitra = row[8] ? true : false;
-                                const addedCost = parseNumber(row[10]) || 0;
+                                const profitRaw = parseNumber(row[9]) || 0;
+                                const addedCost = parseNumber(row[11]) || 0;
+
+                                let profitDecimal = profitRaw;
+                                if (profitRaw > 1) profitDecimal = profitRaw / 100;
 
                                 let hargaSatuan = 0;
                                 let total = 0;
@@ -1642,7 +1743,6 @@
 
                         document.getElementById('saveAllBtn').classList.remove('hidden');
                         document.getElementById('addSectionBtn').classList.toggle('hidden', !enable);
-                        document.getElementById('profitInput').disabled = !enable;
 
                         sections.forEach(section => {
                             const sectionElement = document.getElementById(section.id);
@@ -1686,11 +1786,13 @@
                             row.harga_total || 0,
                             row.hpp || 0,
                             row.is_mitra ? true : false,
+                            row.profit || 0,
                             row.color_code || 1,
-                            row.added_cost || 0
+                            row.added_cost || 0,
+                            row.delivery_time || ''
                         ]) : [
-                            ['', '', '', 0, '', 0, 0, 0, false, 1, 0],
-                            ['', '', '', 0, '', 0, 0, 0, false, 1,  0],
+                            ['', '', '', 0, '', 0, 0, 0, false, 0, 1, 0, ''],
+                            ['', '', '', 0, '', 0, 0, 0, false, 0, 1, 0, ''],
                         ];
 
                         const sectionHTML = `
@@ -1759,6 +1861,12 @@
                                 },
                                 { title: 'Mitra', width: 80, type: 'checkbox' },
                                 {
+                                    title: 'Profit (%)',
+                                    width: 100,
+                                    type: 'numeric',
+                                    decimal: ','
+                                },
+                                {
                                     title: 'Warna',
                                     width: 160,
                                     type: 'dropdown',
@@ -1775,6 +1883,11 @@
                                     type: 'numeric',
                                     mask: 'Rp #.##0',
                                     decimal: ','
+                                },
+                                {
+                                    title: 'Delivery Time',
+                                    width: 120,
+                                    type: 'text'
                                 }
                             ],
                             tableOverflow: true,
@@ -1788,15 +1901,15 @@
                                     rowIndex,
                                     value,
                                     columnName: ['No', 'Tipe', 'Deskripsi', 'QTY', 'Satuan',
-                                        'Harga Satuan', 'Harga Total', 'HPP', 'Mitra', 'Warna', 'Added Cost'
+                                        'Harga Satuan', 'Harga Total', 'HPP', 'Mitra', 'Profit (%)', 'Warna', 'Added Cost', 'Delivery Time'
                                     ][colIndex]
                                 });
 
-                                if (colIndex == 3 || colIndex == 7 || colIndex == 8 || colIndex == 10) {
+                                if (colIndex == 3 || colIndex == 7 || colIndex == 8 || colIndex == 9 || colIndex == 11) {
                                     console.log('✨ Triggering recalculateRow with new value:', value);
                                     recalculateRow(spreadsheet, rowIndex, colIndex, value);
                                 } else {
-                                    console.log('⏭️ Skip calculation (column not QTY/HPP/Mitra/Added Cost)');
+                                    console.log('⏭️ Skip calculation (column not QTY/HPP/Mitra/Profit/Added Cost)');
                                 }
                             }
                         });
@@ -1989,11 +2102,6 @@
                     // EVENT LISTENERS PENAWARAN
                     // =====================================================
 
-                    document.getElementById('profitInput').addEventListener('input', function () {
-                        console.log('💰 Profit input changed to:', this.value);
-                        recalculateAll();
-                    });
-
                     document.getElementById('addSectionBtn').addEventListener('click', () => createSection());
 
                     document.getElementById('editModeBtn').addEventListener('click', () => {
@@ -2010,6 +2118,111 @@
                         const btn = this;
                         btn.innerHTML = "⏳ Menyimpan...";
                         btn.disabled = true;
+
+                        // ==================== VALIDASI AWAL ====================
+                        const validationErrors = [];
+
+                        // Validasi section names dan areas tidak kosong
+                        for (let sectionIdx = 0; sectionIdx < sections.length; sectionIdx++) {
+                            const section = sections[sectionIdx];
+                            const sectionElement = document.getElementById(section.id);
+                            const areaSelect = sectionElement.querySelector('.area-select');
+                            const namaSectionInput = sectionElement.querySelector('.nama-section-input');
+                            
+                            if (!areaSelect.value || areaSelect.value.trim() === '') {
+                                validationErrors.push(`Section ${sectionIdx + 1}: Area Pemasangan tidak boleh kosong`);
+                            }
+                            if (!namaSectionInput.value || namaSectionInput.value.trim() === '') {
+                                validationErrors.push(`Section ${sectionIdx + 1}: Nama Section tidak boleh kosong`);
+                            }
+                        }
+
+                        // Validasi baris data di setiap section
+                        const requiredColumns = [1, 2, 3, 4, 7, 9, 10]; // Tipe, Deskripsi, QTY, Satuan, HPP, Profit, Warna
+                        const columnNames = ['Tipe', 'Deskripsi', 'QTY', 'Satuan', 'HPP', 'Profit (%)', 'Warna'];
+                        
+                        for (let sectionIdx = 0; sectionIdx < sections.length; sectionIdx++) {
+                            const section = sections[sectionIdx];
+                            const rawData = section.spreadsheet.getData();
+                            
+                            for (let rowIdx = 0; rowIdx < rawData.length; rowIdx++) {
+                                const row = rawData[rowIdx];
+                                const missingColumns = [];
+                                
+                                // Check if row has any significant data
+                                const hasSignificantData = row.some((cell, idx) => {
+                                    // Check if has text content in key fields
+                                    if ([0, 1, 2, 4].includes(idx)) return cell && String(cell).trim() !== ''; // No, Tipe, Deskripsi, Satuan
+                                    // Check if has numeric values
+                                    if ([3, 5, 6, 7, 11].includes(idx)) return parseNumber(cell) > 0; // QTY, HargaSatuan, HargaTotal, HPP, AddedCost
+                                    return false;
+                                });
+                                
+                                if (!hasSignificantData) continue; // Skip completely empty rows
+                                
+                                // Check required columns only for rows with data
+                                requiredColumns.forEach((colIdx, posIdx) => {
+                                    const cellValue = String(row[colIdx] || '').trim();
+                                    // For numeric fields (QTY, HPP, Profit), check if > 0
+                                    if ([3, 7, 9].includes(colIdx)) {
+                                        if (parseNumber(cellValue) <= 0) {
+                                            missingColumns.push(columnNames[posIdx]);
+                                        }
+                                    } else {
+                                        // For text fields, check if not empty
+                                        if (cellValue === '' || cellValue === '0' || cellValue === 'false') {
+                                            missingColumns.push(columnNames[posIdx]);
+                                        }
+                                    }
+                                });
+                                
+                                if (missingColumns.length > 0) {
+                                    validationErrors.push(
+                                        `Section ${sectionIdx + 1}, Baris ${rowIdx + 1}: Kolom ${missingColumns.join(', ')} tidak boleh kosong`
+                                    );
+                                }
+                            }
+                        }
+
+                        // Jika ada error, tampilkan toaster dan berhenti
+                        if (validationErrors.length > 0) {
+                            // Format errors untuk notyf
+                            const errorList = validationErrors.map((err, idx) => `${idx + 1}. ${err}`).join('<br>');
+                            const errorMessage = `<strong>Validasi Gagal:</strong><br>${errorList}`;
+                            
+                            notyf.error({
+                                message: errorMessage,
+                                duration: 6000
+                            });
+                            btn.innerHTML = "💾 Simpan";
+                            btn.disabled = false;
+                            console.error('Validation errors:', validationErrors);
+                            return;
+                        }
+
+                        // Validasi unique area + nama_section combination
+                        const sectionKeys = new Set();
+                        let hasDuplicate = false;
+                        
+                        for (const section of sections) {
+                            const sectionElement = document.getElementById(section.id);
+                            const areaSelect = sectionElement.querySelector('.area-select');
+                            const namaSectionInput = sectionElement.querySelector('.nama-section-input');
+                            const key = `${areaSelect.value}|${namaSectionInput.value}`;
+                            
+                            if (sectionKeys.has(key)) {
+                                hasDuplicate = true;
+                                break;
+                            }
+                            sectionKeys.add(key);
+                        }
+                        
+                        if (hasDuplicate) {
+                            notyf.error('Setiap section harus memiliki kombinasi Area dan Nama Section yang unik!');
+                            btn.innerHTML = "💾 Simpan";
+                            btn.disabled = false;
+                            return;
+                        }
 
                         const allSectionsData = sections.map(section => {
                             const sectionElement = document.getElementById(section.id);
@@ -2030,9 +2243,15 @@
                                     harga_total: parseNumber(row[6]),
                                     hpp: parseNumber(row[7]),
                                     is_mitra: row[8] ? 1 : 0,
-                                    color_code: row[9] || 1,
-                                    added_cost: parseNumber(row[10]) || 0
-                                }))
+                                    profit: parseNumber(row[9]) || 0,
+                                    color_code: row[10] || 1,
+                                    added_cost: parseNumber(row[11]) || 0,
+                                    delivery_time: row[12] || ''
+                                })).filter(row => 
+                                    // Only keep rows that have actual data (not completely empty)
+                                    row.no || row.tipe || row.deskripsi || row.satuan || row.delivery_time || 
+                                    row.harga_satuan > 0 || row.harga_total > 0 || row.hpp > 0 || row.added_cost > 0
+                                )
                             };
                         });
 
@@ -2045,8 +2264,6 @@
                             },
                             body: JSON.stringify({
                                 penawaran_id: {{ $penawaran->id_penawaran }},
-                                profit: parseNumber(document.getElementById('profitInput').value) ||
-                                    0,
                                 ppn_persen: parseNumber(document.getElementById('ppnInput')
                                     .value) || 11,
                                 is_best_price: document.getElementById('isBestPrice').checked ? 1 :
@@ -2070,6 +2287,8 @@
                             })
                             .then(data => {
                                 console.log('✅ Data saved with totals:', data);
+                                // Set flag bahwa Penawaran sudah berhasil disimpan
+                                penawaranSaved = true;
                                 notyf.success(data.message || 'Penawaran berhasil disimpan');
                                 btn.innerHTML = "✅ Tersimpan!";
                                 setTimeout(() => {
@@ -2105,12 +2324,12 @@
                         console.log('🔒 Mode: VIEW (data exists)');
 
                         // Trigger kalkulasi awal setelah semua section dibuat
-                        const profitInput = document.getElementById('profitInput');
-                        if (profitInput && profitInput.value) {
-                            console.log('🚀 Initial calculation with profit:', profitInput.value);
-                            recalculateAll();
-                        } else {
-                            console.log('⚠️ No profit value found');
+                        console.log('🚀 Initial calculation with per-row profit values');
+                        recalculateAll();
+                        
+                        // Jika ada data jasa, tandai sebagai saved
+                        if (jasaInitialSections.length > 0) {
+                            jasaSaved = true;
                         }
                     } else {
                         console.log('🆕 Creating new empty section...');
@@ -2118,6 +2337,27 @@
                         toggleEditMode(true);
                         console.log('✏️ Mode: EDIT (new data)');
                     }
+                    
+                    // Update tab states awal
+                    updateTabStates();
+                    
+                    // Load jasa data dan tunggu sampai selesai sebelum restore tab
+                    loadJasaData().then(() => {
+                        // Update tab states setelah jasa data loaded
+                        updateTabStates();
+                        
+                        // Restore active tab from localStorage
+                        const savedTab = localStorage.getItem(`penawaran_active_tab_${activeVersion}`);
+                        if (savedTab) {
+                            const savedButton = Array.from(tabButtons).find(btn => btn.getAttribute('data-tab') === savedTab);
+                            if (savedButton && !savedButton.classList.contains('locked')) {
+                                // Trigger click event untuk restore tab (only if not locked)
+                                setTimeout(() => {
+                                    savedButton.click();
+                                }, 100);
+                            }
+                        }
+                    });
                 });
             </script>
         @endpush

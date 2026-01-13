@@ -308,14 +308,13 @@
                             <label class="block mb-2 font-medium text-sm text-gray-700">No Penawaran</label>
                             <div class="flex items-center space-x-2">
                                 <span
-                                    class="text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-lg border border-gray-300 whitespace-nowrap">
-                                    PIB/SS-SBY/JK/{{ Auth::id() }}-
+                                    class="text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-lg border border-gray-300 whitespace-nowrap font-mono font-semibold"
+                                    id="generatedNoPenawaran">
+                                    PIB/SS-SBY/JK/{{ Auth::id() }}-I/2025
                                 </span>
-                                <input type="text" name="no_penawaran_suffix" id="f_no_penawaran_suffix"
-                                    class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                                    placeholder="VII/2025">
                             </div>
-                            <p class="text-xs text-gray-500 mt-1">Otomatis dibuat saat tambah. Disembunyikan saat edit.</p>
+                            <input type="hidden" name="no_penawaran" id="f_no_penawaran">
+                            <p class="text-xs text-gray-500 mt-1">Otomatis dibuat berdasarkan bulan dan tahun saat ini.</p>
                         </div>
                     </div>
                     <!-- Submit Button -->
@@ -363,6 +362,43 @@
         };
         const NO_PREFIX = "PIB/SS-SBY/JK/{{ Auth::id() }}-";
 
+        /* ================== ROMAN NUMERAL CONVERSION ================== */
+        function monthToRoman(month) {
+            const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+            return romanNumerals[month - 1] || 'I';
+        }
+
+        async function generateNoPenawaran() {
+            const now = new Date();
+            const month = monthToRoman(now.getMonth() + 1);
+            const year = now.getFullYear();
+            const userId = {{ Auth::id() }};
+            
+            try {
+                // Fetch count of penawarans created this month
+                const response = await fetch(`{{ route('penawaran.count-this-month') }}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                const sequenceNumber = (data.count + 1).toString().padStart(3, '0');
+                
+                return `PIB/SS-SBY/JK/${userId}-${sequenceNumber}/${month}/${year}`;
+            } catch (error) {
+                console.error('Error generating No Penawaran:', error);
+                // Fallback if API fails
+                return `PIB/SS-SBY/JK/${userId}-001/${month}/${year}`;
+            }
+        }
+
+        async function updateGeneratedNoPenawaran() {
+            const generated = await generateNoPenawaran();
+            document.getElementById('generatedNoPenawaran').textContent = generated;
+            document.getElementById('f_no_penawaran').value = generated;
+        }
+
         /* ================== ELEMEN FORM / MODAL ================== */
         const btnTambah = document.getElementById('btnTambah');
         const formSlide = document.getElementById('formSlide');
@@ -378,7 +414,6 @@
         const f_nama_perusahaan = document.getElementById('f_nama_perusahaan');
         const f_lokasi = document.getElementById('f_lokasi');
         const f_pic_perusahaan = document.getElementById('f_pic_perusahaan');
-        const f_no_suffix = document.getElementById('f_no_penawaran_suffix');
 
         /* ================== MODAL HAPUS ================== */
         const confirmModal = document.getElementById('confirmModal');
@@ -464,6 +499,7 @@
             grpNoPenawaran.classList.remove('hidden');
             penawaranForm.dataset.mode = 'add';
             penawaranForm.action = ROUTES.store;
+            updateGeneratedNoPenawaran();
             openSlide();
         }
 
@@ -486,7 +522,6 @@
                     f_perihal.value = d.perihal ?? '';
                     f_lokasi.value = d.lokasi ?? '';
                     f_pic_perusahaan.value = d.pic_perusahaan ?? '';
-                    f_no_suffix.value = '';
 
                     // Set nama perusahaan dari dropdown
                     const namaPerusahaan = d.nama_perusahaan ?? '';
@@ -510,12 +545,7 @@
 
             const fd = new FormData(penawaranForm);
 
-            if (mode === 'add') {
-                const suffix = (f_no_suffix.value || '').trim();
-                if (suffix) {
-                    fd.append('no_penawaran', NO_PREFIX + suffix);
-                }
-            } else {
+            if (mode === 'edit') {
                 fd.append('_method', 'PUT');
             }
 
