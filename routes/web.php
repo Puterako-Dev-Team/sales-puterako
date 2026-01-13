@@ -27,6 +27,7 @@ Route::middleware(['auth'])->group(function () {
     // Penawaran routes (protected)
     Route::prefix('penawaran')->group(function () {
         Route::get('/list', [PenawaranController::class, 'index'])->name('penawaran.list');
+        Route::get('/count-this-month', [PenawaranController::class, 'countThisMonth'])->name('penawaran.count-this-month');
         Route::get('/detail-penawaran', [PenawaranController::class, 'show'])->name('penawaran.show');
         Route::post('/detail-penawaran/save', [PenawaranController::class, 'save'])->name('penawaran.save');
         Route::post('/tambah-penawaran', [PenawaranController::class, 'store'])->name('penawaran.store');

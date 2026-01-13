@@ -23,6 +23,7 @@ class PenawaranDetail extends Model
         'is_mitra',
         'color_code',
         'added_cost',
+        'delivery_time',
         'version_id',
     ];
 
