@@ -531,18 +531,89 @@
                         }
                     </style>
 
-                    <!-- Action Buttons -->
-                    <div class="mb-4 text-right no-print">
-                        <a href="{{ route('penawaran.exportPdf', ['id' => $penawaran->id_penawaran, 'version' => $activeVersion]) }}"
-                            target="_blank"
-                            class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition font-semibold shadow-md">
-                            <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
-                                </path>
-                            </svg>
-                            Export PDF
-                        </a>
+                    <!-- Action Buttons & Slider -->
+                    <div class="mb-4 no-print">
+                        <!-- Validation Messages -->
+                        <div id="previewValidationMessages" class="mb-4"></div>
+
+                        <!-- Check user role -->
+                        @php
+                            $userRole = Auth::user()->role ?? 'staff'; // Assuming users table has role column
+                            $isApprover = in_array($userRole, ['supervisor', 'manager', 'direktur']);
+                        @endphp
+
+                        @if($isApprover)
+                            <!-- Approver Role: Direct Export Button -->
+                            <div class="text-right">
+                                <a href="{{ route('penawaran.exportPdf', ['id' => $penawaran->id_penawaran, 'version' => $activeVersion]) }}"
+                                    target="_blank"
+                                    class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition font-semibold shadow-md">
+                                    <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
+                                        </path>
+                                    </svg>
+                                    Export PDF
+                                </a>
+                            </div>
+                        @else
+                            <!-- Staff Role: Validation + Slider + Disabled Export Button -->
+                            <!-- Hidden fields for verification request -->
+                            <input type="hidden" id="penawaranId" value="{{ $penawaran->id_penawaran }}">
+                            <input type="hidden" id="versionId" value="{{ $activeVersionId }}">
+                            
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <!-- Left: Required Fields Check -->
+                                <div id="previewValidation" class="p-4 bg-yellow-50 border border-yellow-200 rounded">
+                                    <p class="text-sm font-semibold text-yellow-800 mb-2">⚠️ Sebelum request verifikasi, pastikan:</p>
+                                    <ul class="text-sm text-yellow-700 space-y-1">
+                                        <li id="checkRingkasan" class="flex items-center"><span class="mr-2">❌</span> Ringkasan Jasa sudah diisi</li>
+                                        <li id="checkNotes" class="flex items-center"><span class="mr-2">❌</span> Notes sudah diisi</li>
+                                    </ul>
+                                </div>
+
+                                <!-- Right: Slider Verification -->
+                                <div class="rounded-lg p-4" style="background-color: #f0fdf4; border: 1px solid #dcfce7;">
+                                    <p class="text-sm font-semibold mb-3 text-center" style="color: #166534;">Geser ke kanan untuk request verifikasi</p>
+                                    <div class="relative h-12 bg-white border-2 rounded-full flex items-center cursor-grab active:cursor-grabbing select-none" 
+                                        id="verificationSlider"
+                                        style="touch-action: none; border-color: #22c55e;">
+                                        <!-- Track filled -->
+                                        <div id="sliderTrack" class="absolute h-full rounded-full transition-all"
+                                            style="width: 0%; z-index: 1; background: linear-gradient(to right, #22c55e, #16a34a);"></div>
+                                        
+                                        <!-- Thumb/Slider button -->
+                                        <div id="sliderThumb"
+                                            class="absolute h-10 w-10 bg-white rounded-full shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing transition-all z-10"
+                                            style="left: 4px; border: 2px solid #22c55e;">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #22c55e;">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                            </svg>
+                                        </div>
+                                        
+                                        <!-- Text -->
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <span id="sliderText" class="text-sm font-semibold pointer-events-none" style="color: #374151;">Geser untuk request</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Export Button (Disabled until approved) -->
+                            <div class="text-right">
+                                <button type="button"
+                                    disabled
+                                    class="bg-gray-400 text-white px-6 py-2 rounded cursor-not-allowed font-semibold shadow-md opacity-60"
+                                    title="Tombol akan aktif setelah disetujui oleh supervisor, manager, atau direktur">
+                                    <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
+                                        </path>
+                                    </svg>
+                                    Export PDF (Belum diverifikasi)
+                                </button>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="bg-white  rounded-lg p-8" id="previewContent">
@@ -841,13 +912,18 @@
 
                         <!-- Tabel Jasa di Preview -->
                         <form method="POST"
-                            action="{{ route('jasa.saveRingkasan', ['id_penawaran' => $penawaran->id_penawaran]) }}">
+                            action="{{ route('jasa.saveRingkasan', ['id_penawaran' => $penawaran->id_penawaran]) }}"
+                            id="ringkasanForm">
                             @csrf
                             <input type="hidden" name="version" value="{{ $activeVersion }}">
-                            <label for="ringkasan" class="font-bold mb-2 block">Ringkasan Jasa:</label>
-                            <textarea rows="7" class="border rounded w-full p-3 text-sm mb-2" name="ringkasan"
-                                id="ringkasan"
-                                placeholder="Masukkan Ringkasan Jasa">{{ old('ringkasan', $versionRow->jasa_ringkasan ?? '') }}</textarea>
+                            <div class="mb-4">
+                                <label for="ringkasan" class="font-bold mb-2 block">Ringkasan Jasa: <span class="text-red-600">*</span></label>
+                                <textarea rows="7" class="border rounded w-full p-3 text-sm mb-2" name="ringkasan"
+                                    id="ringkasan"
+                                    placeholder="Masukkan Ringkasan Jasa"
+                                    required>{{ old('ringkasan', $versionRow->jasa_ringkasan ?? '') }}</textarea>
+                                <small class="text-gray-600">Ringkasan jasa harus diisi sebelum request verifikasi export PDF</small>
+                            </div>
                             <button type="submit"
                                 class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition font-semibold shadow-md">
                                 Simpan Ringkasan Jasa
@@ -856,11 +932,17 @@
 
                         <!-- Notes -->
                         <div class="mt-8 mb-6">
-                            <form method="POST" action="{{ route('penawaran.saveNotes', $penawaran->id_penawaran) }}">
+                            <form method="POST" action="{{ route('penawaran.saveNotes', $penawaran->id_penawaran) }}" id="notesForm">
                                 @csrf
                                 <input type="hidden" name="version" value="{{ $activeVersion }}">
-                                <textarea rows="7" name="note" class="w-full border rounded px-3 py-2"
-                                    placeholder="Masukkan catatan untuk versi {{ $activeVersion }} ini...">{{ old('note', $versionRow->notes ?? '') }}</textarea>
+                                <div class="mb-4">
+                                    <label for="note" class="font-bold mb-2 block">Notes: <span class="text-red-600">*</span></label>
+                                    <textarea rows="7" name="note" class="w-full border rounded px-3 py-2"
+                                        id="note"
+                                        placeholder="Masukkan catatan untuk versi {{ $activeVersion }} ini..."
+                                        required>{{ old('note', $versionRow->notes ?? '') }}</textarea>
+                                    <small class="text-gray-600">Notes harus diisi sebelum request verifikasi export PDF</small>
+                                </div>
                                 <button type="submit"
                                     class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mt-2">
                                     Simpan Notes
@@ -2356,6 +2438,247 @@
                                     savedButton.click();
                                 }, 100);
                             }
+                        }
+                    });
+                });
+
+                // =====================================================
+                // SLIDER VERIFICATION LOGIC
+                // =====================================================
+                document.addEventListener('DOMContentLoaded', function() {
+                    const slider = document.getElementById('verificationSlider');
+                    const sliderThumb = document.getElementById('sliderThumb');
+                    const sliderTrack = document.getElementById('sliderTrack');
+                    const sliderText = document.getElementById('sliderText');
+                    const ringkasanInput = document.getElementById('ringkasan');
+                    const noteInput = document.getElementById('note');
+
+                    if (!slider) return; // Skip if not on staff role
+
+                    let isDragging = false;
+                    let hasRequestedVerification = false;
+                    let currentX = 0; // Track current position
+                    
+                    // Calculate slider width properly
+                    function getSliderWidth() {
+                        return slider.offsetWidth - sliderThumb.offsetWidth - 8;
+                    }
+
+                    // Get CSRF token from Laravel
+                    function getCsrfToken() {
+                        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                               document.querySelector('input[name="_token"]')?.value || 
+                               '{{ csrf_token() }}';
+                    }
+
+                    // Function to check validation
+                    function checkPreviewValidation() {
+                        const ringkasanFilled = ringkasanInput && ringkasanInput.value.trim().length > 0;
+                        const notesFilled = noteInput && noteInput.value.trim().length > 0;
+
+                        // Update validation UI
+                        const checkRingkasan = document.getElementById('checkRingkasan');
+                        const checkNotes = document.getElementById('checkNotes');
+
+                        if (checkRingkasan) {
+                            if (ringkasanFilled) {
+                                checkRingkasan.innerHTML = '<span class="mr-2">✅</span> Ringkasan Jasa sudah diisi';
+                                checkRingkasan.classList.remove('text-yellow-700');
+                                checkRingkasan.classList.add('text-green-700');
+                            } else {
+                                checkRingkasan.innerHTML = '<span class="mr-2">❌</span> Ringkasan Jasa sudah diisi';
+                                checkRingkasan.classList.remove('text-green-700');
+                                checkRingkasan.classList.add('text-yellow-700');
+                            }
+                        }
+
+                        if (checkNotes) {
+                            if (notesFilled) {
+                                checkNotes.innerHTML = '<span class="mr-2">✅</span> Notes sudah diisi';
+                                checkNotes.classList.remove('text-yellow-700');
+                                checkNotes.classList.add('text-green-700');
+                            } else {
+                                checkNotes.innerHTML = '<span class="mr-2">❌</span> Notes sudah diisi';
+                                checkNotes.classList.remove('text-green-700');
+                                checkNotes.classList.add('text-yellow-700');
+                            }
+                        }
+
+                        return ringkasanFilled && notesFilled;
+                    }
+
+                    // Spring back animation
+                    function springBack() {
+                        sliderThumb.style.transition = 'left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                        sliderTrack.style.transition = 'width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                        sliderThumb.style.left = '4px';
+                        sliderTrack.style.width = '0%';
+                        currentX = 0;
+                        setTimeout(() => {
+                            sliderThumb.style.transition = 'none';
+                            sliderTrack.style.transition = 'none';
+                        }, 300);
+                    }
+
+                    // Initial validation check
+                    checkPreviewValidation();
+
+                    // Update validation on input change
+                    if (ringkasanInput) ringkasanInput.addEventListener('input', checkPreviewValidation);
+                    if (noteInput) noteInput.addEventListener('input', checkPreviewValidation);
+
+                    // Submit verification request to backend
+                    function submitVerificationRequest() {
+    if (hasRequestedVerification) return;
+    hasRequestedVerification = true;
+
+    const penawaranIdInput = document.getElementById('penawaranId');
+    const versionIdInput   = document.getElementById('versionId');
+
+    let penawaranId = penawaranIdInput && penawaranIdInput.value
+        ? parseInt(penawaranIdInput.value)
+        : {{ $penawaran->id_penawaran }};
+
+    let versionId = versionIdInput && versionIdInput.value
+        ? parseInt(versionIdInput.value)
+        : {{ $activeVersionId }};
+
+    const csrfToken = getCsrfToken();
+
+    console.log('Submitting verification request...', {
+        penawaranId,
+        versionId
+    });
+
+    fetch('{{ route("export-approval.submit") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken
+        },
+        body: JSON.stringify({
+            penawaran_id: penawaranId,
+            version_id: versionId
+        })
+    })
+    .then(async response => {
+    console.log('Response status:', response.status);
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw data;
+    }
+
+    return data;
+})
+    .then(data => {
+        if (data.success) {
+            notyf.success('✅ ' + data.message);
+            slider.style.pointerEvents = 'none';
+            slider.style.opacity = '0.5';
+            sliderText.textContent = '✅ Permintaan verifikasi telah dikirim';
+        } else {
+            throw new Error(data.message || 'Request gagal');
+        }
+    })
+    .catch(error => {
+    console.error('Full error:', error);
+
+    if (error.notify && error.notify.message) {
+        notyf.error('❌ ' + error.notify.message);
+    } else if (error.message) {
+        notyf.error('❌ ' + error.message);
+    } else {
+        notyf.error('❌ Terjadi kesalahan');
+    }
+
+    hasRequestedVerification = false;
+    springBack();
+});
+}
+
+                    // Mouse events - DRAG ONLY WHEN MOVING MOUSE
+                    slider.addEventListener('mousedown', (e) => {
+                        if (!checkPreviewValidation()) {
+                            notyf.error('⚠️ Silakan isi Ringkasan Jasa dan Notes terlebih dahulu!');
+                            return;
+                        }
+                        isDragging = true;
+                        updateSlider(e);
+                    });
+
+                    document.addEventListener('mousemove', (e) => {
+                        if (!isDragging) return;
+                        updateSlider(e);
+                    });
+
+                    document.addEventListener('mouseup', () => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        
+                        // Check if slider reached >90% completion
+                        const sliderWidth = getSliderWidth();
+                        if (currentX / sliderWidth < 0.90) {
+                            // Spring back if not fully dragged
+                            springBack();
+                        }
+                    });
+
+                    function updateSlider(e) {
+                        if (hasRequestedVerification) return; // Don't allow dragging after request sent
+                        
+                        const sliderWidth = getSliderWidth();
+                        const rect = slider.getBoundingClientRect();
+                        let x = e.clientX - rect.left;
+
+                        // Constrain x within bounds (0 to sliderWidth)
+                        x = Math.max(0, Math.min(x, sliderWidth + 4));
+                        currentX = x;
+
+                        const progress = x / sliderWidth;
+                        const percentage = Math.min(100, Math.max(0, Math.round(progress * 100)));
+
+                        // Position thumb - smooth without transition
+                        sliderThumb.style.left = x + 'px';
+                        // Fill track proportionally
+                        sliderTrack.style.width = (x / rect.width * 100) + '%';
+
+                        if (progress >= 0.90) {
+                            sliderText.textContent = '✅ Verified!';
+                            sliderText.style.opacity = '0';
+                            // Submit verification on completion
+                            submitVerificationRequest();
+                        } else {
+                            sliderText.textContent = percentage + '%';
+                            sliderText.style.opacity = '1';
+                        }
+                    }
+
+                    // Touch events for mobile - DRAG ONLY WHEN TOUCHING
+                    slider.addEventListener('touchstart', (e) => {
+                        if (!checkPreviewValidation()) {
+                            notyf.error('⚠️ Silakan isi Ringkasan Jasa dan Notes terlebih dahulu!');
+                            return;
+                        }
+                        isDragging = true;
+                        updateSlider(e.touches[0]);
+                    });
+
+                    document.addEventListener('touchmove', (e) => {
+                        if (!isDragging) return;
+                        updateSlider(e.touches[0]);
+                    });
+
+                    document.addEventListener('touchend', () => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        
+                        // Check if slider reached >90% completion
+                        const sliderWidth = getSliderWidth();
+                        if (currentX / sliderWidth < 0.90) {
+                            // Spring back if not fully dragged
+                            springBack();
                         }
                     });
                 });

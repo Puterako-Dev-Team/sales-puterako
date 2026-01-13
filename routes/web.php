@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MitraController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ExportApprovalController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -53,6 +54,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/detail', [JasaDetailController::class, 'show'])->name('jasa.detail');
         Route::post('/save', [JasaController::class, 'save'])->name('jasa.save');
         Route::post('/save-ringkasan/{id_penawaran}', [JasaController::class, 'saveRingkasan'])->name('jasa.saveRingkasan');
+    });
+
+    // Export Approval routes (protected)
+    Route::prefix('export-approval')->group(function () {
+        Route::post('/submit-verification', [ExportApprovalController::class, 'submitVerificationRequest'])->name('export-approval.submit');
+        Route::post('/{requestId}/approve-supervisor', [ExportApprovalController::class, 'approveBySupervisor'])->name('export-approval.approve-supervisor');
+        Route::post('/{requestId}/approve-manager', [ExportApprovalController::class, 'approveByManager'])->name('export-approval.approve-manager');
+        Route::post('/{requestId}/approve-direktur', [ExportApprovalController::class, 'approveByDirektor'])->name('export-approval.approve-direktur');
     });
 
     // Mitra routes (protected)
