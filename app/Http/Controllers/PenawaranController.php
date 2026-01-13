@@ -414,6 +414,8 @@ class PenawaranController extends Controller
                         'is_mitra' => $d->is_mitra,
                         'color_code' => $d->color_code,
                         'added_cost' => $d->added_cost,
+                        'delivery_time' => $d->delivery_time,
+                        'profit' => $d->profit,
                     ];
                 })->toArray()
             ];
@@ -445,7 +447,6 @@ class PenawaranController extends Controller
 
         $penawaranId = $data['penawaran_id'] ?? null;
         $sections = $data['sections'] ?? [];
-        $profit = $data['profit'] ?? 0;
         $ppnPersen = $data['ppn_persen'] ?? 11; // Default 11%
         $version = $data['version'] ?? 0;
 
@@ -501,12 +502,13 @@ class PenawaranController extends Controller
                         'harga_satuan' => $row['harga_satuan'] ?? null,
                         'harga_total' => $hargaTotal,
                         'hpp' => $row['hpp'] ?? null,
-                        'profit' => $profit,
+                        'profit' => $row['profit'] ?? 0,
                         'nama_section' => $namaSection,
                         'area' => $area,
                         'is_mitra' => isset($row['is_mitra']) ? (int) $row['is_mitra'] : 0,
                         'color_code' => isset($row['color_code']) ? (int) $row['color_code'] : 1,
                         'added_cost' => $row['added_cost'] ?? 0,
+                        'delivery_time' => $row['delivery_time'] ?? null,
                         'version_id' => $version_id, // pastikan selalu isi version_id
                     ];
 
@@ -823,6 +825,7 @@ class PenawaranController extends Controller
                     'is_mitra' => $detail->is_mitra,
                     'color_code' => $detail->color_code,
                     'added_cost' => $detail->added_cost,
+                    'delivery_time' => $detail->delivery_time,
                     'profit' => $detail->profit,
                 ]);
             }
@@ -897,6 +900,20 @@ class PenawaranController extends Controller
             'type' => $request->status === 'lost' ? 'error' : 'success',
             'message' => "Status penawaran berhasil diupdate menjadi {$statusLabel}"
         ]);
+    }
+
+    public function countThisMonth()
+    {
+        $now = new \DateTime();
+        $year = $now->format('Y');
+        $month = $now->format('m');
+        
+        $count = Penawaran::where('user_id', Auth::id())
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
+            ->count();
+        
+        return response()->json(['count' => $count]);
     }
 
 }

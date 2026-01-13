@@ -151,14 +151,29 @@
             text-align: right;
         }
 
-        /* Harga Satuan */
+        /* Harga Satuan - Default (for non-penawaran tables) */
         table th:nth-child(7),
         table td:nth-child(7) {
             width: 14%;
             text-align: right;
+            color: #000000;
+            font-weight: normal;
         }
 
-        /* Harga Total */
+        /* Delivery Time - only for penawaran table */
+        table.penawaran-table th:nth-child(7),
+        table.penawaran-table td:nth-child(7) {
+            width: 12%;
+            text-align: center;
+            color: #ef4444;
+            font-weight: bold;
+        }
+
+        table.penawaran-table th:nth-child(8),
+        table.penawaran-table td:nth-child(8) {
+            width: 14%;
+            text-align: right;
+        }
 
         table tbody tr.area-header td {
             background-color: #67BC4B;
@@ -370,8 +385,7 @@
             @endif
 
             <p style="margin-top: 20px;"><strong>Perihal:</strong> {{ $penawaran->perihal }}</p>
-            <p><strong>No:</strong> {{ $penawaran->no_penawaran }}@if ($activeVersion > 1)
-                -Rev{{ $activeVersion }}
+            <p><strong>No:</strong> {{ $penawaran->no_penawaran }}@if ($activeVersion > 0)-Rev{{ $activeVersion }}
             @endif
             </p>
             <p class="greeting" style="margin-top: 20px;"><strong>Dengan Hormat,</strong></p>
@@ -426,7 +440,7 @@
             <h3 style="font-weight: bold; font-size: 12px; margin-bottom: 6px; margin-top: 10px;">
                 {{ convertToRoman($sectionNumber) }}. {{ $namaSection }}
             </h3>
-            <table>
+            <table class="penawaran-table">
                 <thead>
                     <tr>
                         <th>No</th>
@@ -435,6 +449,7 @@
                         <th>Qty</th>
                         <th>Satuan</th>
                         <th>Harga Satuan</th>
+                        <th>Delivery Time</th>
                         <th>Harga Total</th>
                     </tr>
                 </thead>
@@ -443,7 +458,7 @@
                     @foreach ($areas as $area => $rows)
                         @if ($area && $area !== '' && $area !== '-' && trim($area) !== '')
                             <tr class="area-header">
-                                <td colspan="7">{{ $area }}</td>
+                                <td colspan="8">{{ $area }}</td>
                             </tr>
                         @endif
                         @foreach ($rows as $row)
@@ -465,6 +480,7 @@
                                         {{ $row->harga_satuan > 0 ? number_format($row->harga_satuan, 0, ',', '.') : '' }}
                                     @endif
                                 </td>
+                                <td style="color: #ef4444; font-weight: bold;">{{ $row->delivery_time ?? '-' }}</td>
                                 <td>
                                     @if (!empty($row->is_mitra))
                                         <span style="color:#3498db;font-weight:bold; font-style: italic;">by
@@ -479,7 +495,7 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="6">Subtotal</td>
+                        <td colspan="7">Subtotal</td>
                         <td>{{ number_format($subtotal, 0, ',', '.') }}</td>
                     </tr>
                 </tfoot>
@@ -512,7 +528,7 @@
                     </td>
                     <td>1</td>
                     <td>Lot</td>
-                    <td>Rp {{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
+                    <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
                     <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
                 </tr>
             </tbody>
