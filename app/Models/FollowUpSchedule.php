@@ -144,16 +144,25 @@ class FollowUpSchedule extends Model
         $updates = [];
         
         if (isset($config['interval_days'])) {
-            $updates['interval_days'] = $config['interval_days'];
-            $updates['next_reminder_date'] = Carbon::now()->addDays($config['interval_days']);
+            $updates['interval_days'] = (int) $config['interval_days']; 
+            $updates['next_reminder_date'] = Carbon::now()->addDays((int) $config['interval_days']); 
         }
         
         if (isset($config['max_reminders'])) {
-            $updates['max_reminders_per_cycle'] = $config['max_reminders'];
+            $updates['max_reminders_per_cycle'] = (int) $config['max_reminders']; 
         }
 
         if (isset($config['notes'])) {
             $updates['notes'] = $config['notes'];
+        }
+        
+        // Jika completed, restart cycle
+        if ($this->status === 'completed') {
+            $updates['current_reminder_count'] = 0;
+            $updates['status'] = 'running';
+            $updates['is_active'] = true;
+            $updates['cycle_start_date'] = Carbon::now();
+            $updates['next_reminder_date'] = Carbon::now()->addDays((int) ($config['interval_days'] ?? $this->interval_days));
         }
 
         $this->update($updates);

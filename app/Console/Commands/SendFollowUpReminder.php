@@ -11,7 +11,7 @@ use Carbon\Carbon;
 class SendFollowUpReminder extends Command
 {
     protected $signature = 'followup:remind {--dry-run : Show what would be done without actually doing it}';
-    protected $description = 'Send follow up reminders for draft penawarans with flexible scheduling';
+    protected $description = 'Send follow up reminders for success penawarans with flexible scheduling';
 
     const DEFAULT_INTERVAL_DAYS = 7;
     const DEFAULT_MAX_REMINDERS = 5;
@@ -75,7 +75,7 @@ class SendFollowUpReminder extends Command
             $penawaran = $schedule->penawaran;
             
             // Skip jika penawaran bukan draft
-            if ($penawaran->status !== 'draft') {
+            if ($penawaran->status !== 'success') {
                 $this->line("   ⏭️ {$penawaran->no_penawaran} - status: {$penawaran->status}");
                 continue;
             }
@@ -128,10 +128,10 @@ class SendFollowUpReminder extends Command
      */
     private function processAutoReminders(bool $dryRun): int
     {
-        // Ambil penawaran draft yang:
+        // Ambil penawaran success yang:
         // 1. Belum punya schedule
         // 2. Sudah >= 7 hari sejak dibuat
-        $penawarans = Penawaran::where('status', 'draft')
+        $penawarans = Penawaran::where('status', 'success')
             ->where('created_at', '<=', Carbon::now()->subDays(self::DEFAULT_INTERVAL_DAYS))
             ->whereDoesntHave('followUpSchedule')
             ->get();

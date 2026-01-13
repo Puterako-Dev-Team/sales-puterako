@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PenawaranController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FollowUpScheduleController;
 use App\Http\Controllers\MitraController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\UserController;
@@ -84,13 +85,23 @@ Route::middleware(['auth'])->group(function () {
 
 
     Route::prefix('users')->group(function () {
-    Route::get('/', [UserController::class, 'index'])->name('users.index');
-    Route::get('/filter', [UserController::class, 'filter'])->name('users.filter');
-    Route::post('/', [UserController::class, 'store'])->name('users.store');
-    Route::get('/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-    Route::put('/{user}', [UserController::class, 'update'])->name('users.update');
-    Route::delete('/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-    Route::get('/permissions', [UserController::class, 'permissions'])->name('users.permissions');
-    Route::post('/{user}/permissions', [UserController::class, 'updatePermissions'])->name('users.permissions.update');
+        Route::get('/', [UserController::class, 'index'])->name('users.index');
+        Route::get('/filter', [UserController::class, 'filter'])->name('users.filter');
+        Route::post('/', [UserController::class, 'store'])->name('users.store');
+        Route::get('/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+        Route::get('/permissions', [UserController::class, 'permissions'])->name('users.permissions');
+        Route::post('/{user}/permissions', [UserController::class, 'updatePermissions'])->name('users.permissions.update');
+    });
+
+    Route::prefix('followup')->name('followup.')->group(function () {
+        Route::get('/penawaran/atur-followup', [FollowUpScheduleController::class, 'index'])->name('index');
+        Route::post('/penawaran/{id}/create', [FollowUpScheduleController::class, 'create'])->name('create');
+        Route::post('/penawaran/{id}/start-new-cycle', [FollowUpScheduleController::class, 'startNewCycle'])->name('start-cycle');
+        Route::patch('/penawaran/{id}/update-config', [FollowUpScheduleController::class, 'updateConfig'])->name('update-config');
+        Route::post('/penawaran/{id}/pause', [FollowUpScheduleController::class, 'pause'])->name('pause');
+        Route::post('/penawaran/{id}/resume', [FollowUpScheduleController::class, 'resume'])->name('resume');
+        Route::get('/penawaran/{id}', [FollowUpScheduleController::class, 'show'])->name('show');
     });
 });

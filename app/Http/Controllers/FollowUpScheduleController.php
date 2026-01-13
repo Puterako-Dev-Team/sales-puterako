@@ -6,17 +6,64 @@ use Illuminate\Http\Request;
 use App\Models\Penawaran;
 use App\Models\FollowUpSchedule;
 use App\Models\FollowUp;
+use Illuminate\Support\Facades\Auth; 
 use Carbon\Carbon;
 
 class FollowUpScheduleController extends Controller
 {
+    /**
+     * Halaman list follow-up schedules
+     */
+
+    public function __construct()
+    {
+        $this->checkAuthorizedAccess();
+    }
+
+    private function checkAuthorizedAccess()
+    {
+        if (!Auth::check() || !in_array(Auth::user()->role, ['supervisor', 'administrator'])) {
+            abort(403, 'Unauthorized. Administrator access required.');
+        }
+    }
+    public function index(Request $request)
+    {
+        $query = FollowUpSchedule::with(['penawaran']);
+
+        // Filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('penawaran', function($q) use ($search) {
+                $q->where('no_penawaran', 'like', "%{$search}%")
+                  ->orWhere('perihal', 'like', "%{$search}%");
+            });
+        }
+
+        // Sorting
+        $sortColumn = $request->get('sort', 'created_at');
+        $sortDirection = $request->get('direction', 'desc');
+        
+        $query->orderBy($sortColumn, $sortDirection);
+
+        $schedules = $query->paginate(15);
+
+        if ($request->ajax()) {
+            return view('followup.table-content', compact('schedules'));
+        }
+
+        return view('followup.index', compact('schedules'));
+    }
+
     public function create(Request $request, $penawaranId)
     {
         $validated = $request->validate([
             'start_date' => 'required|date|after_or_equal:today',
             'interval_days' => 'required|integer|min:1|max:90',
             'max_reminders' => 'required|integer|min:1|max:20',
-            'notes' => 'nullable|string|max:1000',
         ]);
 
         $penawaran = Penawaran::findOrFail($penawaranId);
@@ -38,7 +85,6 @@ class FollowUpScheduleController extends Controller
             'next_reminder_date' => $validated['start_date'],
             'is_active' => true,
             'status' => 'running',
-            'notes' => $validated['notes'] ?? null,
         ]);
 
         return response()->json([
@@ -48,16 +94,12 @@ class FollowUpScheduleController extends Controller
         ]);
     }
 
-    /**
-     * Start cycle baru (setelah cycle selesai)
-    */
     public function startNewCycle(Request $request, $penawaranId)
     {
         $validated = $request->validate([
             'start_date' => 'required|date|after_or_equal:today',
             'interval_days' => 'required|integer|min:1|max:90',
             'max_reminders' => 'required|integer|min:1|max:20',
-            'notes' => 'nullable|string|max:1000',
         ]);
 
         $penawaran = Penawaran::findOrFail($penawaranId);
@@ -73,7 +115,6 @@ class FollowUpScheduleController extends Controller
             'start_date' => Carbon::parse($validated['start_date']),
             'interval_days' => $validated['interval_days'],
             'max_reminders' => $validated['max_reminders'],
-            'notes' => $validated['notes'] ?? null,
         ]);
 
         return response()->json([
@@ -83,9 +124,6 @@ class FollowUpScheduleController extends Controller
         ]);
     }
 
-    /**
-     * Update konfigurasi (interval/max reminders) tanpa reset counter
-    */
     public function updateConfig(Request $request, $penawaranId)
     {
         $validated = $request->validate([
@@ -109,9 +147,7 @@ class FollowUpScheduleController extends Controller
             'progress' => $schedule->getProgressInfo(),
         ]);
     }
-    /**
-     * Pause auto reminder
-     */
+
     public function pause($penawaranId)
     {
         $penawaran = Penawaran::findOrFail($penawaranId);
@@ -129,9 +165,6 @@ class FollowUpScheduleController extends Controller
         ]);
     }
 
-    /**
-     * Resume auto reminder
-     */
     public function resume($penawaranId)
     {
         $penawaran = Penawaran::findOrFail($penawaranId);
@@ -149,9 +182,6 @@ class FollowUpScheduleController extends Controller
         ]);
     }
 
-    /**
-     * Get schedule info & history
-     */
     public function show($penawaranId)
     {
         $penawaran = Penawaran::with(['followUpSchedule', 'systemFollowUps'])->findOrFail($penawaranId);

@@ -436,6 +436,13 @@
                                         </svg>
                                         <span class="menu-label show text-sm text-gray-700">Rekap Survey</span>
                                     </a>
+                                    @if(Auth::user()->role === 'supervisor' || Auth::user()->role === 'administrator')
+                                        <a href="{{ route('followup.index') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <x-lucide-phone-outgoing class="w-3 h-3 mr-2 inline text-gray-700" />
+                                            <span class="menu-label show text-sm text-gray-700">Atur Follow Up</span>
+                                        </a>
+                                    @endif
                                 </div>
                             </div>
                         </div>
