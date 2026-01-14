@@ -27,7 +27,66 @@ class ExportApprovalController extends Controller
             'penawaran',
             'version',
             'requestedBy'
-        ])->orderByDesc('requested_at');
+        ]);
+
+        // Apply filters
+        if ($request->filled('tanggal_dari')) {
+            $baseQuery->whereDate('requested_at', '>=', $request->tanggal_dari);
+        }
+
+        if ($request->filled('no_penawaran')) {
+            $baseQuery->whereHas('penawaran', function($q) use ($request) {
+                $q->where('no_penawaran', 'like', '%' . $request->no_penawaran . '%');
+            });
+        }
+
+        if ($request->filled('nama_perusahaan')) {
+            $baseQuery->whereHas('penawaran', function($q) use ($request) {
+                $q->where('nama_perusahaan', 'like', '%' . $request->nama_perusahaan . '%');
+            });
+        }
+
+        if ($request->filled('pic_admin')) {
+            $baseQuery->whereHas('requestedBy', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->pic_admin . '%');
+            });
+        }
+
+        // Handle AJAX requests for filtering
+        if ($request->ajax()) {
+            // Pending per role
+            $pendingQuery = clone $baseQuery;
+            if ($user->role === 'supervisor') {
+                $pendingQuery->whereNull('approved_by_supervisor');
+            } elseif ($user->role === 'manager') {
+                $pendingQuery->whereNotNull('approved_by_supervisor')
+                    ->whereNull('approved_by_manager');
+            } elseif ($user->role === 'direktur') {
+                $pendingQuery->whereNotNull('approved_by_manager')
+                    ->whereNull('approved_by_direktur');
+            }
+            $pendingRequests = $pendingQuery->orderByDesc('requested_at')->get();
+
+            // Already approved by this role (to show at the bottom)
+            $approvedQuery = clone $baseQuery;
+            if ($user->role === 'supervisor') {
+                $approvedQuery->whereNotNull('approved_by_supervisor');
+            } elseif ($user->role === 'manager') {
+                $approvedQuery->whereNotNull('approved_by_manager');
+            } elseif ($user->role === 'direktur') {
+                $approvedQuery->whereNotNull('approved_by_direktur');
+            }
+            $approvedRequests = $approvedQuery->orderByDesc('requested_at')->get();
+
+            // Merge: pending first, then approved
+            $requests = $pendingRequests->concat($approvedRequests)->values();
+
+            return view('penawaran.approval-list', [
+                'requests' => $requests,
+                'userRole' => $user->role,
+                'picAdmins' => collect(), // Empty for AJAX
+            ])->render();
+        }
 
         // Pending per role
         $pendingQuery = clone $baseQuery;
@@ -40,7 +99,7 @@ class ExportApprovalController extends Controller
             $pendingQuery->whereNotNull('approved_by_manager')
                 ->whereNull('approved_by_direktur');
         }
-        $pendingRequests = $pendingQuery->get();
+        $pendingRequests = $pendingQuery->orderByDesc('requested_at')->get();
 
         // Already approved by this role (to show at the bottom)
         $approvedQuery = clone $baseQuery;
@@ -51,14 +110,23 @@ class ExportApprovalController extends Controller
         } elseif ($user->role === 'direktur') {
             $approvedQuery->whereNotNull('approved_by_direktur');
         }
-        $approvedRequests = $approvedQuery->get();
+        $approvedRequests = $approvedQuery->orderByDesc('requested_at')->get();
 
         // Merge: pending first, then approved
         $requests = $pendingRequests->concat($approvedRequests)->values();
 
+        // Get PIC Admin options for filter dropdown
+        $picAdmins = ExportApprovalRequest::with('requestedBy')
+            ->whereHas('requestedBy')
+            ->selectRaw('DISTINCT users.name')
+            ->join('users', 'export_approval_requests.requested_by', '=', 'users.id')
+            ->orderBy('users.name')
+            ->pluck('users.name');
+
         return view('penawaran.approval-list', [
             'requests' => $requests,
             'userRole' => $user->role,
+            'picAdmins' => $picAdmins,
         ]);
     }
 

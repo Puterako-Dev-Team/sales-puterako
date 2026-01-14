@@ -97,27 +97,31 @@
                 <div class="flex items-end gap-4 flex-wrap">
                     <div class="filter-item" style="flex: 0 0 180px;">
                         <label for="tanggal_dari">Tanggal Dari</label>
-                        <input type="date" id="tanggal_dari" name="tanggal_dari" value=""
+                        <input type="date" id="tanggal_dari" name="tanggal_dari" value="{{ request('tanggal_dari') }}"
                             class="filter-input">
                     </div>
 
                     <div class="filter-item" style="flex: 1 1 200px;">
                         <label for="no_penawaran">No Penawaran</label>
                         <input type="text" id="no_penawaran" name="no_penawaran" placeholder="Cari no penawaran..."
-                            value="" class="filter-input">
+                            value="{{ request('no_penawaran') }}" class="filter-input">
                     </div>
 
                     <div class="filter-item" style="flex: 1 1 250px;">
                         <label for="nama_perusahaan">Nama Perusahaan</label>
                         <input type="text" id="nama_perusahaan" name="nama_perusahaan" placeholder="Cari nama perusahaan..."
-                            value="" class="filter-input">
+                            value="{{ request('nama_perusahaan') }}" class="filter-input">
                     </div>
 
                     <div class="filter-item" style="flex: 0 0 180px;">
                         <label for="pic_admin">PIC Admin</label>
                         <select id="pic_admin" name="pic_admin" class="filter-input">
                             <option value="">Semua PIC</option>
-                           
+                            @foreach($picAdmins as $pic)
+                                <option value="{{ $pic }}" {{ request('pic_admin') == $pic ? 'selected' : '' }}>
+                                    {{ $pic }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
 
@@ -254,6 +258,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalVersi = document.getElementById('modalVersi');
     const btnCancel = document.getElementById('modalCancel');
     const btnConfirm = document.getElementById('modalConfirm');
+    const resetFilterBtn = document.getElementById('resetFilter');
+    const tableContainer = document.querySelector('.overflow-x-auto');
     let pendingAction = null;
 
     const notyfInstance = window.notyf || new Notyf({
@@ -278,19 +284,109 @@ document.addEventListener('DOMContentLoaded', () => {
         pendingAction = null;
     }
 
-    approveButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            openModal({
-                url: btn.dataset.url,
-                row: btn.closest('tr'),
-                badge: btn.closest('tr').querySelector('span.inline-block'),
-                button: btn,
-                no: btn.dataset.no,
-                company: btn.dataset.company,
-                version: btn.dataset.version
+    // Filter functionality
+    function applyFilters() {
+        const formData = new FormData(document.getElementById('filterForm'));
+        const params = new URLSearchParams();
+
+        for (let [key, value] of formData.entries()) {
+            if (value.trim() !== '') {
+                params.append(key, value);
+            }
+        }
+
+        // Show loading state
+        if (tableContainer) {
+            tableContainer.style.opacity = '0.6';
+            tableContainer.style.pointerEvents = 'none';
+        }
+
+        fetch(`{{ route('penawaran.approve-list') }}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Parse the HTML and update the table
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newTableContainer = doc.querySelector('.overflow-x-auto');
+
+            if (newTableContainer && tableContainer) {
+                tableContainer.innerHTML = newTableContainer.innerHTML;
+
+                // Re-bind approve buttons
+                bindApproveButtons();
+            } else {
+                // Fallback: if no table container found, show empty state
+                if (tableContainer) {
+                    tableContainer.innerHTML = '<p class="text-gray-600">Tidak ada permintaan verifikasi untuk disetujui.</p>';
+                }
+            }
+
+            // Update URL without page reload
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            window.history.pushState({}, '', newUrl);
+        })
+        .catch(error => {
+            console.error('Filter error:', error);
+            notyfInstance.error('Gagal memuat data yang difilter');
+        })
+        .finally(() => {
+            // Remove loading state
+            if (tableContainer) {
+                tableContainer.style.opacity = '1';
+                tableContainer.style.pointerEvents = 'auto';
+            }
+        });
+    }
+
+    function bindApproveButtons() {
+        const newApproveButtons = document.querySelectorAll('.approve-btn');
+        newApproveButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                openModal({
+                    url: btn.dataset.url,
+                    row: btn.closest('tr'),
+                    badge: btn.closest('tr').querySelector('span.inline-block'),
+                    button: btn,
+                    no: btn.dataset.no,
+                    company: btn.dataset.company,
+                    version: btn.dataset.version
+                });
             });
         });
+    }
+
+    // Initial binding of approve buttons
+    bindApproveButtons();
+
+    // Filter input listeners
+    const filterInputs = document.querySelectorAll('.filter-input');
+    let filterTimeout;
+
+    filterInputs.forEach(input => {
+        input.addEventListener('input', () => {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(applyFilters, 500);
+        });
+
+        input.addEventListener('change', () => {
+            if (input.type !== 'text') {
+                applyFilters();
+            }
+        });
     });
+
+    // Reset filter button
+    if (resetFilterBtn) {
+        resetFilterBtn.addEventListener('click', () => {
+            document.getElementById('filterForm').reset();
+            applyFilters();
+        });
+    }
 
     btnCancel.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => {

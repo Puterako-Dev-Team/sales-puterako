@@ -32,5 +32,15 @@ class TipeSeeder extends Seeder
                 ['nama' => $nama]
             );
         }
+
+        // Populate tipes_id for existing rekap_items
+        $rekapItems = \App\Models\RekapItem::whereNull('tipes_id')->get();
+        foreach ($rekapItems as $item) {
+            $tipe = Tipe::firstOrCreate(
+                ['nama' => $item->nama_item],
+                ['nama' => $item->nama_item]
+            );
+            $item->update(['tipes_id' => $tipe->id]);
+        }
     }
 }
