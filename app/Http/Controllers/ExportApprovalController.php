@@ -12,6 +12,57 @@ use Illuminate\Support\Facades\Auth;
 class ExportApprovalController extends Controller
 {
     /**
+     * Show approval requests list for approver roles.
+     */
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+        $allowedRoles = ['supervisor', 'manager', 'direktur'];
+
+        if (!in_array($user->role, $allowedRoles, true)) {
+            abort(403, 'Hanya supervisor, manager, atau direktur yang dapat mengakses halaman ini');
+        }
+
+        $baseQuery = ExportApprovalRequest::with([
+            'penawaran',
+            'version',
+            'requestedBy'
+        ])->orderByDesc('requested_at');
+
+        // Pending per role
+        $pendingQuery = clone $baseQuery;
+        if ($user->role === 'supervisor') {
+            $pendingQuery->whereNull('approved_by_supervisor');
+        } elseif ($user->role === 'manager') {
+            $pendingQuery->whereNotNull('approved_by_supervisor')
+                ->whereNull('approved_by_manager');
+        } elseif ($user->role === 'direktur') {
+            $pendingQuery->whereNotNull('approved_by_manager')
+                ->whereNull('approved_by_direktur');
+        }
+        $pendingRequests = $pendingQuery->get();
+
+        // Already approved by this role (to show at the bottom)
+        $approvedQuery = clone $baseQuery;
+        if ($user->role === 'supervisor') {
+            $approvedQuery->whereNotNull('approved_by_supervisor');
+        } elseif ($user->role === 'manager') {
+            $approvedQuery->whereNotNull('approved_by_manager');
+        } elseif ($user->role === 'direktur') {
+            $approvedQuery->whereNotNull('approved_by_direktur');
+        }
+        $approvedRequests = $approvedQuery->get();
+
+        // Merge: pending first, then approved
+        $requests = $pendingRequests->concat($approvedRequests)->values();
+
+        return view('penawaran.approval-list', [
+            'requests' => $requests,
+            'userRole' => $user->role,
+        ]);
+    }
+
+    /**
      * Submit verification request for export PDF
      */
     public function submitVerificationRequest(Request $request)

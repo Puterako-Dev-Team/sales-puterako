@@ -12,6 +12,7 @@ use App\Http\Controllers\MitraController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ExportApprovalController;
+use App\Http\Controllers\TipeController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -48,6 +49,9 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{id}', [PenawaranController::class, 'update'])->name('update');
         Route::post('/{id}/restore', [PenawaranController::class, 'restore'])->name('penawaran.restore');
         Route::delete('/{id}', [PenawaranController::class, 'destroy'])->name('penawaran.delete');
+
+        // Approval list for approvers
+        Route::get('/approve-list', [ExportApprovalController::class, 'index'])->name('penawaran.approve-list');
     });
 
     // Jasa routes (protected)
@@ -63,6 +67,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{requestId}/approve-supervisor', [ExportApprovalController::class, 'approveBySupervisor'])->name('export-approval.approve-supervisor');
         Route::post('/{requestId}/approve-manager', [ExportApprovalController::class, 'approveByManager'])->name('export-approval.approve-manager');
         Route::post('/{requestId}/approve-direktur', [ExportApprovalController::class, 'approveByDirektor'])->name('export-approval.approve-direktur');
+    });
+
+    // Tipe routes (protected)
+    Route::prefix('tipe')->group(function () {
+        Route::get('/all', [TipeController::class, 'getAll'])->name('tipe.all');
+        Route::get('/search', [TipeController::class, 'search'])->name('tipe.search');
+        Route::post('/store', [TipeController::class, 'store'])->name('tipe.store');
     });
 
     // Mitra routes (protected)
