@@ -429,6 +429,7 @@ class PenawaranController extends Controller
             'jasa',
             'activeVersion',
             'versionRow',
+            'activeVersionId',
             'totalPenawaran',
             'grandTotalJasa',
             'grandTotal',
