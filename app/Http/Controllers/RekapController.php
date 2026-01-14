@@ -235,4 +235,19 @@ class RekapController extends Controller
         $rekap->delete();
         return redirect()->route('rekap.list')->with('success', 'Rekap berhasil dihapus');
     }
+
+    // API endpoint untuk mendapatkan daftar nama item unik
+    public function getItemNames(Request $request)
+    {
+        $query = $request->get('q', '');
+        $items = RekapItem::where('nama_item', 'LIKE', "%{$query}%")
+            ->select('nama_item')
+            ->distinct()
+            ->orderBy('nama_item')
+            ->limit(20)
+            ->get()
+            ->pluck('nama_item');
+
+        return response()->json($items);
+    }
 }

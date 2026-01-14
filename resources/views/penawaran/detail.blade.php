@@ -1203,7 +1203,7 @@
                                 });
                                 
                                 if (hasSignificantData) {
-                                    const tipe = String(row[1] || '').trim();
+                                    const tipe = row[1];
                                     const deskripsi = String(row[2] || '').trim();
                                     const qty = parseNumber(row[3]);
                                     const satuan = String(row[4] || '').trim();

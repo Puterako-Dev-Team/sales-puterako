@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Tipe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Satuan;
 
-class TipeController extends Controller
+class SatuanController extends Controller
 {
     public function __construct()
     {
@@ -16,11 +16,11 @@ class TipeController extends Controller
     }
 
     /**
-     * Display list of tipe
+     * Display list of satuan
      */
     public function index(Request $request)
     {
-        $query = Tipe::query();
+        $query = Satuan::query();
 
         if ($request->filled('q')) {
             $q = trim($request->q);
@@ -33,17 +33,17 @@ class TipeController extends Controller
         if (!in_array($sort, $allowed)) $sort = 'id';
         if (!in_array(strtolower($direction), ['asc', 'desc'])) $direction = 'asc';
 
-        $tipes = $query->orderBy($sort, $direction)->paginate(10)->appends($request->query());
+        $satuans = $query->orderBy($sort, $direction)->paginate(10)->appends($request->query());
 
-        return view('tipe.index', compact('tipes'));
+        return view('satuan.index', compact('satuans'));
     }
 
     /**
-     * Filter tipe (for AJAX)
+     * Filter satuan (for AJAX)
      */
     public function filter(Request $request)
     {
-        $query = Tipe::query();
+        $query = Satuan::query();
 
         if ($request->filled('q')) {
             $q = trim($request->q);
@@ -56,10 +56,10 @@ class TipeController extends Controller
         if (!in_array($sort, $allowed)) $sort = 'id';
         if (!in_array(strtolower($direction), ['asc', 'desc'])) $direction = 'asc';
 
-        $tipes = $query->orderBy($sort, $direction)->paginate(10)->appends($request->query());
+        $satuans = $query->orderBy($sort, $direction)->paginate(10)->appends($request->query());
 
-        $table = view('tipe.table-content', ['tipes' => $tipes])->render();
-        $pagination = view('penawaran.pagination', ['paginator' => $tipes])->render();
+        $table = view('satuan.table-content', ['satuans' => $satuans])->render();
+        $pagination = view('penawaran.pagination', ['paginator' => $satuans])->render();
 
         return response()->json([
             'table' => $table,
@@ -68,86 +68,86 @@ class TipeController extends Controller
     }
 
     /**
-     * Store new tipe
+     * Store new satuan
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'nama' => 'required|string|unique:tipes,nama'
+        $data = $request->validate([
+            'nama' => 'required|string|max:255|unique:satuans,nama'
         ]);
 
-        $tipe = Tipe::create($validated);
+        $satuan = Satuan::create($data);
 
         return response()->json([
             'success' => true,
-            'data' => $tipe,
-            'message' => 'Tipe berhasil ditambahkan'
+            'message' => 'Satuan berhasil ditambahkan',
+            'data' => $satuan
         ]);
     }
 
     /**
-     * Get tipe data for edit
+     * Get satuan data for edit
      */
     public function edit($id)
     {
-        $tipe = Tipe::findOrFail($id);
-        return response()->json($tipe);
+        $satuan = Satuan::findOrFail($id);
+        return response()->json($satuan);
     }
 
     /**
-     * Update tipe
+     * Update satuan
      */
     public function update(Request $request, $id)
     {
-        $tipe = Tipe::findOrFail($id);
+        $satuan = Satuan::findOrFail($id);
 
         $data = $request->validate([
-            'nama' => 'required|string|max:255|unique:tipes,nama,' . $id
+            'nama' => 'required|string|max:255|unique:satuans,nama,' . $id
         ]);
 
-        $tipe->update($data);
+        $satuan->update($data);
 
         return response()->json([
             'success' => true,
-            'message' => 'Tipe berhasil diperbarui',
-            'data' => $tipe
+            'message' => 'Satuan berhasil diperbarui',
+            'data' => $satuan
         ]);
     }
 
     /**
-     * Delete tipe
+     * Delete satuan
      */
     public function destroy($id)
     {
-        $tipe = Tipe::findOrFail($id);
-        $tipe->delete();
+        $satuan = Satuan::findOrFail($id);
+        $satuan->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Tipe berhasil dihapus'
+            'message' => 'Satuan berhasil dihapus'
         ]);
     }
 
     /**
-     * Get all tipes (for search/autocomplete)
+     * Get all satuan (for search/autocomplete)
      */
     public function getAll()
     {
-        $tipes = Tipe::orderBy('nama')->get();
-        return response()->json($tipes);
+        $satuans = Satuan::orderBy('nama')->get();
+        return response()->json($satuans);
     }
 
     /**
-     * Search tipes by query
+     * Search satuan by query
      */
     public function search(Request $request)
     {
         $query = $request->input('q', '');
-        
-        $tipes = Tipe::where('nama', 'LIKE', "%{$query}%")
+
+        $satuans = Satuan::where('nama', 'LIKE', "%{$query}%")
             ->orderBy('nama')
             ->get(['id', 'nama']);
-        
-        return response()->json($tipes);
+
+        return response()->json($satuans);
     }
 }

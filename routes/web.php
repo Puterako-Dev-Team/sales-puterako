@@ -13,6 +13,7 @@ use App\Http\Controllers\RekapController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ExportApprovalController;
 use App\Http\Controllers\TipeController;
+use App\Http\Controllers\SatuanController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -69,11 +70,28 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{requestId}/approve-direktur', [ExportApprovalController::class, 'approveByDirektor'])->name('export-approval.approve-direktur');
     });
 
-    // Tipe routes (protected)
+    // Tipe routes (protected) - Admin only
     Route::prefix('tipe')->group(function () {
+        Route::get('/', [TipeController::class, 'index'])->name('tipe.index');
+        Route::get('/filter', [TipeController::class, 'filter'])->name('tipe.filter');
+        Route::post('/store', [TipeController::class, 'store'])->name('tipe.store');
+        Route::get('/{id}/edit', [TipeController::class, 'edit'])->name('tipe.edit');
+        Route::put('/{id}', [TipeController::class, 'update'])->name('tipe.update');
+        Route::delete('/{id}', [TipeController::class, 'destroy'])->name('tipe.delete');
         Route::get('/all', [TipeController::class, 'getAll'])->name('tipe.all');
         Route::get('/search', [TipeController::class, 'search'])->name('tipe.search');
-        Route::post('/store', [TipeController::class, 'store'])->name('tipe.store');
+    });
+
+    // Satuan routes (protected) - Admin only
+    Route::prefix('satuan')->group(function () {
+        Route::get('/', [SatuanController::class, 'index'])->name('satuan.index');
+        Route::get('/filter', [SatuanController::class, 'filter'])->name('satuan.filter');
+        Route::post('/store', [SatuanController::class, 'store'])->name('satuan.store');
+        Route::get('/{id}/edit', [SatuanController::class, 'edit'])->name('satuan.edit');
+        Route::put('/{id}', [SatuanController::class, 'update'])->name('satuan.update');
+        Route::delete('/{id}', [SatuanController::class, 'destroy'])->name('satuan.delete');
+        Route::get('/all', [SatuanController::class, 'getAll'])->name('satuan.all');
+        Route::get('/search', [SatuanController::class, 'search'])->name('satuan.search');
     });
 
     // Mitra routes (protected)
@@ -96,7 +114,8 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{id}', [RekapController::class, 'update'])->name('rekap.update');
         Route::delete('/{id}', [RekapController::class, 'destroy'])->name('rekap.delete');
         Route::post('/{rekap_id}/add-item', [RekapController::class, 'addItem'])->name('rekap.addItem');
-        Route::post('/{rekap_id}/update-items', [RekapController::class, 'updateItems'])->name('rekap.updateItems');    
+        Route::post('/{rekap_id}/update-items', [RekapController::class, 'updateItems'])->name('rekap.updateItems');
+        Route::get('/item-names', [RekapController::class, 'getItemNames'])->name('rekap.item-names');
     });
 
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
