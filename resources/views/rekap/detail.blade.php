@@ -433,7 +433,7 @@
                         placeholder: 'Cari atau ketik nama item...',
                         searchField: ['text'],
                         load: function(query, callback) {
-                            if (query.length < 2) return callback();
+                            if (query.length < 1) return callback();
 
                             fetch(`{{ route('rekap.item-names') }}?q=${encodeURIComponent(query)}`)
                                 .then(response => response.json())

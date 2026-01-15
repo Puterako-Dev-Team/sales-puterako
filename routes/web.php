@@ -108,6 +108,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('rekap')->group(function () {
         Route::get('/list', [RekapController::class, 'index'])->name('rekap.list');
         Route::get('/create', [RekapController::class, 'create'])->name('rekap.create');
+        Route::get('/item-names', [RekapController::class, 'getItemNames'])->name('rekap.item-names');
         Route::post('/store', [RekapController::class, 'store'])->name('rekap.store');
         Route::get('/{id}', [RekapController::class, 'show'])->name('rekap.show');
         Route::get('/{id}/edit', [RekapController::class, 'edit'])->name('rekap.edit');
@@ -115,7 +116,6 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{id}', [RekapController::class, 'destroy'])->name('rekap.delete');
         Route::post('/{rekap_id}/add-item', [RekapController::class, 'addItem'])->name('rekap.addItem');
         Route::post('/{rekap_id}/update-items', [RekapController::class, 'updateItems'])->name('rekap.updateItems');
-        Route::get('/item-names', [RekapController::class, 'getItemNames'])->name('rekap.item-names');
     });
 
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
