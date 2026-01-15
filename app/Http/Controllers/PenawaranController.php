@@ -404,7 +404,7 @@ class PenawaranController extends Controller
                 'data' => $items->map(function ($d) {
                     return [
                         'no' => $d->no,
-                        'tipe' => $d->tipe,
+                        'tipe' => $d->tipe_name ?? $d->tipe, // Use tipe_name if available, fallback to tipe
                         'deskripsi' => $d->deskripsi,
                         'qty' => $d->qty,
                         'satuan' => $d->satuan,
@@ -497,6 +497,7 @@ class PenawaranController extends Controller
 
                     $values = [
                         'tipe' => $row['tipe'] ?? null,
+                        'tipe_name' => $row['tipe'] ?? null,
                         'deskripsi' => $row['deskripsi'] ?? null,
                         'qty' => $row['qty'] ?? null,
                         'satuan' => $row['satuan'] ?? null,
@@ -512,6 +513,14 @@ class PenawaranController extends Controller
                         'delivery_time' => $row['delivery_time'] ?? null,
                         'version_id' => $version_id, // pastikan selalu isi version_id
                     ];
+
+                    // Cari tipe_id berdasarkan tipe_name
+                    if (!empty($row['tipe'])) {
+                        $tipeRecord = \App\Models\Tipe::where('nama', $row['tipe'])->first();
+                        if ($tipeRecord) {
+                            $values['tipe_id'] = $tipeRecord->id;
+                        }
+                    }
 
                     if (isset($existingDetails[$key])) {
                         $existingDetails[$key]->update($values);

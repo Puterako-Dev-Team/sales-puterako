@@ -5,6 +5,7 @@ use App\Models\Rekap;
 use App\Models\Penawaran;
 use App\Models\RekapKategori;
 use App\Models\RekapItem;
+use App\Models\Tipe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -139,9 +140,16 @@ class RekapController extends Controller
         ]);
 
         foreach ($request->items as $item) {
+            // Cari atau buat tipe berdasarkan nama_item
+            $tipe = Tipe::firstOrCreate(
+                ['nama' => $item['nama_item']],
+                ['nama' => $item['nama_item']]
+            );
+
             RekapItem::create([
                 'rekap_id' => $rekap_id,
                 'rekap_kategori_id' => $item['rekap_kategori_id'],
+                'tipes_id' => $tipe->id,
                 'nama_item' => $item['nama_item'],
                 'detail' => $item['detail'], // otomatis array->json via casts
             ]);
@@ -187,9 +195,16 @@ class RekapController extends Controller
         // Hapus semua item lama, lalu insert ulang
         $rekap->items()->delete();
         foreach ($request->items as $item) {
+            // Cari atau buat tipe berdasarkan nama_item
+            $tipe = Tipe::firstOrCreate(
+                ['nama' => $item['nama_item']],
+                ['nama' => $item['nama_item']]
+            );
+
             RekapItem::create([
                 'rekap_id' => $rekap->id,
                 'rekap_kategori_id' => $item['rekap_kategori_id'],
+                'tipes_id' => $tipe->id,
                 'nama_item' => $item['nama_item'],
                 'detail' => $item['detail'],
             ]);
@@ -216,9 +231,16 @@ class RekapController extends Controller
 
         // Insert ulang item dari form
         foreach ($request->items as $item) {
+            // Cari atau buat tipe berdasarkan nama_item
+            $tipe = Tipe::firstOrCreate(
+                ['nama' => $item['nama_item']],
+                ['nama' => $item['nama_item']]
+            );
+
             RekapItem::create([
                 'rekap_id' => $rekap_id,
                 'rekap_kategori_id' => $item['rekap_kategori_id'],
+                'tipes_id' => $tipe->id,
                 'nama_item' => $item['nama_item'],
                 'detail' => $item['detail'],
             ]);
@@ -234,5 +256,19 @@ class RekapController extends Controller
         $rekap->items()->delete();
         $rekap->delete();
         return redirect()->route('rekap.list')->with('success', 'Rekap berhasil dihapus');
+    }
+
+    // API endpoint untuk mendapatkan daftar nama tipe unik dari tabel tipes
+    public function getItemNames(Request $request)
+    {
+        $query = $request->get('q', '');
+        $tipes = Tipe::where('nama', 'LIKE', "%{$query}%")
+            ->select('nama')
+            ->orderBy('nama')
+            ->limit(20)
+            ->get()
+            ->pluck('nama');
+
+        return response()->json($tipes);
     }
 }

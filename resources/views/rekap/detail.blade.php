@@ -181,9 +181,11 @@
                                 </div>
                                 <div class="flex-1">
                                     <label class="block text-sm font-medium mb-1 text-gray-700">Nama Item</label>
-                                    <input type="text" name="items[0][nama_item]"
-                                        class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200"
-                                        placeholder="Nama Item" required>
+                                    <select name="items[0][nama_item]"
+                                        class="nama-item-select border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200"
+                                        placeholder="Cari atau ketik nama item..." required>
+                                        <option value="">Pilih atau ketik nama item</option>
+                                    </select>
                                 </div>
                                 <div class="flex items-end">
                                     <button type="button" class="btn-remove-item bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition">
@@ -254,7 +256,9 @@
             </div>
             <div class="flex-1">
                 <label class="block text-sm font-medium mb-1 text-gray-700">Nama Item</label>
-                <input type="text" name="items[${idx}][nama_item]" class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" placeholder="Nama Item" required>
+                <select name="items[${idx}][nama_item]" class="nama-item-select border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" placeholder="Cari atau ketik nama item..." required>
+                    <option value="">Pilih atau ketik nama item</option>
+                </select>
             </div>
             <div class="flex items-end">
                 <button type="button" class="btn-remove-item bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition">
@@ -359,7 +363,9 @@
                         </div>
                         <div class="flex-1">
                             <label class="block text-sm font-medium mb-1 text-gray-700">Nama Item</label>
-                            <input type="text" name="items[${idx}][nama_item]" class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" value="${item.nama_item}" required>
+                            <select name="items[${idx}][nama_item]" class="nama-item-select border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" placeholder="Cari atau ketik nama item..." required>
+                                <option value="${item.nama_item}" selected>${item.nama_item}</option>
+                            </select>
                         </div>
                         <div class="flex items-end">
                             <button type="button" class="btn-remove-item bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition">
@@ -415,5 +421,64 @@
                 location.reload(); // Reload untuk reset ke state awal
             });
         }
+
+        // Initialize Tom Select for nama item dropdowns
+        function initializeTomSelect() {
+            document.querySelectorAll('.nama-item-select').forEach(select => {
+                if (!select.tomselect) {
+                    new TomSelect(select, {
+                        create: true,
+                        createOnBlur: true,
+                        maxOptions: 50,
+                        placeholder: 'Cari atau ketik nama item...',
+                        searchField: ['text'],
+                        load: function(query, callback) {
+                            if (query.length < 2) return callback();
+
+                            fetch(`{{ route('rekap.item-names') }}?q=${encodeURIComponent(query)}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    callback(data.map(item => ({ value: item, text: item })));
+                                })
+                                .catch(() => {
+                                    callback();
+                                });
+                        },
+                        render: {
+                            option_create: function(data, escape) {
+                                return '<div class="create">Tambah <strong>' + escape(data.input) + '</strong>&hellip;</div>';
+                            },
+                            no_results: function(data, escape) {
+                                return '<div class="no-results">Tidak ada hasil untuk "' + escape(data.input) + '"</div>';
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTomSelect();
+        });
+
+        // Re-initialize after adding new items
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-add-item')) {
+                // Wait for DOM update
+                setTimeout(initializeTomSelect, 100);
+            }
+        });
+
+        // Re-initialize after edit mode
+        if (btnEdit) {
+            btnEdit.addEventListener('click', function() {
+                setTimeout(initializeTomSelect, 200);
+            });
+        }
     </script>
+
+    {{-- Include Tom Select CSS and JS --}}
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 @endsection

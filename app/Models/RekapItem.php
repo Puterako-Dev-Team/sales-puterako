@@ -12,6 +12,7 @@ class RekapItem extends Model
     protected $fillable = [
         'rekap_id',
         'rekap_kategori_id',
+        'tipes_id',
         'nama_item',
         'detail'
     ];
@@ -28,5 +29,10 @@ class RekapItem extends Model
     public function kategori()
     {
         return $this->belongsTo(RekapKategori::class, 'rekap_kategori_id', 'id');
+    }
+
+    public function tipe()
+    {
+        return $this->belongsTo(Tipe::class, 'tipes_id', 'id');
     }
 }

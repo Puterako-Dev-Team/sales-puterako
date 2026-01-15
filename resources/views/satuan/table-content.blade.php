@@ -1,0 +1,86 @@
+<div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+        <thead>
+            <tr class="bg-green-500 text-white">
+                <th class="px-4 py-3 text-left font-semibold rounded-tl-md">
+                    <button class="sort-button flex items-center gap-1 hover:bg-green-600 rounded px-2 py-1 transition"
+                            data-column="nama" data-direction="{{ request('sort') == 'nama' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
+                        Nama Satuan
+                        @if(request('sort') == 'nama')
+                            @if(request('direction') == 'asc')
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M3 3v18l7-7 7 7V3z"/>
+                                </svg>
+                            @else
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M17 17V3l-7 7-7-7v14z"/>
+                                </svg>
+                            @endif
+                        @else
+                            <svg class="w-4 h-4 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M5 12l5-5 5 5H5z"/>
+                            </svg>
+                        @endif
+                    </button>
+                </th>
+                <th class="px-4 py-3 text-left font-semibold">
+                    <button class="sort-button flex items-center gap-1 hover:bg-green-600 rounded px-2 py-1 transition"
+                            data-column="created_at" data-direction="{{ request('sort') == 'created_at' && request('direction') == 'asc' ? 'desc' : 'asc' }}">
+                        Dibuat
+                        @if(request('sort') == 'created_at')
+                            @if(request('direction') == 'asc')
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M3 3v18l7-7 7 7V3z"/>
+                                </svg>
+                            @else
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M17 17V3l-7 7-7-7v14z"/>
+                                </svg>
+                            @endif
+                        @else
+                            <svg class="w-4 h-4 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M5 12l5-5 5 5H5z"/>
+                            </svg>
+                        @endif
+                    </button>
+                </th>
+                <th class="px-4 py-3 text-center font-semibold rounded-tr-md">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($satuans as $satuan)
+                <tr class="border-b hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 font-medium">{{ $satuan->nama }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ $satuan->created_at->format('d M Y, H:i') }}</td>
+                    <td class="px-4 py-3 text-center">
+                        <div class="flex gap-2 justify-center">
+                            <button class="btn-edit bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition-colors"
+                                    data-id="{{ $satuan->id }}" title="Edit">
+                                <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button class="btn-delete bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600 transition-colors"
+                                    data-id="{{ $satuan->id }}" title="Hapus">
+                                <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="3" class="py-8 text-center">
+                        <div class="flex flex-col items-center justify-center text-gray-500 gap-2">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span>Tidak ada satuan yang ditemukan</span>
+                        </div>
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>

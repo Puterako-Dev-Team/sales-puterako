@@ -540,6 +540,9 @@
                         @php
                             $userRole = Auth::user()->role ?? 'staff'; // Assuming users table has role column
                             $isApprover = in_array($userRole, ['supervisor', 'manager', 'direktur']);
+                            $approval = \App\Models\ExportApprovalRequest::where('penawaran_id', $penawaran->id_penawaran)
+                                ->where('version_id', $activeVersionId ?? null)
+                                ->first();
                         @endphp
 
                         @if($isApprover)
@@ -574,7 +577,7 @@
 
                                 <!-- Right: Slider Verification -->
                                 <div class="rounded-lg p-4" style="background-color: #f0fdf4; border: 1px solid #dcfce7;">
-                                    <p class="text-sm font-semibold mb-3 text-center" style="color: #166534;">Geser ke kanan untuk request verifikasi</p>
+                                    <p id="verificationHeaderText" class="text-sm font-semibold mb-3 text-center" style="color: #166534;">Geser ke kanan untuk request verifikasi</p>
                                     <div class="relative h-12 bg-white border-2 rounded-full flex items-center cursor-grab active:cursor-grabbing select-none" 
                                         id="verificationSlider"
                                         style="touch-action: none; border-color: #22c55e;">
@@ -599,19 +602,117 @@
                                 </div>
                             </div>
 
-                            <!-- Export Button (Disabled until approved) -->
+                            <!-- Status Verifikasi Jabatan Manajerial -->
+                            @php
+                                $roles = [
+                                    'supervisor' => [
+                                        'label' => 'Supervisor',
+                                        'approved_by' => 'approved_by_supervisor',
+                                        'approved_at' => 'approved_at_supervisor',
+                                    ],
+                                    'manager' => [
+                                        'label' => 'Manajer',
+                                        'approved_by' => 'approved_by_manager',
+                                        'approved_at' => 'approved_at_manager',
+                                    ],
+                                    'direktur' => [
+                                        'label' => 'Direktur',
+                                        'approved_by' => 'approved_by_direktur',
+                                        'approved_at' => 'approved_at_direktur',
+                                    ],
+                                ];
+                            @endphp
+
+                            <div class="grid grid-cols-3 gap-4 mb-4">
+                                @foreach ($roles as $roleKey => $roleData)
+                                    @php
+                                        $approvedBy = $approval ? $approval->{$roleData['approved_by']} : null;
+                                        $approvedAt = $approval ? $approval->{$roleData['approved_at']} : null;
+                                        $isApproved = $approvedBy && $approvedAt;
+                                        
+                                        if ($approvedBy) {
+                                            $approver = \App\Models\User::find($approvedBy);
+                                            $approverName = $approver ? $approver->name : 'Unknown';
+                                        } else {
+                                            $approverName = '-';
+                                        }
+                                    @endphp
+
+                                    <div class="border rounded-lg p-4" style="border-color: {{ $isApproved ? '#22c55e' : '#cbd5e1' }}; background-color: {{ $isApproved ? '#f0fdf4' : '#f8fafc' }};">
+                                        <!-- Status Icon & Text -->
+                                        <div class="flex items-center justify-center mb-3">
+                                            @if ($isApproved)
+                                                <div class="flex items-center justify-center w-10 h-10 rounded-full" style="background-color: #22c55e;">
+                                                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <span class="ml-2 text-sm font-semibold text-green-700">Disetujui</span>
+                                            @else
+                                                <div class="flex items-center justify-center w-10 h-10 rounded-full" style="background-color: #e2e8f0;">
+                                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </div>
+                                                <span class="ml-2 text-sm font-semibold text-gray-500">Menunggu</span>
+                                            @endif
+                                        </div>
+
+                                        <!-- Role -->
+                                        <div class="text-center mb-3">
+                                            <p class="text-sm font-semibold text-gray-700">{{ $roleData['label'] }}</p>
+                                        </div>
+
+                                        <!-- Separator -->
+                                        <div class="border-t mb-3" style="border-color: {{ $isApproved ? '#dcfce7' : '#e2e8f0' }};"></div>
+
+                                        <!-- Nama -->
+                                        <div class="mb-2">
+                                            <p class="text-xs text-gray-500 mb-1">Nama:</p>
+                                            <p class="text-sm font-semibold text-gray-800">{{ $approverName }}</p>
+                                        </div>
+
+                                        <!-- Tanggal Approved -->
+                                        <div>
+                                            <p class="text-xs text-gray-500 mb-1">Tanggal Disetujui:</p>
+                                            <p class="text-sm font-semibold text-gray-800">
+                                                @if ($approvedAt)
+                                                    {{ \Carbon\Carbon::parse($approvedAt)->locale('id')->translatedFormat('d F Y') }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </p>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <!-- Export Button: enabled only when fully approved -->
                             <div class="text-right">
-                                <button type="button"
-                                    disabled
-                                    class="bg-gray-400 text-white px-6 py-2 rounded cursor-not-allowed font-semibold shadow-md opacity-60"
-                                    title="Tombol akan aktif setelah disetujui oleh supervisor, manager, atau direktur">
-                                    <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
-                                        </path>
-                                    </svg>
-                                    Export PDF (Belum diverifikasi)
-                                </button>
+                                @if($approval && $approval->status === 'fully_approved')
+                                    <a href="{{ route('penawaran.exportPdf', ['id' => $penawaran->id_penawaran, 'version' => $activeVersion]) }}"
+                                        target="_blank"
+                                        class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition font-semibold shadow-md">
+                                        <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
+                                            </path>
+                                        </svg>
+                                        Export PDF
+                                    </a>
+                                @else
+                                    <button type="button"
+                                        disabled
+                                        class="bg-gray-400 text-white px-6 py-2 rounded cursor-not-allowed font-semibold shadow-md opacity-60"
+                                        title="Tombol akan aktif setelah disetujui oleh supervisor, manager, atau direktur">
+                                        <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
+                                            </path>
+                                        </svg>
+                                        Export PDF (Belum diverifikasi)
+                                    </button>
+                                @endif
                             </div>
                         @endif
                     </div>
@@ -1067,10 +1168,61 @@
                             
                             if (tab === 'Jasa' && !penawaranSaved) {
                                 btn.classList.add('locked');
-                            } else if (tab === 'preview' && !jasaSaved) {
+                            } else if (tab === 'preview' && (!penawaranSaved || !jasaSaved)) {
                                 btn.classList.add('locked');
                             }
                         });
+                    }
+
+                    // =====================================================
+                    // FUNGSI VALIDASI PENAWARAN LENGKAP
+                    // =====================================================
+                    function isPenawaranComplete() {
+                        // Check if all sections have data
+                        if (sections.length === 0) return false;
+                        
+                        for (const section of sections) {
+                            const sectionElement = document.getElementById(section.id);
+                            if (!sectionElement) continue;
+                            
+                            const areaSelect = sectionElement.querySelector('.area-select');
+                            const namaSectionInput = sectionElement.querySelector('.nama-section-input');
+                            const rawData = section.spreadsheet.getData();
+                            
+                            // Check area dan nama section tidak kosong
+                            if (!areaSelect.value || areaSelect.value.trim() === '') return false;
+                            if (!namaSectionInput.value || namaSectionInput.value.trim() === '') return false;
+                            
+                            // Check minimal ada 1 baris data yang valid
+                            let hasValidRow = false;
+                            for (const row of rawData) {
+                                const hasSignificantData = row.some((cell, idx) => {
+                                    if ([0, 1, 2, 4].includes(idx)) return cell && String(cell).trim() !== '';
+                                    if ([3, 5, 6, 7, 11].includes(idx)) return parseNumber(cell) > 0;
+                                    return false;
+                                });
+                                
+                                if (hasSignificantData) {
+                                    const tipe = row[1];
+                                    const deskripsi = String(row[2] || '').trim();
+                                    const qty = parseNumber(row[3]);
+                                    const satuan = String(row[4] || '').trim();
+                                    const hpp = parseNumber(row[7]);
+                                    const profit = parseNumber(row[9]);
+                                    const warna = row[10];
+                                    
+                                    // All required fields must be filled
+                                    if (tipe && deskripsi && qty > 0 && satuan && hpp > 0 && profit >= 0 && warna) {
+                                        hasValidRow = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (!hasValidRow) return false;
+                        }
+                        
+                        return true;
                     }
 
                     // =====================================================
@@ -1086,13 +1238,24 @@
 
                             // Validasi sebelum switch tab
                             if (targetTab === 'Jasa' && !penawaranSaved) {
-                                notyf.error('⚠️ Silakan selesaikan dan simpan data Penawaran terlebih dahulu!');
-                                return;
+                                if (!isPenawaranComplete()) {
+                                    notyf.error('⚠️ Silakan lengkapi dan simpan data Penawaran terlebih dahulu!');
+                                    return;
+                                }
                             }
                             
-                            if (targetTab === 'preview' && !jasaSaved) {
-                                notyf.error('⚠️ Silakan selesaikan dan simpan data Rincian Jasa terlebih dahulu!');
-                                return;
+                            if (targetTab === 'preview' && (!penawaranSaved || !jasaSaved)) {
+                                let errorMsg = '';
+                                if (!penawaranSaved) {
+                                    errorMsg = '⚠️ Silakan lengkapi dan simpan data Penawaran terlebih dahulu!';
+                                } else if (!jasaSaved) {
+                                    errorMsg = '⚠️ Silakan lengkapi dan simpan data Rincian Jasa terlebih dahulu!';
+                                }
+                                
+                                if (errorMsg) {
+                                    notyf.error(errorMsg);
+                                    return;
+                                }
                             }
 
                             // Save current tab to localStorage
@@ -1115,6 +1278,11 @@
                                     panel.classList.add('hidden');
                                 }
                             });
+
+                            if (targetTab === 'preview') {
+                                // Tell the slider logic that preview became visible
+                                document.dispatchEvent(new CustomEvent('previewTabShown'));
+                            }
 
                             // Jasa data sudah di-load saat page load, jadi tidak perlu load lagi
                         });
@@ -2450,14 +2618,45 @@
                     const sliderThumb = document.getElementById('sliderThumb');
                     const sliderTrack = document.getElementById('sliderTrack');
                     const sliderText = document.getElementById('sliderText');
+                    const sliderHeader = document.getElementById('verificationHeaderText');
                     const ringkasanInput = document.getElementById('ringkasan');
                     const noteInput = document.getElementById('note');
+                    const initialRequestSent = @json((bool) $approval);
+                    const initialApprovalStatus = @json($approval->status ?? null);
 
                     if (!slider) return; // Skip if not on staff role
 
                     let isDragging = false;
-                    let hasRequestedVerification = false;
+                    let hasRequestedVerification = initialRequestSent;
                     let currentX = 0; // Track current position
+
+                    function lockSlider(text = '✅ Permintaan verifikasi telah dikirim') {
+                        const rect = slider.getBoundingClientRect();
+                        if (!rect.width) {
+                            // Retry after layout (e.g. when tab becomes visible)
+                            setTimeout(() => lockSlider(text), 120);
+                            return;
+                        }
+
+                        const maxLeft = rect.width - sliderThumb.offsetWidth - 4;
+                        sliderThumb.style.transition = 'left 0.25s ease';
+                        sliderTrack.style.transition = 'width 0.25s ease';
+                        sliderThumb.style.left = `${maxLeft}px`;
+                        sliderTrack.style.width = '100%';
+                        slider.style.pointerEvents = 'none';
+                        slider.style.opacity = '0.7';
+                        sliderText.textContent = text;
+                        sliderText.style.opacity = '1';
+                        if (sliderHeader) {
+                            sliderHeader.textContent = text.replace('✅ ', '');
+                        }
+                        currentX = maxLeft;
+                        hasRequestedVerification = true;
+                        setTimeout(() => {
+                            sliderThumb.style.transition = 'none';
+                            sliderTrack.style.transition = 'none';
+                        }, 250);
+                    }
                     
                     // Calculate slider width properly
                     function getSliderWidth() {
@@ -2509,6 +2708,7 @@
 
                     // Spring back animation
                     function springBack() {
+                        if (hasRequestedVerification) return;
                         sliderThumb.style.transition = 'left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
                         sliderTrack.style.transition = 'width 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
                         sliderThumb.style.left = '4px';
@@ -2522,6 +2722,23 @@
 
                     // Initial validation check
                     checkPreviewValidation();
+
+                    // Lock slider if request already exists
+                    if (initialRequestSent) {
+                        requestAnimationFrame(() => {
+                            const lockedMessage = initialApprovalStatus === 'fully_approved'
+                                ? '✅ Permintaan verifikasi telah disetujui'
+                                : '✅ Permintaan verifikasi telah dikirim!';
+                            lockSlider(lockedMessage);
+                        });
+                    }
+
+                    // Re-lock when preview tab becomes visible (width becomes non-zero)
+                    document.addEventListener('previewTabShown', () => {
+                        if (hasRequestedVerification || initialRequestSent) {
+                            lockSlider(sliderText.textContent || '✅ Permintaan verifikasi telah dikirim!');
+                        }
+                    });
 
                     // Update validation on input change
                     if (ringkasanInput) ringkasanInput.addEventListener('input', checkPreviewValidation);
@@ -2575,9 +2792,7 @@
     .then(data => {
         if (data.success) {
             notyf.success('✅ ' + data.message);
-            slider.style.pointerEvents = 'none';
-            slider.style.opacity = '0.5';
-            sliderText.textContent = '✅ Permintaan verifikasi telah dikirim';
+            lockSlider('✅ Permintaan verifikasi telah dikirim!');
         } else {
             throw new Error(data.message || 'Request gagal');
         }
@@ -2600,6 +2815,7 @@
 
                     // Mouse events - DRAG ONLY WHEN MOVING MOUSE
                     slider.addEventListener('mousedown', (e) => {
+                        if (hasRequestedVerification) return;
                         if (!checkPreviewValidation()) {
                             notyf.error('⚠️ Silakan isi Ringkasan Jasa dan Notes terlebih dahulu!');
                             return;
@@ -2657,6 +2873,7 @@
 
                     // Touch events for mobile - DRAG ONLY WHEN TOUCHING
                     slider.addEventListener('touchstart', (e) => {
+                        if (hasRequestedVerification) return;
                         if (!checkPreviewValidation()) {
                             notyf.error('⚠️ Silakan isi Ringkasan Jasa dan Notes terlebih dahulu!');
                             return;
