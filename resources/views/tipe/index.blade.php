@@ -111,14 +111,14 @@
     <div class="container mx-auto p-8">
         <div class="flex justify-between items-center mb-6">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">Kelola Tipe</h1>
-                <p class="text-gray-600 mt-1">Manage tipe data</p>
+                <h1 class="text-2xl font-bold text-gray-900">Kelola Barang</h1>
+                <p class="text-gray-600 mt-1">Manage data barang</p>
             </div>
             <button id="btnTambah" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
-                Tambah Tipe
+                Tambah Barang
             </button>
         </div>
 
@@ -127,8 +127,8 @@
             <form id="filterForm">
                 <div class="filter-grid">
                     <div class="filter-item">
-                        <label for="q">Cari Tipe</label>
-                        <input type="text" id="q" name="q" class="filter-input" placeholder="Nama tipe..." value="{{ request('q') }}">
+                        <label for="q">Cari Barang</label>
+                        <input type="text" id="q" name="q" class="filter-input" placeholder="Nama barang..." value="{{ request('q') }}">
                     </div>
                     <div class="filter-item">
                         <button type="button" id="resetFilter" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors">
@@ -167,7 +167,7 @@
             <div class="flex flex-col h-full">
                 <!-- Header -->
                 <div class="flex items-center justify-between p-6 border-b border-gray-200">
-                    <h2 id="formTitle" class="text-lg font-semibold text-gray-900">Tambah Tipe</h2>
+                    <h2 id="formTitle" class="text-lg font-semibold text-gray-900">Tambah Barang</h2>
                     <button id="closeForm" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -183,8 +183,8 @@
 
                     <div class="flex-1 overflow-y-auto p-6 space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Tipe</label>
-                            <input type="text" id="f_nama" name="nama" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Masukkan nama tipe">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Barang</label>
+                            <input type="text" id="f_nama" name="nama" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Masukkan nama barang">
                         </div>
                     </div>
 
@@ -205,7 +205,7 @@
     <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded shadow p-6 w-full max-w-sm">
             <h3 class="text-lg font-semibold mb-4">Konfirmasi Hapus</h3>
-            <p class="text-gray-600 mb-6">Yakin ingin menghapus tipe ini?</p>
+            <p class="text-gray-600 mb-6">Yakin ingin menghapus barang ini?</p>
             <div class="flex gap-3">
                 <button id="btnCancelDelete" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 px-4 rounded transition-colors">
                     Batal
