@@ -262,8 +262,15 @@ class RekapController extends Controller
     public function getItemNames(Request $request)
     {
         $query = $request->get('q', '');
-        $tipes = Tipe::where('nama', 'LIKE', "%{$query}%")
-            ->select('nama')
+        
+        $tipes = Tipe::query();
+        
+        if (!empty($query)) {
+            $tipes->where('nama', 'like', "%{$query}%");
+        }
+        
+        $tipes = $tipes->select('nama')
+            ->distinct()
             ->orderBy('nama')
             ->limit(20)
             ->get()

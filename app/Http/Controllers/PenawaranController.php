@@ -16,6 +16,12 @@ class PenawaranController extends Controller
     {
         $query = \App\Models\Penawaran::with('user'); // Eager load user
 
+        // Staff role hanya bisa melihat penawaran mereka sendiri
+        $userRole = Auth::user()->role ?? null;
+        if ($userRole === 'staff') {
+            $query->where('user_id', Auth::id());
+        }
+
         // Filter berdasarkan tanggal
         if ($request->filled('tanggal_dari')) {
             $query->whereDate('created_at', '>=', $request->tanggal_dari);
@@ -337,6 +343,12 @@ class PenawaranController extends Controller
         $version = $request->query('version');
 
         $penawaran = \App\Models\Penawaran::find($id);
+
+        // Staff role hanya bisa melihat penawaran mereka sendiri
+        $userRole = Auth::user()->role ?? null;
+        if ($userRole === 'staff' && $penawaran && $penawaran->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access to this penawaran');
+        }
 
         $hasVersions = \App\Models\PenawaranVersion::where('penawaran_id', $id)->exists();
         if (!$hasVersions) {

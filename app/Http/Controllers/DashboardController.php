@@ -28,7 +28,7 @@ class DashboardController extends Controller
                 ->limit(10)
                 ->get();
 
-            // 2. Penawaran per PIC Admin per status with company details
+            // 2. Penawaran per PIC Admin per status
             $picStats = \App\Models\User::whereHas('penawarans')
                 ->withCount([
                     'penawarans as draft' => function ($q) {
@@ -43,26 +43,12 @@ class DashboardController extends Controller
                 ])
                 ->get(['id', 'name'])
                 ->map(function ($user) {
-                    $penawarans = \App\Models\Penawaran::where('user_id', $user->id)
-                        ->select('nama_perusahaan', 'created_at')
-                        ->orderByDesc('created_at')
-                        ->get()
-                        ->map(function ($penawaran) {
-                            $daysElapsed = max(0, intval(now()->diffInDays($penawaran->created_at)));
-                            return [
-                                'nama_perusahaan' => $penawaran->nama_perusahaan,
-                                'created_at' => $penawaran->created_at,
-                                'days_elapsed' => $daysElapsed
-                            ];
-                        });
-
                     return [
                         'name' => $user->name,
                         'draft' => $user->draft,
                         'success' => $user->success,
                         'lost' => $user->lost,
-                        'total' => $user->draft + $user->success + $user->lost,
-                        'companies' => $penawarans
+                        'total' => $user->draft + $user->success + $user->lost
                     ];
                 });
 

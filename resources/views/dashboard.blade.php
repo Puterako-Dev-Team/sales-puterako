@@ -22,9 +22,6 @@
                         <div style="height: 250px;">
                             <canvas id="picChart"></canvas>
                         </div>
-                        <div id="picChartTooltip"
-                            style="display: none; position: absolute; background-color: white; border: 1px solid #ccc; border-radius: 4px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); max-width: 250px; z-index: 1000; font-size: 12px;">
-                        </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                         <!-- Perusahaan Terbanyak -->
@@ -73,7 +70,7 @@
     @if ($canViewCharts)
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
-            // 1. Bar Chart Perusahaan
+            // 1. Horizontal Bar Chart Perusahaan
             const companyChart = new Chart(document.getElementById('companyChart'), {
                 type: 'bar',
                 data: {
@@ -87,13 +84,29 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    indexAxis: 'y',
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 12
+                            },
+                            bodyFont: {
+                                size: 11
+                            },
+                            padding: 10,
+                            cornerRadius: 4,
+                            displayColors: false
                         }
                     },
                     scales: {
-                        y: {
+                        x: {
                             beginAtZero: true,
                             ticks: {
                                 font: {
@@ -101,89 +114,33 @@
                                 }
                             }
                         },
-                        x: {
+                        y: {
                             ticks: {
                                 font: {
                                     size: 9
                                 }
                             }
                         }
-                    },
-                    onClick: (e, elements) => {
-                        if (elements.length) {
-                            const idx = elements[0].index;
-                            alert('Perusahaan: ' + {!! json_encode($topCompanies->pluck('nama_perusahaan')) !!}[idx]);
-                        }
                     }
                 }
             });
 
-            // 2. Bar Chart PIC Admin - Total Penawaran dengan hover details
+            // 2. Bar Chart PIC Admin - Total Penawaran dengan tooltip detail status
             const picStats = {!! json_encode($picStats) !!};
             const picLabels = picStats.map(x => x.name);
             const picTotals = picStats.map(x => x.total);
-
-            // Create custom plugin for tooltip
-            const picTooltipPlugin = {
-                id: 'picTooltipPlugin',
-                afterDraw(chart) {
-                    const canvas = chart.canvas;
-                    const tooltip = document.getElementById('picChartTooltip');
-
-                    canvas.addEventListener('mousemove', (e) => {
-                        const canvasPosition = Chart.helpers.getRelativePosition(e, chart);
-                        const dataX = chart.scales.x.getValueForPixel(canvasPosition.x);
-                        const dataY = chart.scales.y.getValueForPixel(canvasPosition.y);
-
-                        if (dataX >= 0 && dataX < picStats.length && dataY >= 0) {
-                            const idx = Math.floor(dataX);
-                            const pic = picStats[idx];
-
-                            // Generate tooltip content
-                            let tooltipContent = `<strong>${pic.name}</strong><br/>`;
-                            tooltipContent += `<span style="color: #666;">Total Penawaran: ${pic.total}</span><br/>`;
-                            tooltipContent += `<hr style="margin: 5px 0; border: none; border-top: 1px solid #ddd;"/>`;
-
-                            // Show max 5 companies
-                            const maxCompanies = 5;
-                            const companies = pic.companies.slice(0, maxCompanies);
-
-                            companies.forEach(company => {
-                                tooltipContent += `<div style="margin: 4px 0;">`;
-                                tooltipContent += `<strong>${company.nama_perusahaan}</strong><br/>`;
-                                tooltipContent += `<span style="color: #999;">hari ke-${company.days_elapsed}</span>`;
-                                tooltipContent += `</div>`;
-                            });
-
-                            if (pic.companies.length > maxCompanies) {
-                                const remaining = pic.companies.length - maxCompanies;
-                                tooltipContent += `<div style="margin-top: 5px; color: #666; font-size: 11px; font-style: italic;">+${remaining} perusahaan lagi</div>`;
-                            }
-
-                            tooltip.innerHTML = tooltipContent;
-                            tooltip.style.display = 'block';
-                            tooltip.style.left = (e.clientX + 10) + 'px';
-                            tooltip.style.top = (e.clientY + 10) + 'px';
-                        } else {
-                            tooltip.style.display = 'none';
-                        }
-                    });
-
-                    canvas.addEventListener('mouseleave', () => {
-                        tooltip.style.display = 'none';
-                    });
-                }
-            };
 
             const picChart = new Chart(document.getElementById('picChart'), {
                 type: 'bar',
                 data: {
                     labels: picLabels,
-                    datasets: [{
-                        label: 'Total Penawaran',
-                        data: picTotals,
-                        backgroundColor: '#0A6847'
-                    }]
+                    datasets: [
+                        {
+                            label: 'Total Penawaran',
+                            data: picTotals,
+                            backgroundColor: '#0A6847'
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
@@ -193,7 +150,29 @@
                             display: true
                         },
                         tooltip: {
-                            enabled: false // Disable default tooltip
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 12
+                            },
+                            bodyFont: {
+                                size: 11
+                            },
+                            padding: 10,
+                            cornerRadius: 4,
+                            displayColors: true,
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const pic = picStats[context.dataIndex];
+                                    return [
+                                        'Draft: ' + pic.draft,
+                                        'Success: ' + pic.success,
+                                        'Lost: ' + pic.lost
+                                    ];
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -213,8 +192,7 @@
                             }
                         }
                     }
-                },
-                plugins: [picTooltipPlugin]
+                }
             });
 
             // 3. Pie Chart Status
@@ -248,12 +226,24 @@
                                 boxWidth: 12,
                                 padding: 8
                             }
-                        }
-                    },
-                    onClick: (e, elements) => {
-                        if (elements.length) {
-                            const idx = elements[0].index;
-                            alert('Status: ' + statusLabels[idx]);
+                        },
+                        tooltip: {
+                            enabled: true,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 12
+                            },
+                            bodyFont: {
+                                size: 11
+                            },
+                            padding: 10,
+                            cornerRadius: 4,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed;
+                                }
+                            }
                         }
                     }
                 }
