@@ -14,6 +14,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ExportApprovalController;
 use App\Http\Controllers\TipeController;
 use App\Http\Controllers\SatuanController;
+use App\Http\Controllers\HolidayController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -132,6 +133,11 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{user}', [UserController::class, 'destroy'])->name('users.destroy');
         Route::get('/permissions', [UserController::class, 'permissions'])->name('users.permissions');
         Route::post('/{user}/permissions', [UserController::class, 'updatePermissions'])->name('users.permissions.update');
+        Route::get('/atur-hari-kerja', [HolidayController::class, 'index'])->name('holidays.index');
+        Route::get('/atur-hari-kerja/data', [HolidayController::class, 'getData'])->name('holidays.getData');
+        Route::post('/atur-hari-kerja/sync', [HolidayController::class, 'syncFromAPI'])->name('holidays.sync');
+        Route::put('/atur-hari-kerja/{id}', [HolidayController::class, 'update'])->name('holidays.update');
+        Route::delete('/atur-hari-kerja/{id}', [HolidayController::class, 'destroy'])->name('holidays.destroy');
     });
 
     Route::prefix('followup')->name('followup.')->group(function () {

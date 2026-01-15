@@ -6,7 +6,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Puterako Super App</title>
-
+    
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <link rel="stylesheet" href="//cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
     <script src="//cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -545,6 +546,16 @@
                                                 </path>
                                             </svg>
                                             <span class="menu-label show text-sm text-gray-700">List Users</span>
+                                        </a>
+                                        <a href="{{ route('holidays.index') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                                </path>
+                                            </svg>
+                                            <span class="menu-label show text-sm text-gray-700">Atur Hari Kerja</span>
                                         </a>
                                         <a href="{{ route('users.permissions') }}"
                                             class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
