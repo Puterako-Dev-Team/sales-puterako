@@ -134,6 +134,8 @@
             <div class="p-6">
                 <form id="rekapForm" method="POST" action="{{ route('rekap.store') }}">
                     @csrf
+                    <input type="hidden" id="rekapMethodField" name="_method" value="">
+                    <input type="hidden" id="rekapEditId" value="">
                     <div class="space-y-4">
                         <div>
                             <label class="block mb-2 font-medium text-sm text-gray-700">Nama Rekap</label>
@@ -141,10 +143,10 @@
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" required>
                         </div>
                         <div>
-                            <label class="block mb-2 font-medium text-sm text-gray-700">No Penawaran</label>
+                            <label class="block mb-2 font-medium text-sm text-gray-700">No Penawaran <span class="text-gray-500 text-xs">(Opsional)</span></label>
                             <select name="penawaran_id" id="f_penawaran_id"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" required>
-                                <option value="">Pilih Penawaran...</option>
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <option value="">- Pilih Penawaran (Opsional) -</option>
                                 @foreach ($penawarans as $p)
                                     <option value="{{ $p->id_penawaran }}" data-perusahaan="{{ $p->nama_perusahaan }}">
                                         {{ $p->no_penawaran }}
@@ -155,8 +157,9 @@
                         <div>
                             <label class="block mb-2 font-medium text-sm text-gray-700">Nama Perusahaan</label>
                             <input type="text" name="nama_perusahaan" id="f_nama_perusahaan"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100" readonly
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50"
                                 required>
+                            <small class="text-gray-500 text-xs mt-1 block">Isi dari dropdown No Penawaran atau ketik manual</small>
                         </div>
                     </div>
                     <div class="mt-8 pt-6 border-t border-gray-100">
@@ -170,6 +173,21 @@
         </div>
     </div>
 
+    <!-- Modal Konfirmasi Hapus -->
+    <div id="confirmDeleteModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+        <div class="bg-white rounded shadow p-6 w-full max-w-sm mx-4">
+            <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
+                <x-lucide-alert-circle class="w-5 h-5 text-red-500" />
+                Hapus Rekap?
+            </h3>
+            <p class="text-sm text-gray-600 mb-4">Anda yakin ingin menghapus rekap <strong id="deleteRekapName"></strong>? Data akan dipindahkan ke trash dan dapat dipulihkan kembali.</p>
+            <div class="flex justify-end gap-3">
+                <button id="btnCancelDelete" class="px-4 py-2 border rounded text-sm hover:bg-gray-50">Batal</button>
+                <button id="btnConfirmDelete" class="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">Hapus</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const btnTambahRekap = document.getElementById('btnTambahRekap');
         const formSlideRekap = document.getElementById('formSlideRekap');
@@ -178,37 +196,280 @@
         const rekapForm = document.getElementById('rekapForm');
         const f_penawaran_id = document.getElementById('f_penawaran_id');
         const f_nama_perusahaan = document.getElementById('f_nama_perusahaan');
+        const formTitleRekap = document.getElementById('formTitleRekap');
+        const rekapMethodField = document.getElementById('rekapMethodField');
+        const rekapEditId = document.getElementById('rekapEditId');
 
-        btnTambahRekap.addEventListener('click', function() {
-            rekapForm.reset();
-            f_nama_perusahaan.value = '';
+        // Modal delete
+        const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+        const btnCancelDelete = document.getElementById('btnCancelDelete');
+        const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+        const deleteRekapName = document.getElementById('deleteRekapName');
+
+        let deleteTargetId = null;
+        let deleteTargetName = null;
+        const CSRF_TOKEN = '{{ csrf_token() }}';
+
+        function openForm(mode = 'add', data = null) {
+            formTitleRekap.textContent = mode === 'add' ? 'Tambah Rekap' : 'Edit Rekap';
+            rekapMethodField.value = mode === 'edit' ? 'PUT' : '';
+            rekapEditId.value = data?.id || '';
+
+            if (mode === 'add') {
+                rekapForm.reset();
+                f_nama_perusahaan.value = '';
+                f_penawaran_id.value = '';
+                f_nama_perusahaan.readOnly = false;
+                f_nama_perusahaan.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                f_nama_perusahaan.classList.add('bg-gray-50');
+            } else if (mode === 'edit' && data) {
+                // Populate form dengan data yang di-fetch
+                const namaRekapInput = document.getElementById('f_nama_rekap');
+                if (namaRekapInput) {
+                    namaRekapInput.value = data.nama || '';
+                }
+                if (f_penawaran_id) {
+                    f_penawaran_id.value = data.penawaran_id || '';
+                }
+                if (f_nama_perusahaan) {
+                    f_nama_perusahaan.value = data.nama_perusahaan || '';
+                }
+                
+                // Set read-only status based on penawaran_id
+                if (data.penawaran_id) {
+                    f_nama_perusahaan.readOnly = true;
+                    f_nama_perusahaan.classList.add('bg-gray-100', 'cursor-not-allowed');
+                    f_nama_perusahaan.classList.remove('bg-gray-50');
+                } else {
+                    f_nama_perusahaan.readOnly = false;
+                    f_nama_perusahaan.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                    f_nama_perusahaan.classList.add('bg-gray-50');
+                }
+            }
+
             formSlideRekap.classList.remove('hidden');
             requestAnimationFrame(() => {
                 formPanelRekap.classList.remove('translate-x-full');
                 formPanelRekap.classList.add('translate-x-0');
             });
-        });
+        }
 
-        closeFormRekap.addEventListener('click', function() {
+        function closeForm() {
             formPanelRekap.classList.remove('translate-x-0');
             formPanelRekap.classList.add('translate-x-full');
             setTimeout(() => formSlideRekap.classList.add('hidden'), 350);
+        }
+
+        btnTambahRekap.addEventListener('click', function() {
+            openForm('add');
         });
+
+        closeFormRekap.addEventListener('click', closeForm);
 
         formSlideRekap.addEventListener('click', function(e) {
             if (e.target === formSlideRekap) {
-                formPanelRekap.classList.remove('translate-x-0');
-                formPanelRekap.classList.add('translate-x-full');
-                setTimeout(() => formSlideRekap.classList.add('hidden'), 350);
+                closeForm();
             }
+        });
+
+        // Form submit untuk add/edit
+        rekapForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const isEdit = rekapEditId.value;
+            const action = isEdit 
+                ? "{{ url('rekap') }}/" + rekapEditId.value 
+                : "{{ route('rekap.store') }}";
+            
+            const formData = new FormData(this);
+            if (isEdit) {
+                formData.append('_method', 'PUT');
+            }
+
+            const submitBtn = rekapForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+
+            fetch(action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                submitBtn.disabled = false;
+                if (data.success) {
+                    closeForm();
+                    if (window.toast) {
+                        window.toast({
+                            type: 'success',
+                            title: 'Sukses',
+                            message: isEdit ? 'Rekap berhasil diperbarui' : 'Rekap berhasil ditambahkan'
+                        });
+                    }
+                    // Reload table
+                    const params = Object.fromEntries(new FormData(document.getElementById('filterFormRekap')));
+                    fetchRekapTable(params);
+                } else {
+                    if (window.toast) {
+                        window.toast({
+                            type: 'error',
+                            title: 'Error',
+                            message: data.message || 'Gagal simpan data'
+                        });
+                    }
+                }
+            })
+            .catch(err => {
+                submitBtn.disabled = false;
+                if (window.toast) {
+                    window.toast({
+                        type: 'error',
+                        title: 'Error',
+                        message: 'Gagal simpan data'
+                    });
+                }
+            });
         });
 
         // Auto-fill nama perusahaan dari penawaran
         f_penawaran_id.addEventListener('change', function() {
             var perusahaan = this.options[this.selectedIndex].getAttribute('data-perusahaan');
             f_nama_perusahaan.value = perusahaan || '';
+            
+            // Jika ada penawaran dipilih, buat read-only dan background gray
+            if (this.value) {
+                f_nama_perusahaan.readOnly = true;
+                f_nama_perusahaan.classList.add('bg-gray-100', 'cursor-not-allowed');
+                f_nama_perusahaan.classList.remove('bg-gray-50');
+            } else {
+                // Jika tidak ada penawaran, buat editable
+                f_nama_perusahaan.readOnly = false;
+                f_nama_perusahaan.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                f_nama_perusahaan.classList.add('bg-gray-50');
+                f_nama_perusahaan.value = '';
+            }
         });
 
+        // Event delegation untuk edit button
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-edit-rekap')) {
+                const btn = e.target.closest('.btn-edit-rekap');
+                
+                // Cegah jika button disabled
+                if (btn.disabled) {
+                    if (window.toast) {
+                        window.toast({
+                            type: 'warning',
+                            title: 'Perhatian',
+                            message: 'Rekap yang sudah disetujui tidak bisa diedit'
+                        });
+                    }
+                    return;
+                }
+                
+                const id = btn.dataset.id;
+                
+                fetch("{{ url('rekap') }}/" + id + "/edit", {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data) {
+                        openForm('edit', data);
+                    }
+                })
+                .catch(err => console.error(err));
+            }
+        });
+
+        // Event delegation untuk delete button
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-delete-rekap')) {
+                const btn = e.target.closest('.btn-delete-rekap');
+                const id = btn.dataset.id;
+                const row = btn.closest('tr');
+                const namaRekap = row.querySelector('td:nth-child(3)').textContent;
+                
+                deleteTargetId = id;
+                deleteTargetName = namaRekap;
+                deleteRekapName.textContent = namaRekap;
+                
+                confirmDeleteModal.classList.remove('hidden');
+                confirmDeleteModal.classList.add('flex');
+            }
+        });
+
+        btnCancelDelete.addEventListener('click', function() {
+            confirmDeleteModal.classList.add('hidden');
+            confirmDeleteModal.classList.remove('flex');
+            deleteTargetId = null;
+        });
+
+        confirmDeleteModal.addEventListener('click', function(e) {
+            if (e.target === confirmDeleteModal) {
+                confirmDeleteModal.classList.add('hidden');
+                confirmDeleteModal.classList.remove('flex');
+                deleteTargetId = null;
+            }
+        });
+
+        btnConfirmDelete.addEventListener('click', function() {
+            if (!deleteTargetId) return;
+
+            const btn = btnConfirmDelete;
+            btn.disabled = true;
+
+            fetch("{{ url('rekap') }}/" + deleteTargetId, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                confirmDeleteModal.classList.add('hidden');
+                confirmDeleteModal.classList.remove('flex');
+                
+                if (data.success) {
+                    if (window.toast) {
+                        window.toast({
+                            type: 'success',
+                            title: 'Sukses',
+                            message: 'Rekap berhasil dihapus'
+                        });
+                    }
+                    // Reload table
+                    const params = Object.fromEntries(new FormData(document.getElementById('filterFormRekap')));
+                    fetchRekapTable(params);
+                } else {
+                    if (window.toast) {
+                        window.toast({
+                            type: 'error',
+                            title: 'Error',
+                            message: data.message || 'Gagal hapus data'
+                        });
+                    }
+                }
+                deleteTargetId = null;
+            })
+            .catch(err => {
+                btn.disabled = false;
+                if (window.toast) {
+                    window.toast({
+                        type: 'error',
+                        title: 'Error',
+                        message: 'Gagal hapus data'
+                    });
+                }
+            });
+        });
 
         document.addEventListener('DOMContentLoaded', updatePreview);
     </script>

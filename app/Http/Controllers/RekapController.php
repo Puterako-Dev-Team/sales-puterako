@@ -109,19 +109,17 @@ class RekapController extends Controller
     {
         $request->validate([
             'nama' => 'required|string|max:255',
-            'penawaran_id' => 'required|exists:penawarans,id_penawaran',
+            'penawaran_id' => 'nullable|exists:penawarans,id_penawaran',
             'nama_perusahaan' => 'required|string|max:255',
             
             // Tambahkan validasi keterangan jika perlu
         ]);
 
-        $penawaran = Penawaran::findOrFail($request->penawaran_id);
-
         $rekap = Rekap::create([
-            'penawaran_id' => $penawaran->id_penawaran,
+            'penawaran_id' => $request->penawaran_id ?? null,
             'user_id' => Auth::id(),
             'nama' => $request->nama,
-            'no_penawaran' => $penawaran->no_penawaran,
+            'no_penawaran' => $request->penawaran_id ? Penawaran::findOrFail($request->penawaran_id)->no_penawaran : ($request->no_penawaran ?? null),
             'nama_perusahaan' => $request->nama_perusahaan,
         ]);
 
@@ -162,6 +160,19 @@ class RekapController extends Controller
     public function edit($id)
     {
         $rekap = Rekap::with('items')->findOrFail($id);
+        
+        // Return JSON for AJAX requests
+        if (request()->wantsJson() || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'id' => $rekap->id,
+                'nama' => $rekap->nama,
+                'penawaran_id' => $rekap->penawaran_id,
+                'nama_perusahaan' => $rekap->nama_perusahaan,
+                'no_penawaran' => $rekap->no_penawaran,
+                'items' => $rekap->items
+            ]);
+        }
+        
         $penawarans = Penawaran::all();
         $kategoris = RekapKategori::all();
         return view('rekap.detail', compact('rekap', 'penawarans', 'kategoris'));
@@ -249,12 +260,21 @@ class RekapController extends Controller
         return redirect()->route('rekap.show', $rekap_id)->with('success', 'Item berhasil diupdate');
     }
 
-    // Hapus rekap
+    // Hapus rekap (soft delete)
     public function destroy($id)
     {
         $rekap = Rekap::findOrFail($id);
-        $rekap->items()->delete();
+        // Soft delete (hanya tandai deleted_at)
         $rekap->delete();
+        
+        // Return JSON for AJAX requests
+        if (request()->wantsJson() || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'success' => true,
+                'message' => 'Rekap berhasil dihapus (data dapat dipulihkan)'
+            ]);
+        }
+        
         return redirect()->route('rekap.list')->with('success', 'Rekap berhasil dihapus');
     }
 
@@ -278,4 +298,53 @@ class RekapController extends Controller
 
         return response()->json($tipes);
     }
+
+    // Approve Rekap List Page
+    public function approveList(Request $request)
+    {
+        $query = Rekap::with(['user', 'items'])->where('status', 'pending');
+
+        if ($request->filled('tanggal_dari')) {
+            $query->whereDate('created_at', '>=', $request->tanggal_dari);
+        }
+        if ($request->filled('nama_rekap')) {
+            $query->where('nama', 'like', '%' . $request->nama_rekap . '%');
+        }
+        if ($request->filled('no_penawaran')) {
+            $query->where('no_penawaran', 'like', '%' . $request->no_penawaran . '%');
+        }
+        if ($request->filled('nama_perusahaan')) {
+            $query->where('nama_perusahaan', 'like', '%' . $request->nama_perusahaan . '%');
+        }
+        if ($request->filled('pic_admin')) {
+            $query->whereHas('user', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->pic_admin . '%');
+            });
+        }
+
+        $rekaps = $query->paginate(10)->appends($request->query());
+        $picAdmins = \App\Models\User::whereHas('rekaps')->distinct('name')->orderBy('name')->pluck('name');
+
+        if ($request->ajax()) {
+            return view('rekap.approve-table', compact('rekaps', 'picAdmins'))->render();
+        }
+        return view('rekap.approve-list', compact('rekaps', 'picAdmins'));
+    }
+
+    // Approve Rekap
+    public function approve(Request $request, $id)
+    {
+        $rekap = Rekap::findOrFail($id);
+        $rekap->update(['status' => 'approved']);
+
+        if (request()->wantsJson() || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'success' => true,
+                'message' => 'Rekap berhasil diapprove'
+            ]);
+        }
+
+        return redirect()->route('rekap.approve-list')->with('success', 'Rekap berhasil diapprove');
+    }
 }
+

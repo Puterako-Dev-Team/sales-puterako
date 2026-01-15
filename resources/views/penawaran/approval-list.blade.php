@@ -83,6 +83,49 @@
             box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
         }
 
+        .loading-overlay {
+            position: relative;
+        }
+
+        .loading-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            z-index: 10;
+        }
+
+        .loading-overlay.loading::after {
+            display: block;
+        }
+
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 11;
+        }
+
+        .loading-overlay.loading .loading-spinner {
+            display: block;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
 </style>
 <div class="container mx-auto p-8">
     <div class="flex items-center justify-between mb-6">
@@ -136,68 +179,72 @@
             </form>
         </div>
 
-    <div>
-        @if($requests->isEmpty())
-            <p class="text-gray-600">Tidak ada permintaan verifikasi untuk disetujui.</p>
-        @else
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-sm approval-table">
-                    <colgroup>
-                        <col style="width: 6%">
-                        <col style="width: 18%">
-                        <col style="width: 8%">
-                        <col style="width: 20%">
-                        <col style="width: 16%">
-                        <col style="width: 14%">
-                        <col style="width: 10%">
-                        <col style="width: 8%">
-                    </colgroup>
-                    <thead>
-                        <tr class="bg-green-500 text-white">
-                            <th class="px-3 py-3 font-semibold text-center rounded-tl-md">No</th>
-                            <th class="px-3 py-3 font-semibold text-left">No Penawaran</th>
-                            <th class="px-3 py-3 font-semibold text-left">Versi</th>
-                            <th class="px-3 py-3 font-semibold text-left">Perusahaan</th>
-                            <th class="px-3 py-3 font-semibold text-left">Diminta Oleh</th>
-                            <th class="px-3 py-3 font-semibold text-left">Dibuat</th>
-                            <th class="px-3 py-3 font-semibold text-left">Status</th>
-                            <th class="px-3 py-3 font-semibold text-center rounded-tr-md">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($requests as $index => $req)
-                            <tr class="border-b transition hover:bg-gray-50 text-gray-800">
-                                <td class="px-3 py-3 text-center">{{ $index + 1 }}</td>
-                                <td class="px-3 py-3">
-                                    @if($req->penawaran)
-                                        <a href="{{ route('penawaran.show', ['id' => $req->penawaran_id, 'version' => $req->version->version ?? 0]) }}" class="text-green-600 hover:underline">
-                                            {{ $req->penawaran->no_penawaran }}
-                                        </a>
-                                    @else
-                                        -
-                                    @endif
-                                </td>
-                                <td class="px-3 py-3">{{ $req->version->version ?? '-' }}</td>
-                                <td class="px-3 py-3">{{ $req->penawaran->nama_perusahaan ?? '-' }}</td>
-                                <td class="px-3 py-3">{{ $req->requestedBy->name ?? '-' }}</td>
-                                <td class="px-3 py-3">{{ $req->requested_at?->format('d M Y H:i') ?? '-' }}</td>
-                                <td class="px-3 py-3">
-                                    <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full
-                                        @if($req->status === 'fully_approved') bg-green-100 text-green-800
-                                        @elseif($req->status === 'manager_approved') bg-blue-100 text-blue-800
-                                        @elseif($req->status === 'supervisor_approved') bg-yellow-100 text-yellow-800
-                                        @else bg-gray-100 text-gray-800 @endif">
-                                        {{ str_replace('_', ' ', ucfirst($req->status)) }}
-                                    </span>
-                                </td>
-                                <td class="px-3 py-3 text-center">
-                                    @php
-                                        $canApprove = false;
-                                        $approveRoute = null;
-                                        if ($userRole === 'supervisor' && !$req->approved_by_supervisor) {
-                                            $canApprove = true;
-                                            $approveRoute = route('export-approval.approve-supervisor', $req->id);
-                                        }
+    <!-- Table Container with Loading Overlay -->
+    <div class="bg-white shadow rounded-lg loading-overlay" id="tableContainer">
+        <div class="loading-spinner">
+            <svg class="animate-spin h-8 w-8 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        </div>
+        <div class="overflow-x-auto">
+        <table class="min-w-full text-sm approval-table">
+            <colgroup>
+                <col style="width: 6%">
+                <col style="width: 18%">
+                <col style="width: 8%">
+                <col style="width: 20%">
+                <col style="width: 16%">
+                <col style="width: 14%">
+                <col style="width: 10%">
+                <col style="width: 8%">
+            </colgroup>
+            <thead>
+                <tr class="bg-green-500 text-white">
+                    <th class="px-3 py-3 font-semibold text-center rounded-tl-md">No</th>
+                    <th class="px-3 py-3 font-semibold text-left">No Penawaran</th>
+                    <th class="px-3 py-3 font-semibold text-left">Versi</th>
+                    <th class="px-3 py-3 font-semibold text-left">Perusahaan</th>
+                    <th class="px-3 py-3 font-semibold text-left">Diminta Oleh</th>
+                    <th class="px-3 py-3 font-semibold text-left">Dibuat</th>
+                    <th class="px-3 py-3 font-semibold text-left">Status</th>
+                    <th class="px-3 py-3 font-semibold text-center rounded-tr-md">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($requests as $index => $req)
+                        <tr class="border-b transition hover:bg-gray-50 text-gray-800">
+                            <td class="px-3 py-3 text-center">{{ $index + 1 }}</td>
+                            <td class="px-3 py-3">
+                                @if($req->penawaran)
+                                    <a href="{{ route('penawaran.show', ['id' => $req->penawaran_id, 'version' => $req->version->version ?? 0]) }}" class="text-green-600 hover:underline">
+                                        {{ $req->penawaran->no_penawaran }}
+                                    </a>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td class="px-3 py-3">{{ $req->version->version ?? '-' }}</td>
+                            <td class="px-3 py-3">{{ $req->penawaran->nama_perusahaan ?? '-' }}</td>
+                            <td class="px-3 py-3">{{ $req->requestedBy->name ?? '-' }}</td>
+                            <td class="px-3 py-3">{{ $req->requested_at?->format('d M Y H:i') ?? '-' }}</td>
+                            <td class="px-3 py-3">
+                                <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full
+                                    @if($req->status === 'fully_approved') bg-green-100 text-green-800
+                                    @elseif($req->status === 'manager_approved') bg-blue-100 text-blue-800
+                                    @elseif($req->status === 'supervisor_approved') bg-yellow-100 text-yellow-800
+                                    @else bg-gray-100 text-gray-800 @endif">
+                                    {{ str_replace('_', ' ', ucfirst($req->status)) }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                @php
+                                    $canApprove = false;
+                                    $approveRoute = null;
+                                    if ($userRole === 'supervisor' && !$req->approved_by_supervisor) {
+                                        $canApprove = true;
+                                        $approveRoute = route('export-approval.approve-supervisor', $req->id);
+                                    }
                                         if ($userRole === 'manager' && $req->approved_by_supervisor && !$req->approved_by_manager) {
                                             $canApprove = true;
                                             $approveRoute = route('export-approval.approve-manager', $req->id);
@@ -223,13 +270,23 @@
                                     @endif
                                 </td>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @endif
+                @empty
+                    <tr>
+                        <td colspan="8" class="py-8">
+                            <div class="flex flex-col items-center justify-center text-gray-500 gap-2">
+                                <x-lucide-search-x class="w-8 h-8" />
+                                <span>Belum ada permintaan verifikasi</span>
+                            </div>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+        </div>
     </div>
-</div>
+
+    <!-- Pagination -->
+    <div id="paginationContent" class="mt-6">
 
 <!-- Modal Konfirmasi Approve -->
 <div id="approveModal" class="modal-overlay">
@@ -259,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCancel = document.getElementById('modalCancel');
     const btnConfirm = document.getElementById('modalConfirm');
     const resetFilterBtn = document.getElementById('resetFilter');
-    const tableContainer = document.querySelector('.overflow-x-auto');
+    const tableContainer = document.getElementById('tableContainer');
     let pendingAction = null;
 
     const notyfInstance = window.notyf || new Notyf({
@@ -269,6 +326,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getCsrf() {
         return document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
+    }
+
+    function showLoading() {
+        if (tableContainer) tableContainer.classList.add('loading');
+    }
+
+    function hideLoading() {
+        if (tableContainer) tableContainer.classList.remove('loading');
     }
 
     function openModal(data) {
@@ -295,11 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Show loading state
-        if (tableContainer) {
-            tableContainer.style.opacity = '0.6';
-            tableContainer.style.pointerEvents = 'none';
-        }
+        showLoading();
 
         fetch(`{{ route('penawaran.approve-list') }}?${params.toString()}`, {
             headers: {
@@ -312,18 +373,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Parse the HTML and update the table
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const newTableContainer = doc.querySelector('.overflow-x-auto');
+            const newOverflowContainer = doc.querySelector('.overflow-x-auto');
 
-            if (newTableContainer && tableContainer) {
-                tableContainer.innerHTML = newTableContainer.innerHTML;
+            if (newOverflowContainer && tableContainer) {
+                // Find the overflow-x-auto div inside tableContainer and update it
+                const currentOverflow = tableContainer.querySelector('.overflow-x-auto');
+                if (currentOverflow) {
+                    currentOverflow.innerHTML = newOverflowContainer.innerHTML;
+                } else {
+                    tableContainer.innerHTML = newOverflowContainer.innerHTML;
+                }
 
                 // Re-bind approve buttons
                 bindApproveButtons();
-            } else {
-                // Fallback: if no table container found, show empty state
-                if (tableContainer) {
-                    tableContainer.innerHTML = '<p class="text-gray-600">Tidak ada permintaan verifikasi untuk disetujui.</p>';
-                }
             }
 
             // Update URL without page reload
@@ -335,11 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
             notyfInstance.error('Gagal memuat data yang difilter');
         })
         .finally(() => {
-            // Remove loading state
-            if (tableContainer) {
-                tableContainer.style.opacity = '1';
-                tableContainer.style.pointerEvents = 'auto';
-            }
+            hideLoading();
         });
     }
 
