@@ -139,6 +139,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/atur-hari-kerja/sync', [HolidayController::class, 'syncFromAPI'])->name('holidays.sync');
         Route::put('/atur-hari-kerja/{id}', [HolidayController::class, 'update'])->name('holidays.update');
         Route::delete('/atur-hari-kerja/{id}', [HolidayController::class, 'destroy'])->name('holidays.destroy');
+        Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifications.index');
     });
 
     Route::prefix('followup')->name('followup.')->group(function () {

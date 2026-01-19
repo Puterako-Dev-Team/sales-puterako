@@ -8,6 +8,15 @@ use App\Models\User;
 
 class NotificationController extends Controller
 {
+    public function index()
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        $notifications = $user->notifications()->latest()->get();
+        $unreadCount = $user->unreadNotifications()->count();
+
+        return view('users.notification', compact('notifications', 'unreadCount'));
+    }
     public function markAsRead($id)
     {
         /** @var User $user */
