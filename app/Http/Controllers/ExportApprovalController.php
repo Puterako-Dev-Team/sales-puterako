@@ -65,27 +65,60 @@ class ExportApprovalController extends Controller
                 $pendingQuery->whereNotNull('approved_by_manager')
                     ->whereNull('approved_by_direktur');
             }
-            $pendingRequests = $pendingQuery->orderByDesc('requested_at')->get();
 
-            // Already approved by this role (to show at the bottom)
-            $approvedQuery = clone $baseQuery;
-            if ($user->role === 'supervisor') {
-                $approvedQuery->whereNotNull('approved_by_supervisor');
-            } elseif ($user->role === 'manager') {
-                $approvedQuery->whereNotNull('approved_by_manager');
-            } elseif ($user->role === 'direktur') {
-                $approvedQuery->whereNotNull('approved_by_direktur');
+            // Apply sorting
+            $sortColumn = $request->get('sort', 'requested_at');
+            $sortDirection = $request->get('direction', 'desc');
+            
+            $allowedSorts = ['requested_at', 'no_penawaran', 'nama_perusahaan', 'status'];
+            if (!in_array($sortColumn, $allowedSorts)) {
+                $sortColumn = 'requested_at';
             }
-            $approvedRequests = $approvedQuery->orderByDesc('requested_at')->get();
+            
+            if ($sortColumn === 'no_penawaran') {
+                $pendingQuery->join('penawarans', 'export_approval_requests.penawaran_id', '=', 'penawarans.id_penawaran')
+                    ->orderBy('penawarans.no_penawaran', $sortDirection);
+            } elseif ($sortColumn === 'nama_perusahaan') {
+                $pendingQuery->join('penawarans', 'export_approval_requests.penawaran_id', '=', 'penawarans.id_penawaran')
+                    ->orderBy('penawarans.nama_perusahaan', $sortDirection);
+            } else {
+                $pendingQuery->orderBy("export_approval_requests.$sortColumn", $sortDirection);
+            }
 
-            // Merge: pending first, then approved
-            $requests = $pendingRequests->concat($approvedRequests)->values();
-
-            return view('penawaran.approval-list', [
+            $requests = $pendingQuery->paginate(10)->appends($request->query());
+            
+            $table = view('penawaran.approval-table', [
                 'requests' => $requests,
                 'userRole' => $user->role,
-                'picAdmins' => collect(), // Empty for AJAX
             ])->render();
+            
+            $pagination = view('components.paginator', ['paginator' => $requests])->render();
+            
+            // Generate filter info
+            $activeFilters = [];
+            if ($request->tanggal_dari) $activeFilters[] = 'Tanggal';
+            if ($request->no_penawaran) $activeFilters[] = 'No Penawaran';
+            if ($request->nama_perusahaan) $activeFilters[] = 'Perusahaan';
+            if ($request->pic_admin) $activeFilters[] = 'PIC';
+            
+            $info = '';
+            if (count($activeFilters) > 0) {
+                $info = view('penawaran.approval-filter-info', [
+                    'count' => $requests->count(),
+                    'total' => ExportApprovalRequest::count(),
+                    'filters' => implode(', ', $activeFilters),
+                    'currentPage' => $requests->currentPage(),
+                    'lastPage' => $requests->lastPage(),
+                    'from' => $requests->firstItem(),
+                    'to' => $requests->lastItem()
+                ])->render();
+            }
+            
+            return response()->json([
+                'table' => $table,
+                'pagination' => $pagination,
+                'info' => $info
+            ]);
         }
 
         // Pending per role
@@ -99,21 +132,27 @@ class ExportApprovalController extends Controller
             $pendingQuery->whereNotNull('approved_by_manager')
                 ->whereNull('approved_by_direktur');
         }
-        $pendingRequests = $pendingQuery->orderByDesc('requested_at')->get();
 
-        // Already approved by this role (to show at the bottom)
-        $approvedQuery = clone $baseQuery;
-        if ($user->role === 'supervisor') {
-            $approvedQuery->whereNotNull('approved_by_supervisor');
-        } elseif ($user->role === 'manager') {
-            $approvedQuery->whereNotNull('approved_by_manager');
-        } elseif ($user->role === 'direktur') {
-            $approvedQuery->whereNotNull('approved_by_direktur');
+        // Apply sorting
+        $sortColumn = $request->get('sort', 'requested_at');
+        $sortDirection = $request->get('direction', 'desc');
+        
+        $allowedSorts = ['requested_at', 'no_penawaran', 'nama_perusahaan', 'status'];
+        if (!in_array($sortColumn, $allowedSorts)) {
+            $sortColumn = 'requested_at';
         }
-        $approvedRequests = $approvedQuery->orderByDesc('requested_at')->get();
+        
+        if ($sortColumn === 'no_penawaran') {
+            $pendingQuery->join('penawarans', 'export_approval_requests.penawaran_id', '=', 'penawarans.id_penawaran')
+                ->orderBy('penawarans.no_penawaran', $sortDirection);
+        } elseif ($sortColumn === 'nama_perusahaan') {
+            $pendingQuery->join('penawarans', 'export_approval_requests.penawaran_id', '=', 'penawarans.id_penawaran')
+                ->orderBy('penawarans.nama_perusahaan', $sortDirection);
+        } else {
+            $pendingQuery->orderBy("export_approval_requests.$sortColumn", $sortDirection);
+        }
 
-        // Merge: pending first, then approved
-        $requests = $pendingRequests->concat($approvedRequests)->values();
+        $requests = $pendingQuery->paginate(10)->appends($request->query());
 
         // Get PIC Admin options for filter dropdown
         $picAdmins = ExportApprovalRequest::with('requestedBy')

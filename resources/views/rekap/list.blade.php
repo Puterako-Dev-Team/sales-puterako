@@ -470,8 +470,6 @@
                 }
             });
         });
-
-        document.addEventListener('DOMContentLoaded', updatePreview);
     </script>
 @endsection
 
@@ -499,20 +497,20 @@
             }
             fetch(url, {
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
                     }
                 })
-                .then(res => res.text())
-                .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const newTable = doc.querySelector('#tableContent').innerHTML;
-                    const newPagination = doc.querySelector('.mt-6').innerHTML;
-                    tableContent.innerHTML = newTable;
-                    paginationContainer.innerHTML = newPagination;
+                .then(res => res.json())
+                .then(data => {
+                    tableContent.innerHTML = data.table;
+                    paginationContainer.innerHTML = data.pagination;
                     hideLoading();
                 })
-                .catch(() => hideLoading());
+                .catch(err => {
+                    console.error(err);
+                    hideLoading();
+                });
         }
 
         document.querySelectorAll('#filterFormRekap .filter-input').forEach(el => {
@@ -545,18 +543,20 @@
                 showLoading();
                 fetch(e.target.href, {
                         headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
                         }
                     })
-                    .then(res => res.text())
-                    .then(html => {
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        tableContainer.innerHTML = doc.querySelector('#tableContainer').innerHTML;
-                        paginationContainer.innerHTML = doc.querySelector('.mt-6').innerHTML;
+                    .then(res => res.json())
+                    .then(data => {
+                        tableContent.innerHTML = data.table;
+                        paginationContainer.innerHTML = data.pagination;
                         hideLoading();
                     })
-                    .catch(() => hideLoading());
+                    .catch(err => {
+                        console.error(err);
+                        hideLoading();
+                    });
             }
         });
     </script>

@@ -179,6 +179,9 @@
             </form>
         </div>
 
+    <!-- Results Info -->
+    <div id="resultsInfo" class="mb-4"></div>
+
     <!-- Table Container with Loading Overlay -->
     <div class="bg-white shadow rounded-lg loading-overlay" id="tableContainer">
         <div class="loading-spinner">
@@ -187,106 +190,18 @@
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
         </div>
-        <div class="overflow-x-auto">
-        <table class="min-w-full text-sm approval-table">
-            <colgroup>
-                <col style="width: 6%">
-                <col style="width: 18%">
-                <col style="width: 8%">
-                <col style="width: 20%">
-                <col style="width: 16%">
-                <col style="width: 14%">
-                <col style="width: 10%">
-                <col style="width: 8%">
-            </colgroup>
-            <thead>
-                <tr class="bg-green-500 text-white">
-                    <th class="px-3 py-3 font-semibold text-center rounded-tl-md">No</th>
-                    <th class="px-3 py-3 font-semibold text-left">No Penawaran</th>
-                    <th class="px-3 py-3 font-semibold text-left">Versi</th>
-                    <th class="px-3 py-3 font-semibold text-left">Perusahaan</th>
-                    <th class="px-3 py-3 font-semibold text-left">Diminta Oleh</th>
-                    <th class="px-3 py-3 font-semibold text-left">Dibuat</th>
-                    <th class="px-3 py-3 font-semibold text-left">Status</th>
-                    <th class="px-3 py-3 font-semibold text-center rounded-tr-md">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($requests as $index => $req)
-                        <tr class="border-b transition hover:bg-gray-50 text-gray-800">
-                            <td class="px-3 py-3 text-center">{{ $index + 1 }}</td>
-                            <td class="px-3 py-3">
-                                @if($req->penawaran)
-                                    <a href="{{ route('penawaran.show', ['id' => $req->penawaran_id, 'version' => $req->version->version ?? 0]) }}" class="text-green-600 hover:underline">
-                                        {{ $req->penawaran->no_penawaran }}
-                                    </a>
-                                @else
-                                    -
-                                @endif
-                            </td>
-                            <td class="px-3 py-3">{{ $req->version->version ?? '-' }}</td>
-                            <td class="px-3 py-3">{{ $req->penawaran->nama_perusahaan ?? '-' }}</td>
-                            <td class="px-3 py-3">{{ $req->requestedBy->name ?? '-' }}</td>
-                            <td class="px-3 py-3">{{ $req->requested_at?->format('d M Y H:i') ?? '-' }}</td>
-                            <td class="px-3 py-3">
-                                <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full
-                                    @if($req->status === 'fully_approved') bg-green-100 text-green-800
-                                    @elseif($req->status === 'manager_approved') bg-blue-100 text-blue-800
-                                    @elseif($req->status === 'supervisor_approved') bg-yellow-100 text-yellow-800
-                                    @else bg-gray-100 text-gray-800 @endif">
-                                    {{ str_replace('_', ' ', ucfirst($req->status)) }}
-                                </span>
-                            </td>
-                            <td class="px-3 py-3 text-center">
-                                @php
-                                    $canApprove = false;
-                                    $approveRoute = null;
-                                    if ($userRole === 'supervisor' && !$req->approved_by_supervisor) {
-                                        $canApprove = true;
-                                        $approveRoute = route('export-approval.approve-supervisor', $req->id);
-                                    }
-                                        if ($userRole === 'manager' && $req->approved_by_supervisor && !$req->approved_by_manager) {
-                                            $canApprove = true;
-                                            $approveRoute = route('export-approval.approve-manager', $req->id);
-                                        }
-                                        if ($userRole === 'direktur' && $req->approved_by_manager && !$req->approved_by_direktur) {
-                                            $canApprove = true;
-                                            $approveRoute = route('export-approval.approve-direktur', $req->id);
-                                        }
-                                    @endphp
-
-                                    @if($canApprove)
-                                        <button type="button"
-                                            class="approve-btn bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 transition text-xs font-semibold"
-                                            data-url="{{ $approveRoute }}"
-                                            data-id="{{ $req->id }}"
-                                            data-no="{{ $req->penawaran->no_penawaran ?? '-' }}"
-                                            data-company="{{ $req->penawaran->nama_perusahaan ?? '-' }}"
-                                            data-version="{{ $req->version->version ?? '-' }}">
-                                            Approve
-                                        </button>
-                                    @else
-                                        <span class="text-xs text-gray-500">Tidak ada aksi</span>
-                                    @endif
-                                </td>
-                            </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="py-8">
-                            <div class="flex flex-col items-center justify-center text-gray-500 gap-2">
-                                <x-lucide-search-x class="w-8 h-8" />
-                                <span>Belum ada permintaan verifikasi</span>
-                            </div>
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+        <div id="tableContent">
+            @include('penawaran.approval-table', [
+                'requests' => $requests,
+                'userRole' => $userRole,
+            ])
         </div>
     </div>
 
     <!-- Pagination -->
     <div id="paginationContent" class="mt-6">
+        @include('components.paginator', ['paginator' => $requests])
+    </div>
 
 <!-- Modal Konfirmasi Approve -->
 <div id="approveModal" class="modal-overlay">
@@ -308,15 +223,12 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const approveButtons = document.querySelectorAll('.approve-btn');
-    const modal = document.getElementById('approveModal');
-    const modalNo = document.getElementById('modalNoPenawaran');
-    const modalCompany = document.getElementById('modalPerusahaan');
-    const modalVersi = document.getElementById('modalVersi');
-    const btnCancel = document.getElementById('modalCancel');
-    const btnConfirm = document.getElementById('modalConfirm');
-    const resetFilterBtn = document.getElementById('resetFilter');
+    const filterForm = document.getElementById('filterForm');
     const tableContainer = document.getElementById('tableContainer');
+    const tableContent = document.getElementById('tableContent');
+    const paginationContent = document.getElementById('paginationContent');
+    const resultsInfo = document.getElementById('resultsInfo');
+    const resetFilterBtn = document.getElementById('resetFilter');
     let pendingAction = null;
 
     const notyfInstance = window.notyf || new Notyf({
@@ -337,78 +249,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openModal(data) {
+        const modal = document.getElementById('approveModal');
         pendingAction = data;
-        modalNo.textContent = data.no;
-        modalCompany.textContent = data.company;
-        modalVersi.textContent = data.version;
+        document.getElementById('modalNoPenawaran').textContent = data.no;
+        document.getElementById('modalPerusahaan').textContent = data.company;
+        document.getElementById('modalVersi').textContent = data.version;
         modal.classList.add('active');
     }
 
     function closeModal() {
+        const modal = document.getElementById('approveModal');
         modal.classList.remove('active');
         pendingAction = null;
     }
 
-    // Filter functionality
-    function applyFilters() {
-        const formData = new FormData(document.getElementById('filterForm'));
-        const params = new URLSearchParams();
-
-        for (let [key, value] of formData.entries()) {
-            if (value.trim() !== '') {
-                params.append(key, value);
-            }
-        }
-
-        showLoading();
-
-        fetch(`{{ route('penawaran.approve-list') }}?${params.toString()}`, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-            }
-        })
-        .then(response => response.text())
-        .then(html => {
-            // Parse the HTML and update the table
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newOverflowContainer = doc.querySelector('.overflow-x-auto');
-
-            if (newOverflowContainer && tableContainer) {
-                // Find the overflow-x-auto div inside tableContainer and update it
-                const currentOverflow = tableContainer.querySelector('.overflow-x-auto');
-                if (currentOverflow) {
-                    currentOverflow.innerHTML = newOverflowContainer.innerHTML;
-                } else {
-                    tableContainer.innerHTML = newOverflowContainer.innerHTML;
-                }
-
-                // Re-bind approve buttons
-                bindApproveButtons();
-            }
-
-            // Update URL without page reload
-            const newUrl = `${window.location.pathname}?${params.toString()}`;
-            window.history.pushState({}, '', newUrl);
-        })
-        .catch(error => {
-            console.error('Filter error:', error);
-            notyfInstance.error('Gagal memuat data yang difilter');
-        })
-        .finally(() => {
-            hideLoading();
+    function attachSortListeners() {
+        document.querySelectorAll('.sort-button').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const column = this.dataset.column;
+                const direction = this.dataset.direction;
+                const formData = new FormData(filterForm);
+                const params = new URLSearchParams(formData);
+                params.set('sort', column);
+                params.set('direction', direction);
+                fetchList(params);
+            });
         });
     }
 
-    function bindApproveButtons() {
-        const newApproveButtons = document.querySelectorAll('.approve-btn');
-        newApproveButtons.forEach(btn => {
+    function attachPaginationListeners() {
+        document.querySelectorAll('.pagination-link').forEach(a => {
+            a.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                const url = new URL(this.href);
+                const page = url.searchParams.get('page') || 1;
+                const formData = new FormData(filterForm);
+                const params = new URLSearchParams(formData);
+                params.set('page', page);
+
+                // keep sort
+                const cur = new URLSearchParams(window.location.search);
+                if (cur.get('sort')) params.set('sort', cur.get('sort'));
+                if (cur.get('direction')) params.set('direction', cur.get('direction'));
+
+                fetchList(params);
+            });
+        });
+    }
+
+    function attachApproveButtons() {
+        document.querySelectorAll('.approve-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 openModal({
                     url: btn.dataset.url,
-                    row: btn.closest('tr'),
-                    badge: btn.closest('tr').querySelector('span.inline-block'),
                     button: btn,
                     no: btn.dataset.no,
                     company: btn.dataset.company,
@@ -418,8 +311,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initial binding of approve buttons
-    bindApproveButtons();
+    function fetchList(params) {
+        showLoading();
+        fetch(`{{ route('penawaran.approve-list') }}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+            .then(r => r.json())
+            .then(data => {
+                tableContent.innerHTML = data.table;
+                paginationContent.innerHTML = data.pagination;
+                if (resultsInfo) resultsInfo.innerHTML = data.info || '';
+                hideLoading();
+                attachSortListeners();
+                attachPaginationListeners();
+                attachApproveButtons();
+            })
+            .catch(e => {
+                console.error(e);
+                hideLoading();
+            });
+    }
+
+    function performFilter() {
+        const formData = new FormData(filterForm);
+        const params = new URLSearchParams(formData);
+        // keep sort
+        const cur = new URLSearchParams(window.location.search);
+        if (cur.get('sort')) params.set('sort', cur.get('sort'));
+        if (cur.get('direction')) params.set('direction', cur.get('direction'));
+        fetchList(params);
+    }
 
     // Filter input listeners
     const filterInputs = document.querySelectorAll('.filter-input');
@@ -428,12 +352,12 @@ document.addEventListener('DOMContentLoaded', () => {
     filterInputs.forEach(input => {
         input.addEventListener('input', () => {
             clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(applyFilters, 500);
+            filterTimeout = setTimeout(performFilter, 500);
         });
 
         input.addEventListener('change', () => {
             if (input.type !== 'text') {
-                applyFilters();
+                performFilter();
             }
         });
     });
@@ -441,10 +365,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Reset filter button
     if (resetFilterBtn) {
         resetFilterBtn.addEventListener('click', () => {
-            document.getElementById('filterForm').reset();
-            applyFilters();
+            filterForm.reset();
+            performFilter();
         });
     }
+
+    // Modal handlers
+    const modal = document.getElementById('approveModal');
+    const btnCancel = document.getElementById('modalCancel');
+    const btnConfirm = document.getElementById('modalConfirm');
 
     btnCancel.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => {
@@ -453,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnConfirm.addEventListener('click', async () => {
         if (!pendingAction) return;
-        const { url, row, badge, button } = pendingAction;
+        const { url, button } = pendingAction;
 
         try {
             button.disabled = true;
@@ -474,17 +403,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             notyfInstance.success(data.message || 'Berhasil di-approve');
 
-            if (badge) {
-                badge.textContent = 'Approved';
-                badge.className = 'inline-block px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800';
-            }
-
-            const tbody = row.parentElement;
-            tbody.appendChild(row);
-
-            button.textContent = 'Sudah disetujui';
-            button.disabled = true;
-            button.className = 'bg-gray-300 text-gray-600 px-3 py-2 rounded text-xs font-semibold cursor-not-allowed';
+            // Reload the list
+            performFilter();
         } catch (err) {
             notyfInstance.error(err.message || 'Gagal approve');
             if (pendingAction?.button) {
@@ -495,6 +415,11 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModal();
         }
     });
+
+    // Initial binding of listeners
+    attachSortListeners();
+    attachPaginationListeners();
+    attachApproveButtons();
 });
 </script>
 @endpush
