@@ -226,6 +226,19 @@
         .user-dropdown-arrow {
             transition: transform 0.3s ease;
         }
+
+        .notif-dropdown-container:hover .notif-dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .notif-dropdown-menu {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 
@@ -252,7 +265,7 @@
             </div>
 
             <div class="flex items-center space-x-4">
-                <div class="relative mr-1 mt-2">
+                <div class="relative mr-1 mt-2 notif-dropdown-container">
                     <button id="notifBell" class="relative focus:outline-bg-green-50 rounded-lg hover:border-color-green-50 transition-colors">
                         <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -266,7 +279,7 @@
                     </button>
                     
                     <!-- Dropdown Notifikasi -->
-                    <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-30">
+                    <div id="notifDropdown" class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-30 notif-dropdown-menu">
                         <div class="px-4 py-2 border-b font-semibold text-gray-700">Notifikasi</div>
                         <div class="max-h-80 overflow-y-auto">
                             @forelse($notifications as $notif)
@@ -687,19 +700,6 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const bell = document.getElementById('notifBell');
-            const dropdown = document.getElementById('notifDropdown');
-            if (bell && dropdown) {
-                bell.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    dropdown.classList.toggle('hidden');
-                });
-                document.addEventListener('click', function () {
-                    dropdown.classList.add('hidden');
-                });
-            }
-        });
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('sidebarToggle');
         const labels = document.querySelectorAll('.menu-label');
