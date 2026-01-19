@@ -139,8 +139,7 @@ class PenawaranController extends Controller
         $table = view('penawaran.table-content', compact('penawarans'))->render();
 
         // Generate pagination links
-        $pagination = $penawarans->links('penawaran.pagination')->render();
-
+        $pagination = view('components.paginator', ['paginator' => $penawarans])->render();
         $info = '';
         if ($request->hasAny(['tanggal_dari', 'no_penawaran', 'nama_perusahaan', 'status', 'pic_admin'])) {
             $activeFilters = [];

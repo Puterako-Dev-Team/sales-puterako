@@ -111,7 +111,7 @@
         </div>
 
         <div class="mt-6">
-            @include('rekap.pagination', ['rekaps' => $rekaps])
+            @include('components.paginator', ['paginator' => $rekaps])
         </div>
     </div>
 

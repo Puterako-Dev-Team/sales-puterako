@@ -157,7 +157,9 @@
 
         <!-- Pagination -->
         <div id="paginationContent" class="mt-6">
-            {{ $satuans->links() }}
+            @include('components.paginator', [
+                'paginator' => $satuans->withPath(route('satuan.filter'))
+            ])
         </div>
     </div>
 

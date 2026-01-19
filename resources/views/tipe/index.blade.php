@@ -157,8 +157,11 @@
 
         <!-- Pagination -->
         <div id="paginationContent" class="mt-6">
-            {{ $tipes->links() }}
+            @include('components.paginator', [
+                'paginator' => $tipes->withPath(route('tipe.filter'))
+            ])
         </div>
+
     </div>
 
     <!-- Slide-over Form -->

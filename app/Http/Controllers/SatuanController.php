@@ -59,8 +59,7 @@ class SatuanController extends Controller
         $satuans = $query->orderBy($sort, $direction)->paginate(10)->appends($request->query());
 
         $table = view('satuan.table-content', ['satuans' => $satuans])->render();
-        $pagination = view('penawaran.pagination', ['paginator' => $satuans])->render();
-
+        $pagination = view('components.paginator', ['paginator' => $satuans])->render();
         return response()->json([
             'table' => $table,
             'pagination' => $pagination,

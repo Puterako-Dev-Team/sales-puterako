@@ -236,7 +236,7 @@
 
         <!-- Pagination -->
         <div id="paginationContent" class="mt-6">
-            {{ $penawarans->appends(request()->query())->links('penawaran.pagination') }}
+            @include('components.paginator', ['paginator' => $penawarans])
         </div>
     </div>
 

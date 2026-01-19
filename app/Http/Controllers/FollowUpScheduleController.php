@@ -49,7 +49,7 @@ class FollowUpScheduleController extends Controller
         
         $query->orderBy($sortColumn, $sortDirection);
 
-        $schedules = $query->paginate(15);
+        $schedules = $query->paginate(10);
 
         if ($request->ajax()) {
             return view('followup.table-content', compact('schedules'));

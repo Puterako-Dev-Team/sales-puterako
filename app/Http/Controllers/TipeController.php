@@ -59,7 +59,8 @@ class TipeController extends Controller
         $tipes = $query->orderBy($sort, $direction)->paginate(10)->appends($request->query());
 
         $table = view('tipe.table-content', ['tipes' => $tipes])->render();
-        $pagination = view('penawaran.pagination', ['paginator' => $tipes])->render();
+        $pagination = view('components.paginator', ['paginator' => $tipes->withPath(route('tipe.filter'))])->render();
+        
 
         return response()->json([
             'table' => $table,

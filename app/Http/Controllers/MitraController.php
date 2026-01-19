@@ -55,7 +55,7 @@ class MitraController extends Controller
         $mitras = $query->orderBy($sort, $direction)->paginate(10)->appends($request->query());
 
         $table = view('mitra.table-content', ['mitras' => $mitras])->render();
-        $pagination = view('penawaran.pagination', ['paginator' => $mitras])->render();
+        $pagination = view('components.paginator', ['paginator' => $mitras])->render();
 
         return response()->json([
             'table' => $table,

@@ -160,7 +160,7 @@
 
         <!-- Pagination -->
         <div id="paginationContent" class="mt-6">
-            {{ $mitras->appends(request()->query())->links('penawaran.pagination') }}
+            @include('components.paginator', ['paginator' => $mitras])
         </div>
     </div>
 
