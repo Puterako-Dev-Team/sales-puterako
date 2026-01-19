@@ -109,6 +109,7 @@ Route::middleware(['auth'])->group(function () {
     // Rekap routes (protected)
     Route::prefix('rekap')->group(function () {
         Route::get('/list', [RekapController::class, 'index'])->name('rekap.list');
+        Route::get('/approve-list', [RekapController::class, 'approveList'])->name('rekap.approve-list');
         Route::get('/create', [RekapController::class, 'create'])->name('rekap.create');
         Route::get('/item-names', [RekapController::class, 'getItemNames'])->name('rekap.item-names');
         Route::post('/store', [RekapController::class, 'store'])->name('rekap.store');
@@ -116,6 +117,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{id}/edit', [RekapController::class, 'edit'])->name('rekap.edit');
         Route::put('/{id}', [RekapController::class, 'update'])->name('rekap.update');
         Route::delete('/{id}', [RekapController::class, 'destroy'])->name('rekap.delete');
+        Route::post('/{id}/approve', [RekapController::class, 'approve'])->name('rekap.approve');
         Route::post('/{rekap_id}/add-item', [RekapController::class, 'addItem'])->name('rekap.addItem');
         Route::post('/{rekap_id}/update-items', [RekapController::class, 'updateItems'])->name('rekap.updateItems');
     });

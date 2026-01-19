@@ -4,17 +4,26 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Rekap extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'penawaran_id',
         'user_id',
         'nama',
         'no_penawaran',
-        'nama_perusahaan'
+        'nama_perusahaan',
+        'status',
+        'deleted_at'
+    ];
+
+    protected $dates = ['deleted_at'];
+
+    protected $attributes = [
+        'status' => 'pending'
     ];
 
     public function penawaran()

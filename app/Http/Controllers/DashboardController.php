@@ -10,7 +10,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $userRole = auth()->user()->role ?? null;
-        $allowedRoles = ['supervisor', 'manajer', 'administrator', 'direktur'];
+        $allowedRoles = ['supervisor', 'manager', 'administrator', 'direktur'];
         $canViewCharts = in_array($userRole, $allowedRoles);
 
         $topCompanies = null;
