@@ -40,7 +40,13 @@ class RekapController extends Controller
         $picAdmins = \App\Models\User::whereHas('rekaps')->distinct('name')->orderBy('name')->pluck('name');
 
         if ($request->ajax()) {
-            return view('rekap.list', compact('rekaps', 'penawarans', 'kategoris', 'picAdmins'))->render();
+            $table = view('rekap.table-content', compact('rekaps'))->render();
+            $pagination = view('components.paginator', ['paginator' => $rekaps])->render();
+            
+            return response()->json([
+                'table' => $table,
+                'pagination' => $pagination
+            ]);
         }
         return view('rekap.list', compact('rekaps', 'penawarans', 'kategoris', 'picAdmins'));
     }
@@ -122,6 +128,10 @@ class RekapController extends Controller
             'no_penawaran' => $request->penawaran_id ? Penawaran::findOrFail($request->penawaran_id)->no_penawaran : ($request->no_penawaran ?? null),
             'nama_perusahaan' => $request->nama_perusahaan,
         ]);
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Rekap berhasil ditambahkan']);
+        }
 
         return redirect()->route('rekap.list')->with('success', 'Rekap berhasil ditambahkan');
     }
@@ -219,6 +229,10 @@ class RekapController extends Controller
                 'nama_item' => $item['nama_item'],
                 'detail' => $item['detail'],
             ]);
+        }
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Rekap berhasil diperbarui']);
         }
 
         return redirect()->route('rekap.show', $rekap->id)->with('success', 'Rekap berhasil diupdate');
@@ -324,9 +338,38 @@ class RekapController extends Controller
 
         $rekaps = $query->paginate(10)->appends($request->query());
         $picAdmins = \App\Models\User::whereHas('rekaps')->distinct('name')->orderBy('name')->pluck('name');
+        $totalRecords = Rekap::count();
 
         if ($request->ajax()) {
-            return view('rekap.approve-table', compact('rekaps', 'picAdmins'))->render();
+            $table = view('rekap.approve-table', compact('rekaps'))->render();
+            $pagination = view('components.paginator', ['paginator' => $rekaps])->render();
+            
+            // Generate filter info
+            $activeFilters = [];
+            if ($request->tanggal_dari) $activeFilters[] = 'Tanggal';
+            if ($request->nama_rekap) $activeFilters[] = 'Nama Rekap';
+            if ($request->no_penawaran) $activeFilters[] = 'No Penawaran';
+            if ($request->nama_perusahaan) $activeFilters[] = 'Perusahaan';
+            if ($request->pic_admin) $activeFilters[] = 'Dibuat Oleh';
+            
+            $info = '';
+            if (count($activeFilters) > 0) {
+                $info = view('rekap.approve-filter-info', [
+                    'count' => $rekaps->count(),
+                    'total' => $totalRecords,
+                    'filters' => implode(', ', $activeFilters),
+                    'currentPage' => $rekaps->currentPage(),
+                    'lastPage' => $rekaps->lastPage(),
+                    'from' => $rekaps->firstItem(),
+                    'to' => $rekaps->lastItem()
+                ])->render();
+            }
+            
+            return response()->json([
+                'table' => $table,
+                'pagination' => $pagination,
+                'info' => $info
+            ]);
         }
         return view('rekap.approve-list', compact('rekaps', 'picAdmins'));
     }

@@ -88,6 +88,9 @@
             </form>
         </div>
 
+        <!-- Results Info -->
+        <div id="resultsInfo" class="mb-4"></div>
+
         <div class="bg-white shadow rounded-lg loading-overlay" id="tableContainer" style="position:relative;">
             <div class="loading-spinner" id="approveRekapLoadingSpinner" style="display:none;">
                 <svg class="animate-spin h-8 w-8 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -101,6 +104,11 @@
             <div id="tableContent">
                 @include('rekap.approve-table', ['rekaps' => $rekaps])
             </div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="paginationContent" class="mt-6">
+            @include('components.paginator', ['paginator' => $rekaps])
         </div>
     </div>
 
@@ -126,9 +134,9 @@
         const resetBtn = document.getElementById('resetFilterApproveRekap');
         const tableContainer = document.getElementById('tableContainer');
         const loadingSpinner = document.getElementById('approveRekapLoadingSpinner');
-        const confirmApproveModal = document.getElementById('confirmApproveModal');
-        const confirmRejectModal = document.getElementById('confirmRejectModal');
-        const btnCancelApprove = document.getElementById('btnCancelApprove');
+        const tableContent = document.getElementById('tableContent');
+        const paginationWrap = document.getElementById('paginationContent');
+        const resultsInfo = document.getElementById('resultsInfo');
         const confirmApproveModal = document.getElementById('confirmApproveModal');
         const btnCancelApprove = document.getElementById('btnCancelApprove');
         const btnConfirmApprove = document.getElementById('btnConfirmApprove');
@@ -146,37 +154,72 @@
             loadingSpinner.style.display = 'none';
         }
 
-        async function fetchTable(params = {}) {
-            showLoading();
-            try {
-                const queryString = new URLSearchParams(params).toString();
-                const response = await fetch(`{{ route('rekap.approve-list') }}?${queryString}`, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+        function attachPaginationListeners() {
+            document.querySelectorAll('.pagination-link').forEach(a => {
+                a.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    const url = new URL(this.href);
+                    const page = url.searchParams.get('page') || 1;
+                    const formData = new FormData(filterForm);
+                    const params = new URLSearchParams(formData);
+                    params.set('page', page);
+                    fetchList(params);
                 });
-                const html = await response.text();
-                document.getElementById('tableContent').innerHTML = html;
-                hideLoading();
-            } catch (error) {
-                console.error(error);
-                hideLoading();
-            }
+            });
+        }
+
+        function fetchList(params) {
+            showLoading();
+            fetch(`{{ route('rekap.approve-list') }}?${params.toString()}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    tableContent.innerHTML = data.table;
+                    paginationWrap.innerHTML = data.pagination;
+                    if (resultsInfo) resultsInfo.innerHTML = data.info || '';
+                    hideLoading();
+                    attachPaginationListeners();
+                    attachApproveListeners();
+                })
+                .catch(e => {
+                    console.error(e);
+                    hideLoading();
+                });
+        }
+
+        function attachApproveListeners() {
+            document.querySelectorAll('.btn-approve-rekap').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const id = this.dataset.id;
+                    const row = this.closest('tr');
+                    const namaRekap = row.querySelector('td:nth-child(2) a').textContent;
+                    
+                    approveTargetId = id;
+                    approveRekapName.textContent = namaRekap;
+                    confirmApproveModal.classList.remove('hidden');
+                    confirmApproveModal.classList.add('flex');
+                });
+            });
         }
 
         // Filter handler
         filterInputs.forEach(input => {
             input.addEventListener('change', () => {
-                const params = Object.fromEntries(new FormData(filterForm));
-                fetchTable(params);
+                const params = new URLSearchParams(new FormData(filterForm));
+                fetchList(params);
             });
         });
 
         filterInputs.forEach(input => {
             if (input.type === 'text') {
                 input.addEventListener('keyup', () => {
-                    const params = Object.fromEntries(new FormData(filterForm));
-                    fetchTable(params);
+                    const params = new URLSearchParams(new FormData(filterForm));
+                    fetchList(params);
                 });
             }
         });
@@ -184,24 +227,8 @@
         // Reset filter
         resetBtn.addEventListener('click', () => {
             filterForm.reset();
-            fetchTable();
+            fetchList(new URLSearchParams());
         });
-
-        // Approve button handler
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.btn-approve-rekap')) {
-                const btn = e.target.closest('.btn-approve-rekap');
-                const id = btn.dataset.id;
-                const row = btn.closest('tr');
-                const namaRekap = row.querySelector('td:nth-child(3)').textContent;
-                
-                approveTargetId = id;
-                approveRekapName.textContent = namaRekap;
-                confirmApproveModal.classList.remove('hidden');
-                confirmApproveModal.classList.add('flex');
-            }
-        });
-
 
         // Close modals
         btnCancelApprove.addEventListener('click', () => {
@@ -209,8 +236,6 @@
             confirmApproveModal.classList.remove('flex');
             approveTargetId = null;
         });
-
-
 
         // Confirm approve
         btnConfirmApprove.addEventListener('click', () => {
@@ -235,8 +260,8 @@
                     });
                 }
                 // Reload table
-                const params = Object.fromEntries(new FormData(filterForm));
-                fetchTable(params);
+                const params = new URLSearchParams(new FormData(filterForm));
+                fetchList(params);
                 approveTargetId = null;
             })
             .catch(err => {
@@ -251,7 +276,6 @@
             });
         });
 
-
         // Close modals when clicking outside
         confirmApproveModal.addEventListener('click', function(e) {
             if (e.target === confirmApproveModal) {
@@ -261,6 +285,8 @@
             }
         });
 
-
+        // Initial attachment of listeners
+        attachApproveListeners();
+        attachPaginationListeners();
     </script>
 @endsection
