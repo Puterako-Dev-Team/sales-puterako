@@ -252,6 +252,55 @@
             </div>
 
             <div class="flex items-center space-x-4">
+                <div class="relative mr-1 mt-2">
+                    <button id="notifBell" class="relative focus:outline-bg-green-50 rounded-lg hover:border-color-green-50 transition-colors">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        @if($unreadCount > 0)
+                            <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">
+                                {{ $unreadCount }}
+                            </span>
+                        @endif
+                    </button>
+                    
+                    <!-- Dropdown Notifikasi -->
+                    <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-30">
+                        <div class="px-4 py-2 border-b font-semibold text-gray-700">Notifikasi</div>
+                        <div class="max-h-80 overflow-y-auto">
+                            @forelse($notifications as $notif)
+                                <a href="{{ route('notifications.read', $notif->id) }}"
+                                class="block px-4 py-2 text-sm border-b last:border-b-0
+                                hover:bg-gray-50
+                                {{ is_null($notif->read_at) ? 'bg-yellow-50 font-semibold' : 'text-gray-700' }}">
+                                    
+                                    <div>{{ $notif->data['title'] ?? 'Notifikasi' }}</div>
+                                    <div class="text-xs text-gray-500">
+                                        {{ $notif->data['body'] ?? '' }}
+                                    </div>
+                                    <div class="text-xs text-gray-400 mt-1">
+                                        {{ $notif->created_at->diffForHumans() }}
+                                    </div>
+                                </a>
+                            @empty
+                                <div class="px-4 py-4 text-center text-gray-400 text-sm">
+                                    Tidak ada notifikasi baru
+                                </div>
+                            @endforelse
+                        </div>
+                        @if($unreadCount > 0)
+                            <div class="px-4 py-2 border-t text-right">
+                                <form method="POST" action="{{ route('notifications.readAll') }}" class="inline">
+                                    @csrf
+                                    <button type="submit" class="text-xs text-green-600 hover:underline">
+                                        Tandai semua sudah dibaca
+                                    </button>
+                                </form>
+                            </div>
+                        @endif
+                    </div>
+                </div>
                 <!-- User Profile Dropdown -->
                 <div class="relative user-dropdown-container">
                     <button id="userDropdown" type="button"
@@ -638,6 +687,19 @@
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const bell = document.getElementById('notifBell');
+            const dropdown = document.getElementById('notifDropdown');
+            if (bell && dropdown) {
+                bell.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('hidden');
+                });
+                document.addEventListener('click', function () {
+                    dropdown.classList.add('hidden');
+                });
+            }
+        });
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('sidebarToggle');
         const labels = document.querySelectorAll('.menu-label');

@@ -97,8 +97,12 @@ class SendFollowUpReminder extends Command
             ];
 
             if (!$dryRun) {
-                FollowUp::create($reminderData);
+                $followup = FollowUp::create($reminderData);
                 $schedule->incrementReminder();
+
+                if ($penawaran->user){
+                    $penawaran->user->notify(new \App\Notifications\FollowUpNotification($penawaran, $followup));
+                }
                 
                 if ($isLastReminder) {
                     $completedCycles++;
@@ -187,7 +191,7 @@ class SendFollowUpReminder extends Command
                 $autoCreatedSchedules++;
 
                 // Buat reminder
-                FollowUp::create([
+                $followup = FollowUp::create([
                     'penawaran_id' => $penawaran->id_penawaran,
                     'follow_up_schedule_id' => $schedule->id,
                     'nama' => "🔔 Reminder #{$newReminderCount}/" . self::DEFAULT_MAX_REMINDERS,
@@ -199,7 +203,11 @@ class SendFollowUpReminder extends Command
                     'cycle_number' => 1,
                     'reminder_sequence' => $newReminderCount,
                 ]);
-            }
+
+                if ($penawaran->user) {
+                    $penawaran->user->notify(new \App\Notifications\FollowUpNotification($penawaran, $followup));
+                }
+            }               
 
             $count++;
             

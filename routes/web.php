@@ -15,6 +15,7 @@ use App\Http\Controllers\ExportApprovalController;
 use App\Http\Controllers\TipeController;
 use App\Http\Controllers\SatuanController;
 use App\Http\Controllers\HolidayController;
+use App\Http\Controllers\NotificationController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -149,4 +150,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/penawaran/{id}/resume', [FollowUpScheduleController::class, 'resume'])->name('resume');
         Route::get('/penawaran/{id}', [FollowUpScheduleController::class, 'show'])->name('show');
     });
+
+    // Notification routes
+    Route::get('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
 });
