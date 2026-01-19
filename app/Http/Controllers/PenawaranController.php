@@ -344,6 +344,8 @@ class PenawaranController extends Controller
 
         $penawaran = \App\Models\Penawaran::find($id);
 
+        $satuans = \App\Models\Satuan::orderBy('nama')->get();
+
         // Staff role hanya bisa melihat penawaran mereka sendiri
         $userRole = Auth::user()->role ?? null;
         if ($userRole === 'staff' && $penawaran && $penawaran->user_id !== Auth::id()) {
@@ -449,7 +451,8 @@ class PenawaranController extends Controller
             'ppnNominal',
             'grandTotalWithPpn',
             'isBest',
-            'bestPrice'
+            'bestPrice',
+            'satuans'
         ));
     }
 

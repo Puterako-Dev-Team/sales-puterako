@@ -1077,6 +1077,9 @@
         <script>
             const activeVersion = {{ $activeVersion ?? 0 }};
         </script>
+        <script>
+            const satuanOptions = @json($satuans->pluck('nama'));
+        </script>
 
         @push('scripts')
             <script>
@@ -1190,7 +1193,6 @@
                             const rawData = section.spreadsheet.getData();
                             
                             // Check area dan nama section tidak kosong
-                            if (!areaSelect.value || areaSelect.value.trim() === '') return false;
                             if (!namaSectionInput.value || namaSectionInput.value.trim() === '') return false;
                             
                             // Check minimal ada 1 baris data yang valid
@@ -2085,7 +2087,12 @@
                                 { title: 'Tipe', width: 150, wordWrap: true },
                                 { title: 'Deskripsi', width: 300, wordWrap: true },
                                 { title: 'QTY', width: 100, type: 'numeric' },
-                                { title: 'Satuan', width: 100 },
+                                {
+                                    title: 'Satuan',
+                                    width: 100,
+                                    type: 'dropdown',
+                                    source: satuanOptions,
+                                },
                                 {
                                     title: 'Harga Satuan',
                                     width: 150,
@@ -2379,9 +2386,6 @@
                             const areaSelect = sectionElement.querySelector('.area-select');
                             const namaSectionInput = sectionElement.querySelector('.nama-section-input');
                             
-                            if (!areaSelect.value || areaSelect.value.trim() === '') {
-                                validationErrors.push(`Section ${sectionIdx + 1}: Area Pemasangan tidak boleh kosong`);
-                            }
                             if (!namaSectionInput.value || namaSectionInput.value.trim() === '') {
                                 validationErrors.push(`Section ${sectionIdx + 1}: Nama Section tidak boleh kosong`);
                             }
