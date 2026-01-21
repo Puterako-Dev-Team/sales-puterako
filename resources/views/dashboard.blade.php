@@ -4,7 +4,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 @if ($canViewCharts)
-                    <!-- Charts untuk Supervisor, Manajer, Administrator, Direktur -->
+                    <!-- Charts untuk Supervisor, Manajer, Administrator, Direktur, dan Staff -->
                     <form method="GET" class="mb-4 flex gap-2 items-center">
                         <input type="month" name="month" value="{{ request('month', \Carbon\Carbon::now()->format('Y-m')) }}"
                             class="border rounded px-2 py-1">
@@ -16,13 +16,15 @@
                             <canvas id="dateLineChart"></canvas>
                         </div>
                     </div>
-                    <!-- Penawaran per PIC Admin -->
+                    <!-- Penawaran per PIC Admin (hanya untuk non-staff) -->
+                    @if(Auth::user()->role !== 'staff')
                     <div class="bg-gray-50 p-4 rounded-lg mt-6 w-full">
                         <h3 class="font-semibold text-sm mb-3 text-center">Penawaran per PIC Admin</h3>
                         <div style="height: 250px;">
                             <canvas id="picChart"></canvas>
                         </div>
                     </div>
+                    @endif
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                         <!-- Perusahaan Terbanyak -->
                         <div class="bg-gray-50 p-4 rounded-lg w-full">
@@ -125,6 +127,7 @@
                 }
             });
 
+            @if(Auth::user()->role !== 'staff')
             // 2. Bar Chart PIC Admin - Total Penawaran dengan tooltip detail status
             const picStats = {!! json_encode($picStats) !!};
             const picLabels = picStats.map(x => x.name);
@@ -194,6 +197,7 @@
                     }
                 }
             });
+            @endif
 
             // 3. Pie Chart Status
             const statusColorMap = {

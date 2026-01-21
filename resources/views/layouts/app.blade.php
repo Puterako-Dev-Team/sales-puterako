@@ -475,6 +475,7 @@
                             <!-- Dropdown Menu -->
                             <div id="penawaranMenu" class="dropdown-menu">
                                 <div class="space-y-1 py-2">
+                                    @if(Auth::user()->role !== 'manager')
                                     <a href="{{ route('penawaran.list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
                                         <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
@@ -485,6 +486,7 @@
                                         </svg>
                                         <span class="menu-label show text-sm text-gray-700">List Penawaran</span>
                                     </a>
+                                    @endif
                                     @if(in_array(Auth::user()->role, ['supervisor', 'manager', 'direktur']))
                                     <a href="{{ route('penawaran.approve-list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
@@ -493,9 +495,14 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M5 13l4 4L19 7" />
                                         </svg>
+                                        @if(Auth::user()->role === 'manager')
+                                        <span class="menu-label show text-sm text-gray-700">Approve<br>Penawaran</span>
+                                        @else
                                         <span class="menu-label show text-sm text-gray-700">Approve List</span>
+                                        @endif
                                     </a>
                                     @endif
+                                    @if(Auth::user()->role !== 'manager')
                                     <a href="{{ route('rekap.list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
                                         <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
@@ -506,6 +513,7 @@
                                         </svg>
                                         <span class="menu-label show text-sm text-gray-700">Rekap Survey</span>
                                     </a>
+                                    @endif
                                     @if(in_array(Auth::user()->role, ['manager', 'direktur']))
                                     <a href="{{ route('rekap.approve-list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">

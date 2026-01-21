@@ -160,7 +160,7 @@
             font-weight: normal;
         }
 
-        /* Delivery Time - only for penawaran table */
+        /* Keterangan - only for penawaran table */
         table.penawaran-table th:nth-child(7),
         table.penawaran-table td:nth-child(7) {
             width: 12%;
@@ -449,7 +449,7 @@
                         <th>Qty</th>
                         <th>Satuan</th>
                         <th>Harga Satuan</th>
-                        <th>Delivery Time</th>
+                        <th>Keterangan</th>
                         <th>Harga Total</th>
                     </tr>
                 </thead>

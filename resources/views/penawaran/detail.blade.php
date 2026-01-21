@@ -808,7 +808,7 @@
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-32">Harga
                                                     Satuan
                                                 </th>
-                                                <th class="border border-gray-300 px-3 py-2 text-center w-32" style="color: #ef4444; font-weight: bold;">Delivery Time</th>
+                                                <th class="border border-gray-300 px-3 py-2 text-center w-32" style="color: #ef4444; font-weight: bold;">Keterangan</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-right w-32">Harga
                                                     Total
                                                 </th>
@@ -1824,6 +1824,64 @@
                     // Tombol simpan jasa
                     document.getElementById('jasaSaveAllBtn').addEventListener('click', () => {
                         const btn = document.getElementById('jasaSaveAllBtn');
+                        
+                        // Validasi sebelum menyimpan
+                        let validationErrors = [];
+                        
+                        jasaSections.forEach((section, index) => {
+                            const sectionElement = document.getElementById(section.id);
+                            const namaSectionInput = sectionElement.querySelector('.nama-section-input');
+                            const pembulatanInput = sectionElement.querySelector('.pembulatan-input');
+                            const rawData = section.spreadsheet.getData();
+                            
+                            const sectionNumber = index + 1;
+                            
+                            // Validasi nama section
+                            if (!namaSectionInput.value.trim()) {
+                                validationErrors.push(`Section ${sectionNumber}: Nama section harus diisi`);
+                            }
+                            
+                            // Validasi pembulatan (harus angka)
+                            if (pembulatanInput.value === '' || isNaN(parseInt(pembulatanInput.value))) {
+                                validationErrors.push(`Section ${sectionNumber}: Pembulatan harus diisi dengan angka`);
+                            }
+                            
+                            // Validasi data rows
+                            let hasValidRow = false;
+                            rawData.forEach((row, rowIndex) => {
+                                const deskripsi = String(row[1] || '').trim();
+                                const unit = parseNumber(row[5]);
+                                
+                                // Skip baris kosong
+                                if (!deskripsi && unit === 0) return;
+                                
+                                // Jika ada isi, validasi kelengkapan
+                                if (deskripsi || unit > 0) {
+                                    hasValidRow = true;
+                                    
+                                    if (!deskripsi) {
+                                        validationErrors.push(`Section ${sectionNumber} Baris ${rowIndex + 1}: Deskripsi harus diisi`);
+                                    }
+                                    
+                                    if (unit === 0 || isNaN(unit)) {
+                                        validationErrors.push(`Section ${sectionNumber} Baris ${rowIndex + 1}: Unit harus diisi dengan nilai lebih dari 0`);
+                                    }
+                                }
+                            });
+                            
+                            if (!hasValidRow) {
+                                validationErrors.push(`Section ${sectionNumber}: Harus ada minimal 1 baris data yang diisi`);
+                            }
+                        });
+                        
+                        // Jika ada error validasi, tampilkan dan jangan lanjutkan
+                        if (validationErrors.length > 0) {
+                            validationErrors.forEach(error => {
+                                notyf.error(error);
+                            });
+                            return;
+                        }
+                        
                         btn.innerHTML = "⏳ Menyimpan...";
                         btn.disabled = true;
 
@@ -2142,7 +2200,7 @@
                                     decimal: ','
                                 },
                                 {
-                                    title: 'Delivery Time',
+                                    title: 'Keterangan',
                                     width: 120,
                                     type: 'text'
                                 }
@@ -2158,7 +2216,7 @@
                                     rowIndex,
                                     value,
                                     columnName: ['No', 'Tipe', 'Deskripsi', 'QTY', 'Satuan',
-                                        'Harga Satuan', 'Harga Total', 'HPP', 'Mitra', 'Profit (%)', 'Warna', 'Added Cost', 'Delivery Time'
+                                        'Harga Satuan', 'Harga Total', 'HPP', 'Mitra', 'Profit (%)', 'Warna', 'Added Cost', 'Keterangan'
                                     ][colIndex]
                                 });
 
