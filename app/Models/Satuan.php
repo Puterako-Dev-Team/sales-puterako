@@ -11,4 +11,8 @@ class Satuan extends Model
     protected $fillable = [
         'nama'
     ];
+    public function rekapItems()
+    {
+        return $this->hasMany(RekapItem::class, 'satuan_id', 'id');
+    }
 }

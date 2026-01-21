@@ -395,6 +395,129 @@ class RekapController extends Controller
         return response()->json($tipes);
     }
 
+    public function all(Request $request)
+    {
+        $userId = \Illuminate\Support\Facades\Auth::id();
+        $penawaranId = $request->get('penawaran_id');
+
+        $rekaps = Rekap::where(function($q) use ($userId, $penawaranId) {
+            $q->whereNull('imported_into_penawaran_id')
+            ->where(function($q2) use ($userId) {
+                $q2->whereNull('imported_by')
+                    ->orWhere('imported_by', $userId);
+            });
+
+            if ($penawaranId) {
+                $q->orWhere('imported_into_penawaran_id', $penawaranId);
+            }
+        })
+        ->select('id', 'nama', 'imported_by', 'imported_into_penawaran_id')
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        return response()->json($rekaps);
+    }
+    public function getItems($id)
+    {
+        $rekap = Rekap::findOrFail($id);
+        $userId = \Illuminate\Support\Facades\Auth::id();
+
+        if ($rekap->imported_by && $rekap->imported_by != $userId) {
+            return response()->json([
+                'message' => 'Rekap ini sudah diimport oleh user lain.'
+            ], 403);
+        }
+
+        if (is_null($rekap->imported_by)) {
+            $rekap->imported_by = $userId;
+            $rekap->imported_at = now();
+            $rekap->save();
+        }
+
+        // ambil items beserta relasi tipe/kategori/satuan
+        $items = RekapItem::with(['tipe', 'kategori', 'satuan'])
+                    ->where('rekap_id', $id)
+                    ->get();
+
+        // mapping: pastikan nama item diambil dari tipe.nama bila ada, fallback ke nama_item
+        $payload = $items->map(function($it) {
+            return [
+                'id' => $it->id,
+                'nama_item' => optional($it->tipe)->nama ?: ($it->nama_item ?? ''),
+                'nama_area' => $it->nama_area ?? '',
+                'jumlah' => $it->jumlah ?? 0,
+                'satuan' => optional($it->satuan)->nama ?? ($it->satuan ?? ''),
+                'kategori' => $it->kategori ? ['id' => $it->kategori->id, 'nama' => $it->kategori->nama] : null
+            ];
+        });
+
+        return response()->json($payload);
+    }
+
+    public function import(Request $request, $id)
+    {
+        $request->validate([
+            'penawaran_id' => 'required|exists:penawarans,id_penawaran'
+        ]);
+
+        $rekap = Rekap::findOrFail($id);
+        $userId = Auth::id();
+
+        if ($rekap->imported_by && $rekap->imported_by != $userId) {
+            return response()->json(['message' => 'Rekap ini sudah diimport oleh user lain.'], 403);
+        }
+
+        if (is_null($rekap->imported_by)) {
+            $rekap->imported_by = $userId;
+            $rekap->imported_at = now();
+        }
+
+        // tautkan ke penawaran target
+        $rekap->imported_into_penawaran_id = $request->penawaran_id;
+        $rekap->save();
+
+        $items = RekapItem::with(['tipe', 'kategori', 'satuan'])
+                    ->where('rekap_id', $id)
+                    ->get();
+
+        $payload = $items->map(function($it) {
+            return [
+                'id' => $it->id,
+                'nama_item' => optional($it->tipe)->nama ?? $it->nama_item ?? '',
+                'nama_area' => $it->nama_area,
+                'jumlah' => $it->jumlah,
+                'satuan' => optional($it->satuan)->nama ?? '',
+                'kategori' => $it->kategori ? ['id' => $it->kategori->id, 'nama' => $it->kategori->nama] : null
+            ];
+        });
+
+        return response()->json($payload);
+    }
+    public function forPenawaran($penawaran_id)
+    {
+        $userId = Auth::id();
+
+        $rekaps = Rekap::where('imported_into_penawaran_id', $penawaran_id)
+                    ->where('imported_by', $userId)
+                    ->with(['items.tipe', 'items.satuan', 'items.kategori'])
+                    ->get();
+
+        $payload = $rekaps->flatMap(function($rekap) {
+            return $rekap->items->map(function($it) {
+                return [
+                    'id' => $it->id,
+                    'nama_item' => optional($it->tipe)->nama ?? $it->nama_item ?? '',
+                    'nama_area' => $it->nama_area,
+                    'jumlah' => $it->jumlah,
+                    'satuan' => optional($it->satuan)->nama ?? '',
+                    'kategori' => $it->kategori ? ['id' => $it->kategori->id, 'nama' => $it->kategori->nama] : null
+                ];
+            });
+        })->values();
+
+        return response()->json($payload);
+    }
+
     // Approve Rekap List Page
     public function approveList(Request $request)
     {

@@ -11,16 +11,19 @@ class Rekap extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'penawaran_id',
         'user_id',
+        'penawaran_id',
         'nama',
         'no_penawaran',
         'nama_perusahaan',
         'status',
-        'deleted_at'
+        'deleted_at',
+        'imported_by',
+        'imported_at',
+        'imported_into_penawaran_id'
     ];
 
-    protected $dates = ['deleted_at'];
+    protected $dates = ['deleted_at', 'imported_at'];
 
     protected $attributes = [
         'status' => 'pending'
@@ -29,6 +32,15 @@ class Rekap extends Model
     public function penawaran()
     {
         return $this->belongsTo(Penawaran::class, 'penawaran_id', 'id_penawaran');
+    }
+
+    public function importedBy()
+    {
+        return $this->belongsTo(User::class, 'imported_by');
+    }
+    public function importedIntoPenawaran()
+    {
+        return $this->belongsTo(Penawaran::class, 'imported_into_penawaran_id', 'id_penawaran');
     }
 
     public function user()

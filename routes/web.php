@@ -114,6 +114,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/search-tipes', [RekapController::class, 'searchTipes'])->name('rekap.search-tipes');
         Route::post('/create-tipe', [RekapController::class, 'createTipe'])->name('rekap.create-tipe');
         Route::post('/store', [RekapController::class, 'store'])->name('rekap.store');
+        Route::get('/all', [RekapController::class, 'all'])->name('rekap.all');
         Route::get('/{id}', [RekapController::class, 'show'])->name('rekap.show');
         Route::get('/{id}/edit', [RekapController::class, 'edit'])->name('rekap.edit');
         Route::put('/{id}', [RekapController::class, 'update'])->name('rekap.update');
@@ -121,6 +122,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/approve', [RekapController::class, 'approve'])->name('rekap.approve');
         Route::post('/{rekap_id}/add-item', [RekapController::class, 'addItem'])->name('rekap.addItem');
         Route::post('/{rekap_id}/update-items', [RekapController::class, 'updateItems'])->name('rekap.updateItems');
+        Route::get('/{id}/items', [RekapController::class, 'getItems'])->name('rekap.getItems');
+        Route::post('/{id}/import', [RekapController::class, 'import'])->name('rekap.import');
+        Route::get('/for-penawaran/{penawaran_id}', [RekapController::class, 'forPenawaran'])->name('rekap.forPenawaran');
     });
 
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
