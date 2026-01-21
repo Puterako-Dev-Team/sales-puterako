@@ -42,6 +42,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/rekap-survey', [PenawaranController::class, 'rekapSurvey'])->name('penawaran.rekap-survey');
         Route::get('/preview', [PenawaranController::class, 'preview'])->name('penawaran.preview');
         Route::get('/export-pdf', [PenawaranController::class, 'exportPdf'])->name('penawaran.exportPdf');
+        Route::get('/show-log', [PenawaranController::class, 'showLog'])->name('penawaran.showLog');
+        Route::get('/count-unread-activities', [PenawaranController::class, 'countUnreadActivities'])->name('penawaran.countUnreadActivities');
+        Route::post('/mark-activities-read', [PenawaranController::class, 'markActivitiesAsRead'])->name('penawaran.markActivitiesRead');
         Route::post('/{id}/save-notes', [PenawaranController::class, 'saveNotes'])->name('penawaran.saveNotes');
         Route::post('/{id}/save-best-price', [PenawaranController::class, 'saveBestPrice'])->name('penawaran.saveBestPrice');
         Route::post('/{id}/create-revision', [PenawaranController::class, 'createRevision'])->name('penawaran.createRevision');
