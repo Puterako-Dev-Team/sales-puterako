@@ -6,6 +6,7 @@ use App\Models\Penawaran;
 use App\Models\RekapKategori;
 use App\Models\RekapItem;
 use App\Models\Tipe;
+use App\Models\Satuan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -54,52 +55,15 @@ class RekapController extends Controller
     // Show detail rekap
     public function show($id)
     {
-        $rekap = Rekap::with(['items.kategori', 'user', 'penawaran'])->findOrFail($id);
+        $rekap = Rekap::with(['items.kategori', 'items.tipe', 'items.satuan', 'user', 'penawaran'])->findOrFail($id);
         $penawarans = Penawaran::all();
         $kategoris = RekapKategori::all();
-
-        // Gabungkan semua nama detail unik
-        $detailNames = [];
-        foreach ($rekap->items as $item) {
-            foreach ($item->detail ?? [] as $d) {
-                $detailNames[] = $d['nama_detail'];
-            }
-        }
-        $previewDetails = array_values(array_unique($detailNames));
-
-        // Gabungkan detail dengan nama_detail sama dan jumlahkan
-        $previewKategori = [];
-        foreach ($rekap->items as $item) {
-            $kategoriNama = $item->kategori->nama ?? '-';
-            if (!isset($previewKategori[$kategoriNama])) {
-                $previewKategori[$kategoriNama] = ['nama' => $kategoriNama, 'items' => []];
-            }
-
-            // Gabungkan detail per nama_detail
-            $detailMap = [];
-            foreach ($item->detail ?? [] as $d) {
-                $nama = $d['nama_detail'];
-                if (!isset($detailMap[$nama])) {
-                    $detailMap[$nama] = [
-                        'nama_detail' => $nama,
-                        'jumlah' => floatval($d['jumlah']),
-                        'keterangan' => $d['keterangan'] ?? '',
-                    ];
-                } else {
-                    $detailMap[$nama]['jumlah'] += floatval($d['jumlah']);
-                }
-            }
-
-            $previewKategori[$kategoriNama]['items'][] = [
-                'nama_item' => $item->nama_item,
-                'detail' => array_values($detailMap),
-            ];
-        }
-        $previewKategori = array_values($previewKategori);
+        $tipes = Tipe::all();
+        $satuans = Satuan::all();
 
         $isEdit = $rekap->exists;
 
-        return view('rekap.detail', compact('rekap', 'penawarans', 'kategoris', 'previewKategori', 'previewDetails', 'isEdit'));
+        return view('rekap.detail', compact('rekap', 'penawarans', 'kategoris', 'tipes', 'satuans', 'isEdit'));
     }
 
     // Form tambah rekap
@@ -107,7 +71,9 @@ class RekapController extends Controller
     {
         $penawarans = Penawaran::all();
         $kategoris = RekapKategori::all();
-        return view('rekap.detail', compact('penawarans', 'kategoris'));
+        $tipes = Tipe::all();
+        $satuans = Satuan::all();
+        return view('rekap.detail', compact('penawarans', 'kategoris', 'tipes', 'satuans'));
     }
 
     // Simpan rekap baru beserta items dan detail JSON
@@ -141,29 +107,128 @@ class RekapController extends Controller
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.rekap_kategori_id' => 'required|exists:rekap_kategoris,id',
-            'items.*.nama_item' => 'required|string|max:255',
-            'items.*.detail' => 'required|array|min:1',
-            'items.*.detail.*.nama_detail' => 'required|string|max:255',
-            'items.*.detail.*.jumlah' => 'required|numeric|min:0.01',
+            'items.*.tipes_id' => 'required|exists:tipes,id',
+            'items.*.nama_area' => 'required|string|max:255',
+            'items.*.jumlah' => 'required|numeric|min:0.01',
+            'items.*.satuan_id' => 'required|exists:satuans,id',
+        ], [
+            'items.required' => 'Minimal harus ada satu item',
+            'items.*.rekap_kategori_id.required' => 'Kategori harus dipilih untuk setiap item',
+            'items.*.rekap_kategori_id.exists' => 'Kategori yang dipilih tidak valid',
+            'items.*.tipes_id.required' => 'Nama Item harus dipilih atau dibuat',
+            'items.*.tipes_id.exists' => 'Nama Item yang dipilih tidak valid',
+            'items.*.nama_area.required' => 'Nama Area harus diisi untuk setiap item',
+            'items.*.jumlah.required' => 'Jumlah harus diisi untuk setiap item',
+            'items.*.jumlah.numeric' => 'Jumlah harus berupa angka',
+            'items.*.jumlah.min' => 'Jumlah harus lebih dari 0',
+            'items.*.satuan_id.required' => 'Satuan harus dipilih untuk setiap item',
+            'items.*.satuan_id.exists' => 'Satuan yang dipilih tidak valid',
         ]);
 
-        foreach ($request->items as $item) {
-            // Cari atau buat tipe berdasarkan nama_item
-            $tipe = Tipe::firstOrCreate(
-                ['nama' => $item['nama_item']],
-                ['nama' => $item['nama_item']]
-            );
+        // Check for duplicate items (same area, kategori, and tipes)
+        $existingItems = RekapItem::where('rekap_id', $rekap_id)
+            ->get()
+            ->map(function($item) {
+                return $item->nama_area . '|' . $item->rekap_kategori_id . '|' . $item->tipes_id;
+            })
+            ->toArray();
 
+        foreach ($request->items as $item) {
+            $itemKey = $item['nama_area'] . '|' . $item['rekap_kategori_id'] . '|' . $item['tipes_id'];
+            
+            if (in_array($itemKey, $existingItems)) {
+                if (request()->wantsJson() || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Item dengan area, kategori, dan tipe yang sama sudah ada di rekap ini.'
+                    ], 422);
+                }
+                return back()->withErrors(['Item dengan area, kategori, dan tipe yang sama sudah ada di rekap ini.'])->withInput();
+            }
+            
             RekapItem::create([
                 'rekap_id' => $rekap_id,
                 'rekap_kategori_id' => $item['rekap_kategori_id'],
-                'tipes_id' => $tipe->id,
-                'nama_item' => $item['nama_item'],
-                'detail' => $item['detail'], // otomatis array->json via casts
+                'tipes_id' => $item['tipes_id'],
+                'nama_area' => $item['nama_area'],
+                'jumlah' => $item['jumlah'],
+                'satuan_id' => $item['satuan_id'],
+            ]);
+            
+            $existingItems[] = $itemKey;
+        }
+
+        if (request()->wantsJson() || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'success' => true,
+                'message' => 'Item berhasil ditambahkan'
             ]);
         }
 
         return redirect()->route('rekap.show', $rekap_id)->with('success', 'Item berhasil ditambahkan');
+    }
+
+    // Add new area to existing rekap
+    public function addArea(Request $request, $rekap_id)
+    {
+        $request->validate([
+            'nama_area' => 'required|string|max:255|filled',
+            'items' => 'required|array|min:1',
+            'items.*.rekap_kategori_id' => 'required|exists:rekap_kategoris,id',
+            'items.*.tipes_id' => 'required|exists:tipes,id',
+            'items.*.jumlah' => 'required|numeric|min:0.01',
+            'items.*.satuan_id' => 'required|exists:satuans,id',
+        ], [
+            'nama_area.required' => 'Nama Area harus diisi',
+            'nama_area.filled' => 'Nama Area tidak boleh kosong',
+            'items.required' => 'Minimal harus ada satu item',
+            'items.*.rekap_kategori_id.required' => 'Kategori harus dipilih untuk setiap item',
+            'items.*.rekap_kategori_id.exists' => 'Kategori yang dipilih tidak valid',
+            'items.*.tipes_id.required' => 'Nama Item harus dipilih atau dibuat',
+            'items.*.tipes_id.exists' => 'Nama Item yang dipilih tidak valid',
+            'items.*.jumlah.required' => 'Jumlah harus diisi untuk setiap item',
+            'items.*.jumlah.numeric' => 'Jumlah harus berupa angka',
+            'items.*.jumlah.min' => 'Jumlah harus lebih dari 0',
+            'items.*.satuan_id.required' => 'Satuan harus dipilih untuk setiap item',
+            'items.*.satuan_id.exists' => 'Satuan yang dipilih tidak valid',
+        ]);
+
+        // Check for duplicate tipes_id within same rekap
+        $existingTipes = RekapItem::where('rekap_id', $rekap_id)
+            ->pluck('tipes_id')
+            ->toArray();
+
+        foreach ($request->items as $item) {
+            if (in_array($item['tipes_id'], $existingTipes)) {
+                if (request()->wantsJson() || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Tipe item sudah ada di rekap ini.'
+                    ], 422);
+                }
+                return back()->withErrors(['Tipe item sudah ada di rekap ini.'])->withInput();
+            }
+            
+            RekapItem::create([
+                'rekap_id' => $rekap_id,
+                'rekap_kategori_id' => $item['rekap_kategori_id'],
+                'tipes_id' => $item['tipes_id'],
+                'nama_area' => $request->nama_area,
+                'jumlah' => $item['jumlah'],
+                'satuan_id' => $item['satuan_id'],
+            ]);
+            
+            $existingTipes[] = $item['tipes_id'];
+        }
+
+        if (request()->wantsJson() || request()->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'success' => true,
+                'message' => 'Area dan item berhasil ditambahkan'
+            ]);
+        }
+
+        return redirect()->route('rekap.show', $rekap_id)->with('success', 'Area dan item berhasil ditambahkan');
     }
 
     // Form edit rekap
@@ -243,11 +308,33 @@ class RekapController extends Controller
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.rekap_kategori_id' => 'required|exists:rekap_kategoris,id',
-            'items.*.nama_item' => 'required|string|max:255',
-            'items.*.detail' => 'required|array|min:1',
-            'items.*.detail.*.nama_detail' => 'required|string|max:255',
-            'items.*.detail.*.jumlah' => 'required|numeric|min:0.01',
+            'items.*.tipes_id' => 'required|exists:tipes,id',
+            'items.*.nama_area' => 'required|string|max:255',
+            'items.*.jumlah' => 'required|numeric|min:0.01',
+            'items.*.satuan_id' => 'required|exists:satuans,id',
+        ], [
+            'items.required' => 'Minimal harus ada satu item',
+            'items.*.rekap_kategori_id.required' => 'Kategori harus dipilih untuk setiap item',
+            'items.*.rekap_kategori_id.exists' => 'Kategori yang dipilih tidak valid',
+            'items.*.tipes_id.required' => 'Nama Item harus dipilih atau dibuat',
+            'items.*.tipes_id.exists' => 'Nama Item yang dipilih tidak valid',
+            'items.*.nama_area.required' => 'Nama Area harus diisi untuk setiap item',
+            'items.*.jumlah.required' => 'Jumlah harus diisi untuk setiap item',
+            'items.*.jumlah.numeric' => 'Jumlah harus berupa angka',
+            'items.*.jumlah.min' => 'Jumlah harus lebih dari 0',
+            'items.*.satuan_id.required' => 'Satuan harus dipilih untuk setiap item',
+            'items.*.satuan_id.exists' => 'Satuan yang dipilih tidak valid',
         ]);
+
+        // Check for duplicate items (same area, kategori, and tipes)
+        $itemKeys = [];
+        foreach ($request->items as $item) {
+            $itemKey = $item['nama_area'] . '|' . $item['rekap_kategori_id'] . '|' . $item['tipes_id'];
+            if (in_array($itemKey, $itemKeys)) {
+                return back()->withErrors(['Tidak boleh ada item duplikat dengan area, kategori, dan tipe yang sama.'])->withInput();
+            }
+            $itemKeys[] = $itemKey;
+        }
 
         $rekap = Rekap::findOrFail($rekap_id);
 
@@ -256,18 +343,13 @@ class RekapController extends Controller
 
         // Insert ulang item dari form
         foreach ($request->items as $item) {
-            // Cari atau buat tipe berdasarkan nama_item
-            $tipe = Tipe::firstOrCreate(
-                ['nama' => $item['nama_item']],
-                ['nama' => $item['nama_item']]
-            );
-
             RekapItem::create([
                 'rekap_id' => $rekap_id,
                 'rekap_kategori_id' => $item['rekap_kategori_id'],
-                'tipes_id' => $tipe->id,
-                'nama_item' => $item['nama_item'],
-                'detail' => $item['detail'],
+                'tipes_id' => $item['tipes_id'],
+                'nama_area' => $item['nama_area'],
+                'jumlah' => $item['jumlah'],
+                'satuan_id' => $item['satuan_id'],
             ]);
         }
 
@@ -389,5 +471,48 @@ class RekapController extends Controller
 
         return redirect()->route('rekap.approve-list')->with('success', 'Rekap berhasil diapprove');
     }
-}
 
+    // Search tipes for autocomplete
+    public function searchTipes(Request $request)
+    {
+        $query = $request->get('q', '');
+        
+        // Search for tipes by nama (case-insensitive)
+        $tipes = Tipe::where('nama', 'like', '%' . $query . '%')
+            ->distinct('nama')
+            ->orderBy('nama')
+            ->limit(10)
+            ->get(['id', 'nama'])
+            ->map(fn($tipe) => [
+                'value' => $tipe->id,
+                'text' => $tipe->nama
+            ])
+            ->values()
+            ->toArray();
+
+        return response()->json($tipes);
+    }
+
+    // Create new tipe from form (allowed for all authenticated users)
+    public function createTipe(Request $request)
+    {
+        $validated = $request->validate([
+            'nama' => 'required|string|max:255|unique:tipes,nama'
+        ]);
+
+        try {
+            $tipe = Tipe::create($validated);
+
+            return response()->json([
+                'id' => $tipe->id,
+                'nama' => $tipe->nama,
+                'success' => true,
+                'message' => 'Tipe berhasil ditambahkan'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membuat tipe: ' . $e->getMessage()
+            ], 400);
+        }
+    }}

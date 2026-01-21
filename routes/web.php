@@ -111,7 +111,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/list', [RekapController::class, 'index'])->name('rekap.list');
         Route::get('/approve-list', [RekapController::class, 'approveList'])->name('rekap.approve-list');
         Route::get('/create', [RekapController::class, 'create'])->name('rekap.create');
-        Route::get('/item-names', [RekapController::class, 'getItemNames'])->name('rekap.item-names');
+        Route::get('/search-tipes', [RekapController::class, 'searchTipes'])->name('rekap.search-tipes');
+        Route::post('/create-tipe', [RekapController::class, 'createTipe'])->name('rekap.create-tipe');
         Route::post('/store', [RekapController::class, 'store'])->name('rekap.store');
         Route::get('/{id}', [RekapController::class, 'show'])->name('rekap.show');
         Route::get('/{id}/edit', [RekapController::class, 'edit'])->name('rekap.edit');

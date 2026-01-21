@@ -10,9 +10,19 @@ class TipeController extends Controller
 {
     public function __construct()
     {
-        if (!Auth::check() || Auth::user()->role !== 'administrator') {
-            abort(403, 'Unauthorized. Administrator access required.');
-        }
+        $this->middleware(function ($request, $next) {
+            // Allow 'store' method for all authenticated users
+            if ($request->route()->getActionMethod() === 'store') {
+                return $next($request);
+            }
+            
+            // For other methods, require administrator role
+            if (!Auth::check() || Auth::user()->role !== 'administrator') {
+                abort(403, 'Unauthorized. Administrator access required.');
+            }
+            
+            return $next($request);
+        });
     }
 
     /**
@@ -80,8 +90,9 @@ class TipeController extends Controller
         $tipe = Tipe::create($validated);
 
         return response()->json([
+            'id' => $tipe->id,
+            'nama' => $tipe->nama,
             'success' => true,
-            'data' => $tipe,
             'message' => 'Tipe berhasil ditambahkan'
         ]);
     }
