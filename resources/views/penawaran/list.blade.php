@@ -685,6 +685,7 @@
                     hideLoading();
                     attachPaginationListeners();
                     attachSortListeners();
+                    loadUnreadActivityCounts(); // Reload badges after table update
                     pushUrl(params);
                 })
                 .catch(e => {
@@ -732,6 +733,33 @@
         document.addEventListener('DOMContentLoaded', () => {
             attachPaginationListeners();
             attachSortListeners();
+            loadUnreadActivityCounts();
         });
+
+        /* ================== LOAD UNREAD ACTIVITY COUNTS ================== */
+        function loadUnreadActivityCounts() {
+            const detailButtons = document.querySelectorAll('a[data-penawaran-id]');
+            
+            detailButtons.forEach(button => {
+                const penawaranId = button.getAttribute('data-penawaran-id');
+                const badge = button.querySelector('.activity-badge');
+                
+                if (!badge) return;
+                
+                fetch(`{{ route('penawaran.countUnreadActivities') }}?id=${penawaranId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.unread_count > 0) {
+                            badge.textContent = data.unread_count > 9 ? '9+' : data.unread_count;
+                            badge.classList.remove('hidden');
+                        } else {
+                            badge.classList.add('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading unread count:', error);
+                    });
+            });
+        }
     </script>
 @endpush

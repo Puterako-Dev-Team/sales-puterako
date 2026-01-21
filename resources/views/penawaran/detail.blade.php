@@ -136,16 +136,27 @@
 
         <!-- Pindahkan button status keluar dari form -->
         <div class="flex gap-2 -mt-4">
+            @if(Auth::user()->role !== 'manager')
+            <button type="button" id="logActivityBtn"
+                class="bg-blue-500 text-white px-2 py-2 rounded hover:bg-blue-600 font-semibold relative"
+                title="Logging Activity">
+                <x-lucide-clipboard-list class="w-6 h-6 inline-block" />
+                <span id="unreadBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"></span>
+            </button>
+            @endif
             <button type="button" onclick="openStatusModal('draft')"
-                class="bg-[#FFA500] text-white px-2 py-2 rounded hover:shadow-lg font-semibold">
+                class="bg-[#FFA500] text-white px-2 py-2 rounded hover:shadow-lg font-semibold"
+                title="Set as Draft">
                 <x-lucide-file-edit class="w-6 h-6 inline-block" />
             </button>
             <button type="button" onclick="openStatusModal('lost')"
-                class="bg-red-500 text-white px-2 py-2 rounded hover:bg-red-600 font-semibold">
+                class="bg-red-500 text-white px-2 py-2 rounded hover:bg-red-600 font-semibold"
+                title="Mark as Lost">
                 <x-lucide-badge-x class="w-6 h-6 inline-block" />
             </button>
             <button type="button" onclick="openStatusModal('success')"
-                class="bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 font-semibold">
+                class="bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 font-semibold"
+                title="Mark as Success">
                 <x-lucide-badge-check class="w-6 h-6 inline-block" />
             </button>
         </div>
@@ -186,6 +197,45 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal untuk Activity Log -->
+    <div id="activityLogModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-[600px] max-w-full mx-4 max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Laporan Progress</h3>
+                <button type="button" onclick="closeActivityLogModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="activityLogContent" class="overflow-y-auto flex-1">
+                <div class="text-center py-8">
+                    <svg class="animate-spin h-8 w-8 mx-auto text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="text-gray-500 mt-2">Loading...</p>
+                </div>
+            </div>
+            
+            <div id="loadMoreContainer" class="hidden text-center mt-3">
+                <button type="button" id="loadMoreBtn" onclick="loadMoreActivities()"
+                    class="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium">
+                    Load More
+                </button>
+            </div>
+
+            <div class="flex justify-end mt-4">
+                <button type="button" onclick="closeActivityLogModal()"
+                    class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                    Tutup
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1167,6 +1217,166 @@
                 document.getElementById('statusModal').addEventListener('click', function (e) {
                     if (e.target === this) {
                         closeStatusModal();
+                    }
+                });
+
+                // Activity Log Modal Functions
+                const penawaranId = {{ $penawaran->id_penawaran }};
+
+                function checkUnreadActivities() {
+                    const badge = document.getElementById('unreadBadge');
+                    
+                    fetch(`{{ route('penawaran.countUnreadActivities') }}?id=${penawaranId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.unread_count > 0) {
+                                badge.textContent = data.unread_count > 9 ? '9+' : data.unread_count;
+                                badge.classList.remove('hidden');
+                            } else {
+                                badge.classList.add('hidden');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error checking unread activities:', error);
+                        });
+                }
+
+                function openActivityLogModal() {
+                    const modal = document.getElementById('activityLogModal');
+                    modal.classList.remove('hidden');
+                    loadActivityLog();
+                    
+                    // Mark activities as read on server
+                    fetch(`{{ route('penawaran.markActivitiesRead') }}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ id: penawaranId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Hide badge
+                            const badge = document.getElementById('unreadBadge');
+                            badge.classList.add('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error marking activities as read:', error);
+                    });
+                }
+
+                function closeActivityLogModal() {
+                    const modal = document.getElementById('activityLogModal');
+                    modal.classList.add('hidden');
+                }
+
+                let allActivities = [];
+                let displayedCount = 0;
+                const itemsPerPage = 7;
+
+                function renderActivity(activity) {
+                    let description = '';
+                    if (activity.description === 'Exported PDF') {
+                        description = `${activity.causer_name} melakukan export/print PDF`;
+                        if (activity.properties && activity.properties.version !== undefined) {
+                            description += ` (Rev ${activity.properties.version})`;
+                        }
+                    } else if (activity.description === 'Created revision') {
+                        description = `${activity.causer_name} membuat revisi`;
+                        if (activity.properties && activity.properties.new_version !== undefined) {
+                            description += ` (Rev ${activity.properties.new_version})`;
+                        }
+                    } else if (activity.description === 'Edited penawaran') {
+                        description = `${activity.causer_name} mengedit penawaran`;
+                        if (activity.properties && activity.properties.version !== undefined) {
+                            description += ` (Rev ${activity.properties.version})`;
+                        }
+                    } else {
+                        description = `${activity.causer_name} - ${activity.description}`;
+                    }
+                    
+                    let html = `<div class="border-b pb-2">`;
+                    html += `<div class="text-sm text-gray-500 mb-1">${activity.created_at_formatted}</div>`;
+                    html += `<div class="text-gray-700">• ${description}</div>`;
+                    html += `</div>`;
+                    return html;
+                }
+
+                function loadActivityLog() {
+                    const contentDiv = document.getElementById('activityLogContent');
+                    const loadMoreContainer = document.getElementById('loadMoreContainer');
+                    const penawaranId = {{ $penawaran->id_penawaran }};
+
+                    fetch(`{{ route('penawaran.showLog') }}?id=${penawaranId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.activities.length > 0) {
+                                allActivities = data.activities;
+                                displayedCount = 0;
+                                
+                                let html = '<div id="activityList" class="space-y-3">';
+                                
+                                // Show first 7 items
+                                const initialItems = allActivities.slice(0, itemsPerPage);
+                                initialItems.forEach(activity => {
+                                    html += renderActivity(activity);
+                                });
+                                displayedCount = initialItems.length;
+                                
+                                html += '</div>';
+                                contentDiv.innerHTML = html;
+                                
+                                // Show/hide load more button
+                                if (allActivities.length > displayedCount) {
+                                    loadMoreContainer.classList.remove('hidden');
+                                } else {
+                                    loadMoreContainer.classList.add('hidden');
+                                }
+                            } else {
+                                contentDiv.innerHTML = '<p class="text-center text-gray-500 py-4">Belum ada aktivitas yang tercatat</p>';
+                                loadMoreContainer.classList.add('hidden');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error loading activity log:', error);
+                            contentDiv.innerHTML = '<p class="text-center text-red-500 py-4">Gagal memuat activity log</p>';
+                            loadMoreContainer.classList.add('hidden');
+                        });
+                }
+
+                function loadMoreActivities() {
+                    const activityList = document.getElementById('activityList');
+                    const loadMoreContainer = document.getElementById('loadMoreContainer');
+                    
+                    // Get next 7 items
+                    const nextItems = allActivities.slice(displayedCount, displayedCount + itemsPerPage);
+                    
+                    nextItems.forEach(activity => {
+                        const activityHtml = renderActivity(activity);
+                        activityList.insertAdjacentHTML('beforeend', activityHtml);
+                    });
+                    
+                    displayedCount += nextItems.length;
+                    
+                    // Hide load more button if all items are displayed
+                    if (displayedCount >= allActivities.length) {
+                        loadMoreContainer.classList.add('hidden');
+                    }
+                }
+
+                // Bind activity log button
+                document.getElementById('logActivityBtn').addEventListener('click', openActivityLogModal);
+
+                // Check unread activities on page load
+                checkUnreadActivities();
+
+                // Close activity log modal when clicking outside
+                document.getElementById('activityLogModal').addEventListener('click', function (e) {
+                    if (e.target === this) {
+                        closeActivityLogModal();
                     }
                 });
             </script>
