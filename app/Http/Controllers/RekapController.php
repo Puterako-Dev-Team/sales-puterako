@@ -15,6 +15,11 @@ class RekapController extends Controller
     // List page
     public function index(Request $request)
     {
+        // Manager role tidak bisa melihat list rekap survey
+        if (Auth::user()->role === 'manager') {
+            abort(403, 'Unauthorized access. Manager tidak memiliki akses ke halaman ini.');
+        }
+
         $query = Rekap::with(['user', 'items']);
 
         if ($request->filled('tanggal_dari')) {
@@ -69,6 +74,11 @@ class RekapController extends Controller
     // Form tambah rekap
     public function create()
     {
+        // Manager role tidak bisa membuat rekap baru
+        if (Auth::user()->role === 'manager') {
+            abort(403, 'Unauthorized. Manager tidak dapat membuat rekap baru.');
+        }
+
         $penawarans = Penawaran::all();
         $kategoris = RekapKategori::all();
         $tipes = Tipe::all();
@@ -79,6 +89,11 @@ class RekapController extends Controller
     // Simpan rekap baru beserta items dan detail JSON
     public function store(Request $request)
     {
+        // Manager role tidak bisa menyimpan rekap baru
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menyimpan rekap baru.'], 403);
+        }
+
         $request->validate([
             'nama' => 'required|string|max:255',
             'penawaran_id' => 'nullable|exists:penawarans,id_penawaran',
@@ -104,6 +119,11 @@ class RekapController extends Controller
 
     public function addItem(Request $request, $rekap_id)
     {
+        // Manager role tidak bisa menambah item
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menambah item.'], 403);
+        }
+
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.rekap_kategori_id' => 'required|exists:rekap_kategoris,id',
@@ -171,6 +191,11 @@ class RekapController extends Controller
     // Add new area to existing rekap
     public function addArea(Request $request, $rekap_id)
     {
+        // Manager role tidak bisa menambah area
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menambah area.'], 403);
+        }
+
         $request->validate([
             'nama_area' => 'required|string|max:255|filled',
             'items' => 'required|array|min:1',
@@ -234,6 +259,11 @@ class RekapController extends Controller
     // Form edit rekap
     public function edit($id)
     {
+        // Manager role tidak bisa edit rekap
+        if (Auth::user()->role === 'manager') {
+            abort(403, 'Unauthorized. Manager tidak dapat mengedit rekap.');
+        }
+
         $rekap = Rekap::with('items')->findOrFail($id);
         
         // Return JSON for AJAX requests
@@ -256,6 +286,11 @@ class RekapController extends Controller
     // Update rekap beserta items dan detail JSON
     public function update(Request $request, $id)
     {
+        // Manager role tidak bisa update rekap
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat mengupdate rekap.'], 403);
+        }
+
         $request->validate([
             'nama' => 'required|string|max:255',
             'penawaran_id' => 'required|exists:penawarans,id_penawaran',
@@ -305,6 +340,11 @@ class RekapController extends Controller
 
     public function updateItems(Request $request, $rekap_id)
     {
+        // Manager role tidak bisa update items
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat mengupdate items.'], 403);
+        }
+
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.rekap_kategori_id' => 'required|exists:rekap_kategoris,id',
@@ -359,6 +399,11 @@ class RekapController extends Controller
     // Hapus rekap (soft delete)
     public function destroy($id)
     {
+        // Manager role tidak bisa delete rekap
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menghapus rekap.'], 403);
+        }
+
         $rekap = Rekap::findOrFail($id);
         // Soft delete (hanya tandai deleted_at)
         $rekap->delete();
@@ -496,6 +541,11 @@ class RekapController extends Controller
     // Create new tipe from form (allowed for all authenticated users)
     public function createTipe(Request $request)
     {
+        // Manager role tidak bisa membuat tipe baru
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat membuat tipe baru.'], 403);
+        }
+
         $validated = $request->validate([
             'nama' => 'required|string|max:255|unique:tipes,nama'
         ]);

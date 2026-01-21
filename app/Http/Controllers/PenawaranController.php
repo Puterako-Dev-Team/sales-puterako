@@ -14,10 +14,15 @@ class PenawaranController extends Controller
 {
     public function index(Request $request)
     {
+        // Manager role tidak bisa melihat list penawaran
+        $userRole = Auth::user()->role ?? null;
+        if ($userRole === 'manager') {
+            abort(403, 'Unauthorized access. Manager tidak memiliki akses ke halaman ini.');
+        }
+
         $query = \App\Models\Penawaran::with('user'); // Eager load user
 
         // Staff role hanya bisa melihat penawaran mereka sendiri
-        $userRole = Auth::user()->role ?? null;
         if ($userRole === 'staff') {
             $query->where('user_id', Auth::id());
         }
@@ -96,6 +101,12 @@ class PenawaranController extends Controller
         }
 
         $query = \App\Models\Penawaran::with('user'); // Eager load user
+
+        // Staff role hanya bisa melihat penawaran mereka sendiri
+        $userRole = Auth::user()->role ?? null;
+        if ($userRole === 'staff') {
+            $query->where('user_id', Auth::id());
+        }
 
         // Apply filters
         if ($request->filled('tanggal_dari')) {
@@ -188,6 +199,11 @@ class PenawaranController extends Controller
 
     public function store(Request $request)
     {
+        // Manager role tidak bisa membuat penawaran baru
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat membuat penawaran baru.'], 403);
+        }
+
         $data = $request->all();
 
         // TAMBAH: Auto-set user_id dari Auth user
@@ -228,12 +244,22 @@ class PenawaranController extends Controller
 
     public function edit($id)
     {
+        // Manager role tidak bisa edit penawaran
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat mengedit penawaran.'], 403);
+        }
+
         $penawaran = Penawaran::findOrFail($id);
         return response()->json($penawaran);
     }
 
     public function update(Request $request, $id)
     {
+        // Manager role tidak bisa update penawaran
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat mengupdate penawaran.'], 403);
+        }
+
         $penawaran = Penawaran::findOrFail($id);
         $data = $request->validate([
             'perihal' => 'required|string|max:255',
@@ -258,6 +284,11 @@ class PenawaranController extends Controller
 
     public function destroy(Request $request, $id)
     {
+        // Manager role tidak bisa delete penawaran
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menghapus penawaran.'], 403);
+        }
+
         $penawaran = Penawaran::findOrFail($id);
         $penawaran->delete();
 
@@ -276,6 +307,11 @@ class PenawaranController extends Controller
 
     public function restore($id)
     {
+        // Manager role tidak bisa restore penawaran
+        if (Auth::user()->role === 'manager') {
+            return back()->with('error', 'Unauthorized. Manager tidak dapat memulihkan penawaran.');
+        }
+
         $penawaran = Penawaran::onlyTrashed()->findOrFail($id);
         $penawaran->restore();
         return back()->with('success', 'Penawaran dipulihkan');
@@ -296,6 +332,14 @@ class PenawaranController extends Controller
 
     public function storeFollowUp(Request $request, $id)
     {
+        // Manager role tidak bisa menambah follow up
+        if (Auth::user()->role === 'manager') {
+            if ($request->ajax()) {
+                return response()->json(['error' => 'Unauthorized. Manager tidak dapat menambah follow up.'], 403);
+            }
+            return back()->with('error', 'Unauthorized. Manager tidak dapat menambah follow up.');
+        }
+
         $request->validate([
             'nama' => 'required|string|max:255',
             'deskripsi' => 'required|string',
@@ -457,6 +501,11 @@ class PenawaranController extends Controller
 
     public function save(Request $request)
     {
+        // Manager role tidak bisa save/edit penawaran
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menyimpan perubahan penawaran.'], 403);
+        }
+
         $data = $request->all();
         Log::debug('PenawaranController::save payload', $data);
 
@@ -748,6 +797,11 @@ class PenawaranController extends Controller
 
     public function saveNotes(Request $request, $id)
     {
+        // Manager role tidak bisa save notes
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menyimpan catatan.'], 403);
+        }
+
         $request->validate([
             'note' => 'nullable|string',
             'version' => 'required|integer'
@@ -773,6 +827,11 @@ class PenawaranController extends Controller
 
     public function saveBestPrice(Request $request, $id)
     {
+        // Manager role tidak bisa save best price
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menyimpan harga terbaik.'], 403);
+        }
+
         $version = $request->input('version', 1);
         $isBest = $request->has('is_best_price') ? 1 : 0;
         $bestPrice = $request->input('best_price', 0);
@@ -794,6 +853,11 @@ class PenawaranController extends Controller
 
     public function createRevision($id)
     {
+        // Manager role tidak bisa membuat revisi
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat membuat revisi.'], 403);
+        }
+
         $penawaran = \App\Models\Penawaran::findOrFail($id);
 
         // Ambil versi terakhir
@@ -900,6 +964,11 @@ class PenawaranController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
+        // Manager role tidak bisa update status
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat mengupdate status.'], 403);
+        }
+
         $request->validate([
             'status' => 'required|in:draft,success,lost',
             'note' => 'nullable|string|max:1000'
