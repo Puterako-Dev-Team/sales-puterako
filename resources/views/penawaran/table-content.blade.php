@@ -191,9 +191,11 @@
                             </button>
                         @else
                             <a href="{{ route('penawaran.show', ['id' => $p->id_penawaran]) }}"
-                                class="bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 transition"
-                                title="Lihat Detail">
+                                class="bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 transition relative"
+                                title="Lihat Detail"
+                                data-penawaran-id="{{ $p->id_penawaran }}">
                                 <x-lucide-file-text class="w-5 h-5 inline" />
+                                <span class="activity-badge hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"></span>
                             </a>
                             <button class="btn-edit bg-yellow-500 text-white px-2 py-2 rounded flex items-center gap-1 text-xs hover:bg-yellow-700 transition"
                                 data-id="{{ $p->id_penawaran }}" title="Edit">

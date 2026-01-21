@@ -622,6 +622,16 @@ class PenawaranController extends Controller
             $versionRow->grand_total = $grandTotal;
             $versionRow->save();
 
+            // Log activity for editing penawaran
+            $penawaran = Penawaran::find($penawaranId);
+            if ($penawaran) {
+                activity()
+                    ->performedOn($penawaran)
+                    ->causedBy(Auth::user())
+                    ->withProperties(['version' => $version])
+                    ->log('Edited penawaran');
+            }
+
             Log::debug('Penawaran saved', ['id_penawaran' => $penawaranId, 'total' => $totalKeseluruhan]);
 
             return response()->json([
@@ -791,8 +801,82 @@ class PenawaranController extends Controller
         }
         $filename .= '.pdf';
 
+        // Log activity
+        activity()
+            ->performedOn($penawaran)
+            ->causedBy(Auth::user())
+            ->withProperties(['version' => $activeVersion])
+            ->log('Exported PDF');
+
         // Download PDF
         return $pdf->download($filename);
+    }
+
+    public function showLog(Request $request)
+    {
+        $id = $request->query('id');
+        $penawaran = Penawaran::findOrFail($id);
+        
+        $activities = \Spatie\Activitylog\Models\Activity::where('subject_type', Penawaran::class)
+            ->where('subject_id', $id)
+            ->with('causer')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'activities' => $activities->map(function($activity) {
+                return [
+                    'description' => $activity->description,
+                    'causer_name' => $activity->causer ? $activity->causer->name : 'System',
+                    'properties' => $activity->properties,
+                    'created_at' => $activity->created_at->format('d/m/Y H:i:s'),
+                    'created_at_formatted' => $activity->created_at->translatedFormat('l, d F Y H:i')
+                ];
+            })
+        ]);
+    }
+
+    public function countUnreadActivities(Request $request)
+    {
+        $id = $request->query('id');
+        $userId = Auth::id();
+        
+        // Get last read timestamp for this user and penawaran
+        $lastRead = DB::table('activity_reads')
+            ->where('user_id', $userId)
+            ->where('penawaran_id', $id)
+            ->value('last_read_at');
+        
+        // Count activities after last read
+        $query = \Spatie\Activitylog\Models\Activity::where('subject_type', Penawaran::class)
+            ->where('subject_id', $id);
+        
+        if ($lastRead) {
+            $query->where('created_at', '>', $lastRead);
+        }
+        
+        $count = $query->count();
+        
+        return response()->json([
+            'success' => true,
+            'unread_count' => $count
+        ]);
+    }
+
+    public function markActivitiesAsRead(Request $request)
+    {
+        $id = $request->input('id');
+        $userId = Auth::id();
+        
+        DB::table('activity_reads')->updateOrInsert(
+            ['user_id' => $userId, 'penawaran_id' => $id],
+            ['last_read_at' => now(), 'updated_at' => now()]
+        );
+        
+        return response()->json([
+            'success' => true
+        ]);
     }
 
     public function saveNotes(Request $request, $id)
@@ -957,6 +1041,13 @@ class PenawaranController extends Controller
                 }
             }
         }
+
+        // Log activity
+        activity()
+            ->performedOn($penawaran)
+            ->causedBy(Auth::user())
+            ->withProperties(['new_version' => $newVersion])
+            ->log('Created revision');
 
         return redirect()->route('penawaran.show', ['id' => $id, 'version' => $newVersion])
             ->with('success', 'Revisi baru berhasil dibuat (Rev ' . $newVersion . ')');
