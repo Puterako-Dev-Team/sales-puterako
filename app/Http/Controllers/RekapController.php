@@ -445,20 +445,21 @@ class RekapController extends Controller
         $userId = \Illuminate\Support\Facades\Auth::id();
         $penawaranId = $request->get('penawaran_id');
 
-        $rekaps = Rekap::where(function($q) use ($userId, $penawaranId) {
-            $q->whereNull('imported_into_penawaran_id')
-            ->where(function($q2) use ($userId) {
-                $q2->whereNull('imported_by')
-                    ->orWhere('imported_by', $userId);
-            });
+        $rekaps = Rekap::where('status', 'approved') 
+            ->where(function($q) use ($userId, $penawaranId) {
+                $q->whereNull('imported_into_penawaran_id')
+                ->where(function($q2) use ($userId) {
+                    $q2->whereNull('imported_by')
+                        ->orWhere('imported_by', $userId);
+                });
 
-            if ($penawaranId) {
-                $q->orWhere('imported_into_penawaran_id', $penawaranId);
-            }
-        })
-        ->select('id', 'nama', 'imported_by', 'imported_into_penawaran_id')
-        ->orderBy('created_at', 'desc')
-        ->get();
+                if ($penawaranId) {
+                    $q->orWhere('imported_into_penawaran_id', $penawaranId);
+                }
+            })
+            ->select('id', 'nama', 'imported_by', 'imported_into_penawaran_id')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return response()->json($rekaps);
     }
