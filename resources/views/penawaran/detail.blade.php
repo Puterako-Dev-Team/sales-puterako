@@ -2245,8 +2245,13 @@
                         if (isMitra) {
                             hargaSatuan = 0;
                             total = 0;
-                        } else if (profitDecimal > 0) {
-                            hargaSatuan = Math.ceil((hpp / profitDecimal) / 1000) * 1000;
+                        } else if (profitDecimal > 0 && profitDecimal < 1) {
+                            const denominator = 1 - profitDecimal;
+                            if (denominator <= 0) {
+                                hargaSatuan = Math.ceil(hpp / 1000) * 1000;
+                            } else {
+                                hargaSatuan = Math.ceil((hpp / denominator) / 1000) * 1000;
+                            }
                             hargaSatuan += addedCost;
                             total = qty * hargaSatuan;
                         } else {
@@ -2279,8 +2284,13 @@
                                 if (isMitra) {
                                     hargaSatuan = 0;
                                     total = 0;
-                                } else if (profitDecimal > 0) {
-                                    hargaSatuan = Math.ceil((hpp / profitDecimal) / 1000) * 1000;
+                                } else if (profitDecimal > 0 && profitDecimal < 1) {
+                                    const denominator = 1 - profitDecimal;
+                                    if (denominator <= 0) {
+                                        hargaSatuan = Math.ceil(hpp / 1000) * 1000;
+                                    } else {
+                                        hargaSatuan = Math.ceil((hpp / denominator) / 1000) * 1000;
+                                    }
                                     hargaSatuan += addedCost;
                                     total = qty * hargaSatuan;
                                 } else {
