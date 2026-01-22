@@ -2250,7 +2250,8 @@
                             if (denominator <= 0) {
                                 hargaSatuan = Math.ceil(hpp / 1000) * 1000;
                             } else {
-                                hargaSatuan = Math.ceil((hpp / denominator) / 1000) * 1000;
+                                const rawPrice = Math.round(hpp / denominator);
+                                hargaSatuan = Math.ceil(rawPrice / 1000) * 1000;
                             }
                             hargaSatuan += addedCost;
                             total = qty * hargaSatuan;
@@ -2289,7 +2290,8 @@
                                     if (denominator <= 0) {
                                         hargaSatuan = Math.ceil(hpp / 1000) * 1000;
                                     } else {
-                                        hargaSatuan = Math.ceil((hpp / denominator) / 1000) * 1000;
+                                        const rawPrice = Math.round(hpp / denominator);
+                                        hargaSatuan = Math.ceil(rawPrice / 1000) * 1000;
                                     }
                                     hargaSatuan += addedCost;
                                     total = qty * hargaSatuan;
