@@ -93,10 +93,17 @@
     </style>
 
     <div class="flex items-center p-8 text-gray-600 -mb-8">
-        <a href="{{ route('penawaran.list') }}" class="flex items-center hover:text-green-600">
-            <x-lucide-arrow-left class="w-5 h-5 mr-2" />
-            List Penawaran
-        </a>
+        @if(Auth::user()->role === 'manager')
+            <a href="{{ route('penawaran.approve-list') }}" class="flex items-center hover:text-green-600">
+                <x-lucide-arrow-left class="w-5 h-5 mr-2" />
+                List Penawaran
+            </a>
+        @else
+            <a href="{{ route('penawaran.list') }}" class="flex items-center hover:text-green-600">
+                <x-lucide-arrow-left class="w-5 h-5 mr-2" />
+                List Penawaran
+            </a>
+        @endif
         <span class="mx-2">/</span>
         <span class="font-semibold">Detail Penawaran</span>
     </div>

@@ -5,10 +5,17 @@
     <div class="container mx-auto p-8">
 
         <div class="flex items-center p-8 text-gray-600 mb-2">
-            <a href="{{ route('rekap.list') }}" class="flex items-center hover:text-green-600">
-                <x-lucide-arrow-left class="w-5 h-5 mr-2" />
-                List Rekap
-            </a>
+            @if(Auth::user()->role === 'manager')
+                <a href="{{ route('rekap.approve-list') }}" class="flex items-center hover:text-green-600">
+                    <x-lucide-arrow-left class="w-5 h-5 mr-2" />
+                    List Rekap
+                </a>
+            @else
+                <a href="{{ route('rekap.list') }}" class="flex items-center hover:text-green-600">
+                    <x-lucide-arrow-left class="w-5 h-5 mr-2" />
+                    List Rekap
+                </a>
+            @endif
             <span class="mx-2">/</span>
             <span class="font-semibold">Detail Rekap</span>
         </div>
