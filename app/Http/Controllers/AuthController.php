@@ -50,7 +50,9 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $remember)) {
             $user = Auth::user();
 
-            if (strtolower($user->role) === 'sales') {
+            $userRole = strtolower($user->role ?? '');
+            $userDepartemen = strtolower($user->departemen ?? '');
+            if ($userRole === 'staff' && $userDepartemen === 'sales') {
                 $now = now();
                 $today = $now->toDateString();
 
