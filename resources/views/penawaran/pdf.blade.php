@@ -161,14 +161,21 @@
         }
 
         /* Keterangan - only for penawaran table */
-        table.penawaran-table th:nth-child(7),
-        table.penawaran-table td:nth-child(7) {
+        table.penawaran-table th:nth-child(7) {
             width: 12%;
             text-align: center;
-            color: #ef4444;
+            color: #000000;
             font-weight: bold;
         }
 
+        table.penawaran-table td:nth-child(7) {
+            width: 12%;
+            text-align: center;
+            color: #000000;
+            font-weight: normal;
+        }
+        
+        
         table.penawaran-table th:nth-child(8),
         table.penawaran-table td:nth-child(8) {
             width: 14%;
@@ -480,7 +487,7 @@
                                         {{ $row->harga_satuan > 0 ? number_format($row->harga_satuan, 0, ',', '.') : '' }}
                                     @endif
                                 </td>
-                                <td style="color: #ef4444; font-weight: bold;">{{ $row->delivery_time ?? '-' }}</td>
+                                <td style="color: #000000;">{{ $row->delivery_time ?? '-' }}</td>
                                 <td>
                                     @if (!empty($row->is_mitra))
                                         <span style="color:#3498db;font-weight:bold; font-style: italic;">by

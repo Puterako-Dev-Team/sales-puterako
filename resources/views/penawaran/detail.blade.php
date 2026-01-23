@@ -93,10 +93,17 @@
     </style>
 
     <div class="flex items-center p-8 text-gray-600 -mb-8">
-        <a href="{{ route('penawaran.list') }}" class="flex items-center hover:text-green-600">
-            <x-lucide-arrow-left class="w-5 h-5 mr-2" />
-            List Penawaran
-        </a>
+        @if(Auth::user()->role === 'manager')
+            <a href="{{ route('penawaran.approve-list') }}" class="flex items-center hover:text-green-600">
+                <x-lucide-arrow-left class="w-5 h-5 mr-2" />
+                List Penawaran
+            </a>
+        @else
+            <a href="{{ route('penawaran.list') }}" class="flex items-center hover:text-green-600">
+                <x-lucide-arrow-left class="w-5 h-5 mr-2" />
+                List Penawaran
+            </a>
+        @endif
         <span class="mx-2">/</span>
         <span class="font-semibold">Detail Penawaran</span>
     </div>
@@ -867,7 +874,7 @@
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-32">Harga
                                                     Satuan
                                                 </th>
-                                                <th class="border border-gray-300 px-3 py-2 text-center w-32" style="color: #ef4444; font-weight: bold;">Keterangan</th>
+                                                <th class="border border-gray-300 px-3 py-2 text-center w-32" style="color: #000000; font-weight: bold;">Keterangan</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-right w-32">Harga
                                                     Total
                                                 </th>
@@ -915,7 +922,7 @@
         {{ $row['harga_satuan'] > 0 ? 'Rp ' . number_format($row['harga_satuan'], 0, ',', '.') : '' }}
     @endif
 </td>
-<td class="border border-gray-300 px-3 py-2 text-center" style="color: #ef4444; font-weight: bold;">{{ $row['delivery_time'] ?? '-' }}</td>
+<td class="border border-gray-300 px-3 py-2 text-center" style="color: #000000;">{{ $row['delivery_time'] ?? '-' }}</td>
 <td class="border border-gray-300 px-3 py-2 text-right">
     @if ((int) $row['is_mitra'] === 1)
         <span style="color:#3498db;font-weight:bold;font-style:italic;">
@@ -1807,7 +1814,7 @@
                                             <div class="flex items-center ml-4">
                                                 <label class="block text-sm font-semibold mr-2">Pembulatan:</label>
                                                 <input type="number" class="pembulatan-input border rounded px-3 py-1 w-48" 
-                                                    min="0" step="1" value="${sectionData && typeof sectionData.pembulatan !== 'undefined' ? sectionData.pembulatan : 0}">
+                                                    min="1" step="1" value="${sectionData && typeof sectionData.pembulatan !== 'undefined' ? sectionData.pembulatan : 1}">
                                             </div>
                                             <div class="flex gap-2">
                                                 <button class="flex items-center add-row-btn bg-[#02ADB8] text-white px-3 py-1 rounded hover:bg-blue-700 transition text-sm">
@@ -2100,9 +2107,14 @@
                                 validationErrors.push(`Section ${sectionNumber}: Nama section harus diisi`);
                             }
                             
-                            // Validasi pembulatan (harus angka)
-                            if (pembulatanInput.value === '' || isNaN(parseInt(pembulatanInput.value))) {
+                            // Validasi pembulatan (harus angka dan tidak boleh 0)
+                            const pembulatanValue = parseInt(pembulatanInput.value);
+                            if (pembulatanInput.value === '' || isNaN(pembulatanValue)) {
                                 validationErrors.push(`Section ${sectionNumber}: Pembulatan harus diisi dengan angka`);
+                            } else if (pembulatanValue === 0) {
+                                validationErrors.push(`Section ${sectionNumber}: Pembulatan tidak boleh 0`);
+                            } else if (pembulatanValue < 0) {
+                                validationErrors.push(`Section ${sectionNumber}: Pembulatan tidak boleh negatif`);
                             }
                             
                             // Validasi data rows
