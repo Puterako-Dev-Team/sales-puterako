@@ -112,34 +112,59 @@
                         @php
                             $canApprove = false;
                             $approveRoute = null;
+                            $isRepresentative = false; // Flag untuk supervisor mewakili direktur
+                            $buttonText = 'Approve';
+                            $buttonColor = 'bg-green-500';
+                            $buttonHoverColor = 'hover:bg-green-600';
+                            
+                            // Supervisor approval tahap 1 (normal)
                             if ($userRole === 'supervisor' && !$req->approved_by_supervisor) {
                                 $canApprove = true;
                                 $approveRoute = route('export-approval.approve-supervisor', $req->id);
                             }
-                                if ($userRole === 'manager' && $req->approved_by_supervisor && !$req->approved_by_manager) {
-                                    $canApprove = true;
-                                    $approveRoute = route('export-approval.approve-manager', $req->id);
-                                }
-                                if ($userRole === 'direktur' && $req->approved_by_manager && !$req->approved_by_direktur) {
-                                    $canApprove = true;
-                                    $approveRoute = route('export-approval.approve-direktur', $req->id);
-                                }
-                            @endphp
+                            // Supervisor mewakili direktur (tahap 3) - setelah manager approve
+                            elseif ($userRole === 'supervisor' && $req->approved_by_supervisor && $req->approved_by_manager && !$req->approved_by_direktur) {
+                                $canApprove = true;
+                                $isRepresentative = true;
+                                $approveRoute = route('export-approval.approve-direktur', $req->id);
+                                $buttonText = 'Wakili Approval';
+                                $buttonColor = 'bg-yellow-500';
+                                $buttonHoverColor = 'hover:bg-yellow-600';
+                            }
+                            
+                            // Manager approval
+                            if ($userRole === 'manager' && $req->approved_by_supervisor && !$req->approved_by_manager) {
+                                $canApprove = true;
+                                $approveRoute = route('export-approval.approve-manager', $req->id);
+                            }
+                            
+                            // Direktur approval
+                            if ($userRole === 'direktur' && $req->approved_by_manager && !$req->approved_by_direktur) {
+                                $canApprove = true;
+                                $approveRoute = route('export-approval.approve-direktur', $req->id);
+                            }
+                        @endphp
 
-                            @if($canApprove)
-                                <button type="button"
-                                    class="approve-btn bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 transition text-xs font-semibold"
-                                    data-url="{{ $approveRoute }}"
-                                    data-id="{{ $req->id }}"
-                                    data-no="{{ $req->penawaran->no_penawaran ?? '-' }}"
-                                    data-company="{{ $req->penawaran->nama_perusahaan ?? '-' }}"
-                                    data-version="{{ $req->version->version ?? '-' }}">
-                                    Approve
-                                </button>
-                            @else
-                                <span class="text-xs text-gray-500">Tidak ada aksi</span>
-                            @endif
-                        </td>
+                        @if($canApprove)
+                            <button type="button"
+                                class="approve-btn {{ $buttonColor }} text-white px-3 py-2 rounded {{ $buttonHoverColor }} transition text-xs font-semibold {{ $isRepresentative ? 'ring-2 ring-yellow-300' : '' }}"
+                                data-url="{{ $approveRoute }}"
+                                data-id="{{ $req->id }}"
+                                data-no="{{ $req->penawaran->no_penawaran ?? '-' }}"
+                                data-company="{{ $req->penawaran->nama_perusahaan ?? '-' }}"
+                                data-version="{{ $req->version->version ?? '-' }}"
+                                data-is-representative="{{ $isRepresentative ? 'true' : 'false' }}">
+                                @if($isRepresentative)
+                                    <svg class="w-3 h-3 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                    </svg>
+                                @endif
+                                {{ $buttonText }}
+                            </button>
+                        @else
+                            <span class="text-xs text-gray-500">Tidak ada aksi</span>
+                        @endif
+                    </td>
                     </tr>
         @empty
             <tr>
