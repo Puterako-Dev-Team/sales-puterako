@@ -696,9 +696,22 @@
                                         $approvedAt = $approval ? $approval->{$roleData['approved_at']} : null;
                                         $isApproved = $approvedBy && $approvedAt;
                                         
+                                        // Check if direktur approval was done by supervisor (as representative)
+                                        $isRepresentative = false;
+                                        if ($roleKey === 'direktur' && $approvedBy) {
+                                            $approver = \App\Models\User::find($approvedBy);
+                                            $isRepresentative = $approver && $approver->role === 'supervisor';
+                                        }
+                                        
                                         if ($approvedBy) {
                                             $approver = \App\Models\User::find($approvedBy);
-                                            $approverName = $approver ? $approver->name : 'Unknown';
+                                            // Jika direktur approval diwakili supervisor, cari dan tampilkan nama user dengan role direktur
+                                            if ($isRepresentative) {
+                                                $direkturUser = \App\Models\User::where('role', 'direktur')->first();
+                                                $approverName = $direkturUser ? $direkturUser->name : 'Direktur';
+                                            } else {
+                                                $approverName = $approver ? $approver->name : 'Unknown';
+                                            }
                                         } else {
                                             $approverName = '-';
                                         }
@@ -736,6 +749,15 @@
                                         <div class="mb-2">
                                             <p class="text-xs text-gray-500 mb-1">Nama:</p>
                                             <p class="text-sm font-semibold text-gray-800">{{ $approverName }}</p>
+                                            
+                                            @if ($isRepresentative)
+                                                <p class="text-xs italic text-blue-600 mt-1">
+                                                    <svg class="w-3 h-3 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                                    </svg>
+                                                    Approval diwakili supervisor
+                                                </p>
+                                            @endif
                                         </div>
 
                                         <!-- Tanggal Approved -->

@@ -57,7 +57,14 @@ class ExportApprovalController extends Controller
             // Pending per role
             $pendingQuery = clone $baseQuery;
             if ($user->role === 'supervisor') {
-                $pendingQuery->whereNull('approved_by_supervisor');
+                // Supervisor sees: not approved by supervisor yet OR approved by manager but not by direktur (to act as representative)
+                $pendingQuery->where(function($q) {
+                    $q->whereNull('approved_by_supervisor')
+                      ->orWhere(function($subQ) {
+                          $subQ->whereNotNull('approved_by_manager')
+                               ->whereNull('approved_by_direktur');
+                      });
+                });
             } elseif ($user->role === 'manager') {
                 $pendingQuery->whereNotNull('approved_by_supervisor')
                     ->whereNull('approved_by_manager');
@@ -124,7 +131,14 @@ class ExportApprovalController extends Controller
         // Pending per role
         $pendingQuery = clone $baseQuery;
         if ($user->role === 'supervisor') {
-            $pendingQuery->whereNull('approved_by_supervisor');
+            // Supervisor sees: not approved by supervisor yet OR approved by manager but not by direktur (to act as representative)
+            $pendingQuery->where(function($q) {
+                $q->whereNull('approved_by_supervisor')
+                  ->orWhere(function($subQ) {
+                      $subQ->whereNotNull('approved_by_manager')
+                           ->whereNull('approved_by_direktur');
+                  });
+            });
         } elseif ($user->role === 'manager') {
             $pendingQuery->whereNotNull('approved_by_supervisor')
                 ->whereNull('approved_by_manager');
@@ -354,16 +368,17 @@ class ExportApprovalController extends Controller
 
     /**
      * Approve verification request (Direktur step 3 - final approval)
+     * Supervisor dapat mewakili direktur untuk approve
      */
     public function approveByDirektor(Request $request, $requestId)
     {
         $user = Auth::user();
 
-        // Only direkturs can approve in step 3
-        if ($user->role !== 'direktur') {
+        // Allow direkturs OR supervisors (as representatives) to approve in step 3
+        if (!in_array($user->role, ['direktur', 'supervisor'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Hanya direktur yang dapat approve pada tahap ketiga'
+                'message' => 'Hanya direktur atau supervisor (mewakili direktur) yang dapat approve pada tahap ketiga'
             ], 403);
         }
 
@@ -410,6 +425,14 @@ class ExportApprovalController extends Controller
         $version->update([
             'export_approval_status' => 'approved',
         ]);
+
+        // Update status penawaran menjadi 'success'
+        $penawaran = Penawaran::find($approvalRequest->penawaran_id);
+        if ($penawaran) {
+            $penawaran->update([
+                'status' => 'success',
+            ]);
+        }
 
         return response()->json([
             'success' => true,
