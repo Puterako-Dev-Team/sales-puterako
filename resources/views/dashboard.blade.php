@@ -4,12 +4,13 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 @if ($canViewCharts)
-                    <!-- Card Total Omzet Keseluruhan - PALING ATAS -->
+                    <!-- Card Total Omzet Keseluruhan - PALING ATAS (untuk non-staff) -->
                     @if(Auth::user()->role !== 'staff')
                     <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 w-full text-white shadow-lg mb-6">
                         <h3 class="text-lg font-semibold mb-2">Total Omzet Keseluruhan</h3>
                         <p class="text-4xl font-bold">Rp {{ number_format($totalOmzetKeseluruhan ?? 0, 0, ',', '.') }}</p>
                     </div>
+                    @else
                     @endif
                     
                     <!-- Charts untuk Supervisor, Manajer, Administrator, Direktur, dan Staff -->
@@ -18,8 +19,9 @@
                             class="border rounded px-2 py-1">
                         <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded">Filter</button>
                     </form>
-                    <!-- Tren Omzet 12 Bulan Terakhir (pindah ke posisi Penawaran per PIC Admin) -->
+                    
                     @if(Auth::user()->role !== 'staff')
+                    <!-- Tren Omzet 12 Bulan Terakhir (pindah ke posisi Penawaran per PIC Admin) -->
                     <div class="bg-gray-50 p-4 rounded-lg mt-6 w-full">
                         <h3 class="font-semibold text-sm mb-3 text-center">Tren Omzet 12 Bulan Terakhir</h3>
                         <div style="height: 300px;">
@@ -42,7 +44,16 @@
                             <canvas id="picChart"></canvas>
                         </div>
                     </div>
+                    @else
+                    <!-- Chart Penawaran Per Tanggal untuk Staff -->
+                    <div class="bg-gray-50 p-4 rounded-lg mt-6 w-full">
+                        <h3 class="font-semibold text-sm mb-3 text-center">Penawaran Per Tanggal</h3>
+                        <div style="height: 250px;">
+                            <canvas id="dateLineChart"></canvas>
+                        </div>
+                    </div>
                     @endif
+                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                         <!-- Perusahaan Terbanyak -->
                         <div class="bg-gray-50 p-4 rounded-lg w-full">
@@ -60,18 +71,9 @@
                             </div>
                         </div>
                     </div>
-                @else
-                    <!-- Welcome Message untuk Staff -->
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
-                        <h2 class="text-3xl font-bold text-green-900 mb-4">Selamat Datang!</h2>
-                        <p class="text-green-700 text-lg mb-6">{{ Auth::user()->name }}, Anda berhasil masuk ke sistem Sales
-                            Puterako</p>
-                    </div>
-                @endif
-
-                <div class="grid grid-cols-1  gap-6 mt-6">
+                    
                     <!-- Card User Info -->
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-6 mt-6">
                         <h3 class="text-lg font-semibold text-green-900 mb-2">Profil Anda</h3>
                         <div class="text-green-700 text-sm space-y-1">
                             <div><strong>Nama:</strong> {{ Auth::user()->name }}</div>
@@ -82,7 +84,7 @@
                             <div><strong>No HP:</strong> {{ Auth::user()->nohp ?? 'N/A' }}</div>
                         </div>
                     </div>
-                </div>
+                @endif
             </div>
         </div>
     </div>
@@ -305,6 +307,64 @@
                     }
                 }
             });
+            
+            // 4. Line Chart Penawaran Per Tanggal (untuk staff)
+            const dateStats = {!! json_encode($dateStats) !!};
+            const dateLabels = dateStats.map(x => x.tanggal);
+            const dateTotals = dateStats.map(x => x.total);
+
+            if (document.getElementById('dateLineChart')) {
+                const dateLineChart = new Chart(document.getElementById('dateLineChart'), {
+                    type: 'line',
+                    data: {
+                        labels: dateLabels,
+                        datasets: [{
+                            label: 'Jumlah Penawaran',
+                            data: dateTotals,
+                            borderColor: '#0A6847',
+                            backgroundColor: 'rgba(10,104,71,0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#0A6847'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Tanggal'
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 9
+                                    }
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Penawaran'
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 10
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
             @if(Auth::user()->role !== 'staff')
             // 5. Bar Chart Omzet Per Sales/Staff
             const omzetPerSales = {!! json_encode($omzetPerSales) !!};
