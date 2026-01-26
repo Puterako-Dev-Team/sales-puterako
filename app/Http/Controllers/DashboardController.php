@@ -36,7 +36,7 @@ class DashboardController extends Controller
                     ->where('user_id', $userId)
                     ->groupBy('nama_perusahaan')
                     ->orderByDesc('total')
-                    ->limit(10)
+                    ->limit(5)
                     ->get();
 
                 // 2. Pie chart status (milik staff tersebut)
@@ -83,7 +83,7 @@ class DashboardController extends Controller
                 $topCompanies = \App\Models\Penawaran::select('nama_perusahaan', DB::raw('count(*) as total'))
                     ->groupBy('nama_perusahaan')
                     ->orderByDesc('total')
-                    ->limit(10)
+                    ->limit(5)
                     ->get();
 
                 // 2. Penawaran per PIC Admin per status

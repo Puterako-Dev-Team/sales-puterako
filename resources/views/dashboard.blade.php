@@ -18,18 +18,12 @@
                             class="border rounded px-2 py-1">
                         <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded">Filter</button>
                     </form>
-                    <div class="bg-gray-50 p-4 rounded-lg mt-6 w-full">
-                        <h3 class="font-semibold text-sm mb-3 text-center">Penawaran Per Tanggal</h3>
-                        <div style="height: 250px;">
-                            <canvas id="dateLineChart"></canvas>
-                        </div>
-                    </div>
-                    <!-- Penawaran per PIC Admin (hanya untuk non-staff) -->
+                    <!-- Tren Omzet 12 Bulan Terakhir (pindah ke posisi Penawaran per PIC Admin) -->
                     @if(Auth::user()->role !== 'staff')
                     <div class="bg-gray-50 p-4 rounded-lg mt-6 w-full">
-                        <h3 class="font-semibold text-sm mb-3 text-center">Penawaran per PIC Admin</h3>
-                        <div style="height: 250px;">
-                            <canvas id="picChart"></canvas>
+                        <h3 class="font-semibold text-sm mb-3 text-center">Tren Omzet 12 Bulan Terakhir</h3>
+                        <div style="height: 300px;">
+                            <canvas id="omzetPerBulanChart"></canvas>
                         </div>
                     </div>
                     
@@ -41,11 +35,11 @@
                         </div>
                     </div>
                     
-                    <!-- Chart Omzet Per Bulan -->
+                    <!-- Penawaran per PIC Admin (pindah di bawah Omzet per Sales/Staff) -->
                     <div class="bg-gray-50 p-4 rounded-lg mt-6 w-full">
-                        <h3 class="font-semibold text-sm mb-3 text-center">Tren Omzet 12 Bulan Terakhir</h3>
-                        <div style="height: 300px;">
-                            <canvas id="omzetPerBulanChart"></canvas>
+                        <h3 class="font-semibold text-sm mb-3 text-center">Penawaran per PIC Admin</h3>
+                        <div style="height: 250px;">
+                            <canvas id="picChart"></canvas>
                         </div>
                     </div>
                     @endif
@@ -96,15 +90,32 @@
     @if ($canViewCharts)
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
-            // 1. Horizontal Bar Chart Perusahaan
+            // 1. Horizontal Bar Chart Perusahaan (Top 5)
+            const companyData = {!! json_encode($topCompanies) !!};
+            const companyLabels = companyData.map(x => x.nama_perusahaan);
+            const companyTotals = companyData.map(x => x.total);
+            
+            // Color palette untuk Top 5 Perusahaan - warna berbeda setiap bar
+            const companyColorPalette = [
+                '#059669', // emerald-600
+                '#10b981', // emerald-500
+                '#34d399', // emerald-400
+                '#6ee7b7', // emerald-300
+                '#a7f3d0'  // emerald-200
+            ];
+            
+            const companyColors = companyTotals.map((_, index) => companyColorPalette[index]);
+
             const companyChart = new Chart(document.getElementById('companyChart'), {
                 type: 'bar',
                 data: {
-                    labels: {!! json_encode($topCompanies->pluck('nama_perusahaan')) !!},
+                    labels: companyLabels,
                     datasets: [{
                         label: 'Total Penawaran',
-                        data: {!! json_encode($topCompanies->pluck('total')) !!},
-                        backgroundColor: '#0A6847'
+                        data: companyTotals,
+                        backgroundColor: companyColors,
+                        borderColor: companyColors.map(color => color),
+                        borderWidth: 1
                     }]
                 },
                 options: {
@@ -156,6 +167,22 @@
             const picStats = {!! json_encode($picStats) !!};
             const picLabels = picStats.map(x => x.name);
             const picTotals = picStats.map(x => x.total);
+            
+            // Color palette - warna berbeda untuk setiap bar
+            const picColorPalette = [
+                '#059669', // emerald-600
+                '#10b981', // emerald-500
+                '#34d399', // emerald-400
+                '#6ee7b7', // emerald-300
+                '#a7f3d0', // emerald-200
+                '#16a34a', // green-600
+                '#22c55e', // green-500
+                '#4ade80', // green-400
+                '#86efac', // green-300
+                '#dcfce7'  // green-100
+            ];
+            
+            const picColors = picTotals.map((_, index) => picColorPalette[index % picColorPalette.length]);
 
             const picChart = new Chart(document.getElementById('picChart'), {
                 type: 'bar',
@@ -165,7 +192,9 @@
                         {
                             label: 'Total Penawaran',
                             data: picTotals,
-                            backgroundColor: '#0A6847'
+                            backgroundColor: picColors,
+                            borderColor: picColors.map(color => color),
+                            borderWidth: 1
                         }
                     ]
                 },
@@ -276,62 +305,6 @@
                     }
                 }
             });
-            // 4. Line Chart Penawaran Per Tanggal (hanya tanggal dengan aktivitas)
-            const dateStats = {!! json_encode($dateStats) !!};
-            const dateLabels = dateStats.map(x => x.tanggal);
-            const dateTotals = dateStats.map(x => x.total);
-
-            const dateLineChart = new Chart(document.getElementById('dateLineChart'), {
-                type: 'line',
-                data: {
-                    labels: dateLabels,
-                    datasets: [{
-                        label: 'Jumlah Penawaran',
-                        data: dateTotals,
-                        borderColor: '#0A6847',
-                        backgroundColor: 'rgba(10,104,71,0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 3,
-                        pointBackgroundColor: '#0A6847'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Tanggal'
-                            },
-                            ticks: {
-                                font: {
-                                    size: 9
-                                }
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Penawaran'
-                            },
-                            ticks: {
-                                font: {
-                                    size: 10
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
             @if(Auth::user()->role !== 'staff')
             // 5. Bar Chart Omzet Per Sales/Staff
             const omzetPerSales = {!! json_encode($omzetPerSales) !!};
