@@ -31,9 +31,19 @@
             @else
                 <div>
                     @php
-                        $groupedByArea = $rekap->items->groupBy('nama_area');
+                        // Group by area and preserve insertion order
+                        $groupedByArea = $rekap->items->sortBy('id')->groupBy('nama_area');
+                        // Get unique areas in order of first item ID
+                        $areaOrder = [];
+                        foreach ($rekap->items->sortBy('id') as $item) {
+                            if (!in_array($item->nama_area, $areaOrder)) {
+                                $areaOrder[] = $item->nama_area;
+                            }
+                        }
                     @endphp
-                    @foreach($groupedByArea as $area => $items)
+                    @foreach($areaOrder as $area)
+                        @if(isset($groupedByArea[$area]))
+                        @php $items = $groupedByArea[$area]; @endphp
                         <div class="mb-6">
                             <h4 class="text-lg font-bold text-green-700 mb-3 p-3 bg-green-50 rounded">{{ $area }}</h4>
                             <table class="min-w-full bg-white text-sm border border-gray-300 rounded table-fixed">
@@ -64,6 +74,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        @endif
                     @endforeach
 
                     {{-- Akumulasi / Subtotal --}}
@@ -213,10 +224,19 @@
                         {{-- Readonly mode --}}
                         <div id="item-list">
                             @php
-                                $groupedByAreaReadonly = $rekap->items->groupBy('nama_area');
+                                $groupedByAreaReadonly = $rekap->items->sortBy('id')->groupBy('nama_area');
+                                // Preserve insertion order
+                                $areaOrderReadonly = [];
+                                foreach ($rekap->items->sortBy('id') as $item) {
+                                    if (!in_array($item->nama_area, $areaOrderReadonly)) {
+                                        $areaOrderReadonly[] = $item->nama_area;
+                                    }
+                                }
                                 $globalIdx = 0;
                             @endphp
-                            @foreach($groupedByAreaReadonly as $area => $areaItems)
+                            @foreach($areaOrderReadonly as $area)
+                                @if(isset($groupedByAreaReadonly[$area]))
+                                @php $areaItems = $groupedByAreaReadonly[$area]; @endphp
                                 <div class="mb-6">
                                     <div class="mb-4">
                                         <label class="block text-sm font-medium mb-2 text-gray-700">Nama Area <span class="text-red-500">*</span></label>
@@ -269,6 +289,7 @@
                                     @php $globalIdx++; @endphp
                                 @endforeach
                                 </div>
+                                @endif
                             @endforeach
                         </div>
 
@@ -788,11 +809,18 @@
                     groupedItems[area].push(item);
                 });
 
+                // Sort areas by the minimum ID in each group (to preserve insertion order)
+                const sortedAreas = Object.keys(groupedItems).sort((a, b) => {
+                    const minIdA = Math.min(...groupedItems[a].map(item => item.id));
+                    const minIdB = Math.min(...groupedItems[b].map(item => item.id));
+                    return minIdA - minIdB;
+                });
+
                 // Generate HTML with area-section structure
                 let html = '';
                 let globalIdx = 0;
                 
-                Object.keys(groupedItems).forEach(areaName => {
+                sortedAreas.forEach(areaName => {
                     const areaItems = groupedItems[areaName];
                     
                     html += `
