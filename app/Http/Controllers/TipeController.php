@@ -8,28 +8,15 @@ use Illuminate\Support\Facades\Auth;
 
 class TipeController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(function ($request, $next) {
-            // Allow 'store' method for all authenticated users
-            if ($request->route()->getActionMethod() === 'store') {
-                return $next($request);
-            }
-            
-            // For other methods, require administrator role
-            if (!Auth::check() || Auth::user()->role !== 'administrator') {
-                abort(403, 'Unauthorized. Administrator access required.');
-            }
-            
-            return $next($request);
-        });
-    }
-
     /**
      * Display list of tipe
      */
     public function index(Request $request)
     {
+        if (Auth::user()->role !== 'administrator') {
+            abort(403, 'Unauthorized. Administrator access required.');
+        }
+        
         $query = Tipe::query();
 
         if ($request->filled('q')) {
@@ -102,6 +89,10 @@ class TipeController extends Controller
      */
     public function edit($id)
     {
+        if (Auth::user()->role !== 'administrator') {
+            abort(403, 'Unauthorized. Administrator access required.');
+        }
+        
         $tipe = Tipe::findOrFail($id);
         return response()->json($tipe);
     }
@@ -111,6 +102,10 @@ class TipeController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if (Auth::user()->role !== 'administrator') {
+            abort(403, 'Unauthorized. Administrator access required.');
+        }
+        
         $tipe = Tipe::findOrFail($id);
 
         $data = $request->validate([
@@ -131,6 +126,10 @@ class TipeController extends Controller
      */
     public function destroy($id)
     {
+        if (Auth::user()->role !== 'administrator') {
+            abort(403, 'Unauthorized. Administrator access required.');
+        }
+        
         $tipe = Tipe::findOrFail($id);
         $tipe->delete();
 
