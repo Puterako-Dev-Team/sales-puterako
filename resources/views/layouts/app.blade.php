@@ -697,6 +697,15 @@
                                             </svg>
                                             <span class="menu-label show text-sm text-gray-700">Barang</span>
                                         </a>
+                                        <a href="{{ route('rekap-kategori.index') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M7 21H17a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                            </svg>
+                                            <span class="menu-label show text-sm text-gray-700">Kategori Rekap</span>
+                                        </a>
                                     </div>
                                 </div>
                             </div>

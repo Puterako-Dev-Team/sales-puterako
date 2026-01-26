@@ -4,6 +4,7 @@
 use App\Http\Controllers\JasaController;
 use App\Http\Controllers\JasaDetailController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\PenawaranController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\TipeController;
 use App\Http\Controllers\SatuanController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\RekapKategoriController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -150,6 +152,12 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/atur-hari-kerja/{id}', [HolidayController::class, 'update'])->name('holidays.update');
         Route::delete('/atur-hari-kerja/{id}', [HolidayController::class, 'destroy'])->name('holidays.destroy');
         Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifications.index');
+    });
+
+    // Master Data Routes - Kategori Rekap (hanya untuk administrator)
+    Route::group(['middleware' => 'auth'], function () {
+        Route::resource('rekap-kategori', RekapKategoriController::class)->names('rekap-kategori');
+        Route::get('rekap-kategori-filter', [RekapKategoriController::class, 'filter'])->name('rekap-kategori.filter');
     });
 
     Route::prefix('followup')->name('followup.')->group(function () {
