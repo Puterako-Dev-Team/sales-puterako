@@ -914,24 +914,24 @@
                                                                 {{ $row['satuan'] }}
                                                             </td>
                                                             <td class="border border-gray-300 px-3 py-2 text-right">
-    @if ((int) $row['is_mitra'] === 1)
-        <span style="color:#3498db;font-weight:bold;font-style:italic;">
-            by User
-        </span>
-    @else
-        {{ $row['harga_satuan'] > 0 ? 'Rp ' . number_format($row['harga_satuan'], 0, ',', '.') : '' }}
-    @endif
-</td>
-<td class="border border-gray-300 px-3 py-2 text-center" style="color: #000000;">{{ $row['delivery_time'] ?? '-' }}</td>
-<td class="border border-gray-300 px-3 py-2 text-right">
-    @if ((int) $row['is_mitra'] === 1)
-        <span style="color:#3498db;font-weight:bold;font-style:italic;">
-            by User
-        </span>
-    @else
-        {{ $row['harga_total'] > 0 ? 'Rp ' . number_format($row['harga_total'], 0, ',', '.') : '' }}
-    @endif
-</td>
+                                                                @if ((int) $row['is_mitra'] === 1)
+                                                                    <span style="color:#3498db;font-weight:bold;font-style:italic;">
+                                                                        by User
+                                                                    </span>
+                                                                @else
+                                                                    {{ $row['harga_satuan'] > 0 ? 'Rp ' . number_format($row['harga_satuan'], 0, ',', '.') : '' }}
+                                                                @endif
+                                                            </td>
+                                                            <td class="border border-gray-300 px-3 py-2 text-center" style="color: #000000;">{{ $row['delivery_time'] ?? '-' }}</td>
+                                                            <td class="border border-gray-300 px-3 py-2 text-right">
+                                                                @if ((int) $row['is_mitra'] === 1)
+                                                                    <span style="color:#3498db;font-weight:bold;font-style:italic;">
+                                                                        by User
+                                                                    </span>
+                                                                @else
+                                                                    {{ $row['harga_total'] > 0 ? 'Rp ' . number_format($row['harga_total'], 0, ',', '.') : '' }}
+                                                                @endif
+                                                            </td>
                                                             
                                                         </tr>
                                                     @endforeach
@@ -2955,306 +2955,247 @@
                     });
                 });
 
-                // =====================================================
-                    // TAB REKAP
-                    // =====================================================
-                    function getCsrfToken() {
-                        const meta = document.querySelector('meta[name="csrf-token"]');
-                        if (meta && meta.content) return meta.content;
-                        const input = document.querySelector('input[name="_token"]');
-                        if (input) return input.value;
-                        return '';
+                // =======================
+                // TAB REKAP 
+                // =======================
+                const importBtn = document.getElementById('importRekapBtn');
+                const modal = document.getElementById('importRekapModal');
+                const closeBtn = document.getElementById('closeRekapModal');
+                const loadBtn = document.getElementById('loadRekapBtn');
+                const dropdown = document.getElementById('rekapDropdown');
+
+                function getCsrfToken() {
+                    const meta = document.querySelector('meta[name="csrf-token"]');
+                    if (meta && meta.content) return meta.content;
+                    const input = document.querySelector('input[name="_token"]');
+                    if (input && input.value) return input.value;
+                    return '{{ csrf_token() }}';
+                }
+
+                // populate dropdown when Import modal opens
+                if (importBtn) {
+                    importBtn.onclick = function() {
+                        if (modal) modal.classList.remove('hidden');
+
+                        fetch('{{ route("rekap.all") }}?penawaran_id={{ $penawaran->id_penawaran }}')
+                            .then(res => res.json())
+                            .then(data => {
+                                if (!dropdown) return;
+                                dropdown.innerHTML = '<option value="">-- Pilih Rekap --</option>';
+                                data.forEach(r => {
+                                    dropdown.innerHTML += `<option value="${r.id}">${r.nama} (ID: ${r.id})</option>`;
+                                });
+                            })
+                            .catch(err => {
+                                console.error('Gagal memuat daftar rekap:', err);
+                                if (window.notyf) notyf.error('Gagal memuat daftar rekap.');
+                            });
+                    };
+                }
+
+                // close modal
+                if (closeBtn) {
+                    closeBtn.onclick = function() {
+                        if (modal) modal.classList.add('hidden');
+                    };
+                }
+
+                function renderRekapTables(payload) {
+                    const container = document.getElementById('rekapSpreadsheet');
+                    const accumulationBody = document.getElementById('rekapAccumulationBody');
+                    if (!container || !accumulationBody) return;
+
+                    container.innerHTML = '';
+                    accumulationBody.innerHTML = '';
+
+                    if (!Array.isArray(payload) || payload.length === 0) {
+                        container.innerHTML = '<div class="text-gray-500">Belum ada data rekap.</div>';
+                        accumulationBody.innerHTML = '<div class="text-gray-500">Belum ada data rekap.</div>';
+                        return;
                     }
-                    const importBtn = document.getElementById('importRekapBtn');
-                    const modal = document.getElementById('importRekapModal');
-                    const closeBtn = document.getElementById('closeRekapModal');
-                    const loadBtn = document.getElementById('loadRekapBtn');
-                    const dropdown = document.getElementById('rekapDropdown');
 
-                    const rekapColumns = [
-                        { type: "text", title: "Area", width: 160, readOnly: true },
-                        { type: "text", title: "Kategori", width: 160, readOnly: true },
-                        { type: "text", title: "Nama Item", width: 220, readOnly: true },
-                        { type: "number", title: "Jumlah", width: 100, readOnly: true },
-                        { type: "text", title: "Satuan", width: 100, readOnly: true }
-                    ];
+                    // Group by area
+                    const groups = {};
+                    payload.forEach(it => {
+                        const area = (it.nama_area || 'Umum').toString();
+                        if (!groups[area]) groups[area] = [];
+                        groups[area].push(it);
+                    });
 
-                    function escapeHtml(str) {
-                        if (!str) return '';
-                        return String(str)
-                            .replace(/&/g, '&amp;')
-                            .replace(/</g, '&lt;')
-                            .replace(/>/g, '&gt;')
-                            .replace(/"/g, '&quot;')
-                            .replace(/'/g, '&#039;');
-                    }
+                    // Render each area section with a table
+                    Object.keys(groups).forEach(areaName => {
+                        const items = groups[areaName];
 
-                    function computeRekapAccumulation() {
-                        const body = document.getElementById('rekapAccumulationBody');
-                        if (!body) return;
-                        body.innerHTML = '';
+                        const areaHeader = document.createElement('div');
+                        areaHeader.className = 'mb-4 p-4 rounded bg-green-50';
+                        areaHeader.innerHTML = `<h3 class="text-lg font-bold text-green-700">${escapeHtml(areaName)}</h3>`;
+                        container.appendChild(areaHeader);
 
-                        if (!window.rekapSpreadsheet || typeof window.rekapSpreadsheet.getData !== 'function') {
-                            const p = document.createElement('div');
-                            p.className = 'text-gray-500';
-                            p.textContent = 'Belum ada data rekap.';
-                            body.appendChild(p);
-                            return;
-                        }
-
-                        const rows = window.rekapSpreadsheet.getData() || [];
-                        const map = {};
-
-                        rows.forEach(r => {
-                            const nama = (r[2] || '').toString().trim();     // Nama Item (kolom ke-3)
-                            const jumlah = parseFloat(r[3]) || 0;           // Jumlah (kolom ke-4)
-                            const satuan = (r[4] || '').toString().trim();  // Satuan (kolom ke-5)
-
-                            if (!nama) return;
-                            const key = nama + '||' + satuan;
-                            if (!map[key]) map[key] = { nama, satuan, jumlah: 0 };
-                            map[key].jumlah += jumlah;
-                        });
-
-                        const items = Object.values(map).sort((a, b) => a.nama.localeCompare(b.nama));
-
-                        if (items.length === 0) {
-                            const p = document.createElement('div');
-                            p.className = 'text-gray-500';
-                            p.textContent = 'Belum ada data rekap.';
-                            body.appendChild(p);
-                            return;
-                        }
+                        const tableWrapper = document.createElement('div');
+                        tableWrapper.className = 'mb-8 bg-white rounded shadow overflow-auto';
 
                         const table = document.createElement('table');
                         table.className = 'w-full text-sm border-collapse';
 
                         const thead = document.createElement('thead');
-                        const headRow = document.createElement('tr');
-
-                        const th1 = document.createElement('th'); th1.className = 'text-left font-semibold pb-2 bg-blue-100 px-3 py-2'; th1.textContent = 'Nama Item'; headRow.appendChild(th1);
-                        const th2 = document.createElement('th'); th2.className = 'text-center font-semibold pb-2 bg-blue-100 px-3 py-2'; th2.textContent = 'Total Jumlah'; headRow.appendChild(th2);
-                        const th3 = document.createElement('th'); th3.className = 'text-right font-semibold pb-2 bg-blue-100 px-3 py-2'; th3.textContent = 'Satuan'; headRow.appendChild(th3);
-
-                        thead.appendChild(headRow);
+                        const thRow = document.createElement('tr');
+                        ['Kategori','Nama Item','Jumlah','Satuan'].forEach(h => {
+                            const th = document.createElement('th');
+                            th.className = 'text-left bg-green-100 font-semibold px-3 py-2';
+                            th.textContent = h;
+                            thRow.appendChild(th);
+                        });
+                        thead.appendChild(thRow);
                         table.appendChild(thead);
 
                         const tbody = document.createElement('tbody');
                         items.forEach(it => {
                             const tr = document.createElement('tr');
 
-                            const tdName = document.createElement('td'); tdName.className = 'py-2 border-t px-3'; tdName.textContent = it.nama; tr.appendChild(tdName);
+                            const tdKategori = document.createElement('td');
+                            tdKategori.className = 'py-2 border-t px-3';
+                            tdKategori.textContent = it.kategori && it.kategori.nama ? it.kategori.nama : (it.kategori || '');
+                            tr.appendChild(tdKategori);
 
-                            const tdJumlah = document.createElement('td'); tdJumlah.className = 'py-2 border-t text-center px-3';
-                            const jumlahFormatted = Number.isInteger(it.jumlah) ? it.jumlah.toLocaleString('id-ID') : it.jumlah.toLocaleString('id-ID', { minimumFractionDigits: 2 });
-                            tdJumlah.innerHTML = `<strong>${jumlahFormatted}</strong>`;
+                            const tdNama = document.createElement('td');
+                            tdNama.className = 'py-2 border-t px-3';
+                            tdNama.textContent = it.nama_item || '';
+                            tr.appendChild(tdNama);
+
+                            const tdJumlah = document.createElement('td');
+                            tdJumlah.className = 'py-2 border-t text-center px-3';
+                            tdJumlah.innerHTML = `<strong>${(Number.isInteger(it.jumlah) ? it.jumlah : Number(it.jumlah).toLocaleString('id-ID'))}</strong>`;
                             tr.appendChild(tdJumlah);
 
-                            const tdSatuan = document.createElement('td'); tdSatuan.className = 'py-2 border-t text-right px-3'; tdSatuan.textContent = it.satuan || '-'; tr.appendChild(tdSatuan);
+                            const tdSatuan = document.createElement('td');
+                            tdSatuan.className = 'py-2 border-t text-right px-3';
+                            tdSatuan.textContent = it.satuan || '-';
+                            tr.appendChild(tdSatuan);
 
                             tbody.appendChild(tr);
                         });
 
                         table.appendChild(tbody);
-                        body.appendChild(table);
+                        tableWrapper.appendChild(table);
+                        container.appendChild(tableWrapper);
+                    });
+
+                    // Akumulasi (subtotal semua area)
+                    const map = {};
+                    payload.forEach(it => {
+                        const nama = (it.nama_item || '').toString().trim();
+                        const satuan = (it.satuan || '').toString().trim();
+                        const jumlah = parseFloat(it.jumlah) || 0;
+                        if (!nama) return;
+                        const key = nama + '||' + satuan;
+                        if (!map[key]) map[key] = { nama, satuan, jumlah: 0 };
+                        map[key].jumlah += jumlah;
+                    });
+
+                    const items = Object.values(map).sort((a,b) => a.nama.localeCompare(b.nama));
+
+                    if (items.length === 0) {
+                        accumulationBody.innerHTML = '<div class="text-gray-500">Belum ada data rekap.</div>';
+                        return;
                     }
 
-                    // Event listener untuk Import button
-                    if (importBtn) {
-                        importBtn.onclick = function() {
-                            modal.classList.remove("hidden");
-                            
-                            fetch('{{ route("rekap.all") }}?penawaran_id={{ $penawaran->id_penawaran }}')
-                                .then(res => {
-                                    return res.json();
-                                })
-                                .then(data => {
-                                    dropdown.innerHTML = "<option value=\"\">-- Pilih Rekap --</option>";
-                                    data.forEach(r => {
-                                        dropdown.innerHTML += `<option value="${r.id}">${r.nama} (ID: ${r.id})</option>`;
-                                    });
-                                })
-                                .catch(err => {
-                                    console.error('❌ Error fetching rekap list:', err);
-                                    if (window.notyf) {
-                                        notyf.error('Gagal memuat daftar rekap: ' + err.message);
-                                    }
-                                });
-                        };
-                    } else {
-                        console.warn('⚠️ Import button NOT found!');
-                    }
+                    const accTable = document.createElement('table');
+                    accTable.className = 'w-full text-sm border-collapse';
 
-                    // Event listener untuk Close button
-                    if (closeBtn) {
-                        closeBtn.onclick = function() {
+                    const accThead = document.createElement('thead');
+                    const accHeadRow = document.createElement('tr');
+                    const th1 = document.createElement('th'); th1.className = 'text-left font-semibold pb-2 bg-blue-100 px-3 py-2'; th1.textContent = 'Nama Item'; accHeadRow.appendChild(th1);
+                    const th2 = document.createElement('th'); th2.className = 'text-center font-semibold pb-2 bg-blue-100 px-3 py-2'; th2.textContent = 'Total Jumlah'; accHeadRow.appendChild(th2);
+                    const th3 = document.createElement('th'); th3.className = 'text-right font-semibold pb-2 bg-blue-100 px-3 py-2'; th3.textContent = 'Satuan'; accHeadRow.appendChild(th3);
+                    accThead.appendChild(accHeadRow);
+                    accTable.appendChild(accThead);
+
+                    const accTbody = document.createElement('tbody');
+                    items.forEach(it => {
+                        const tr = document.createElement('tr');
+
+                        const tdName = document.createElement('td'); tdName.className = 'py-2 border-t px-3'; tdName.textContent = it.nama; tr.appendChild(tdName);
+
+                        const tdJumlah = document.createElement('td'); tdJumlah.className = 'py-2 border-t text-center px-3';
+                        const jumlahFormatted = Number.isInteger(it.jumlah) ? it.jumlah.toLocaleString('id-ID') : it.jumlah.toLocaleString('id-ID', { minimumFractionDigits: 2 });
+                        tdJumlah.innerHTML = `<strong>${jumlahFormatted}</strong>`;
+                        tr.appendChild(tdJumlah);
+
+                        const tdSatuan = document.createElement('td'); tdSatuan.className = 'py-2 border-t text-right px-3'; tdSatuan.textContent = it.satuan || '-'; tr.appendChild(tdSatuan);
+
+                        accTbody.appendChild(tr);
+                    });
+                    accTable.appendChild(accTbody);
+                    accumulationBody.appendChild(accTable);
+                }
+
+                // reuse escapeHtml from file if present, otherwise provide:
+                function escapeHtml(str) {
+                    if (!str) return '';
+                    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+                }
+
+                // Hook up Import modal load action: when payload is returned, render tables
+                if (loadBtn) {
+                    loadBtn.onclick = function() {
+                        const rekapId = dropdown.value;
+                        if (!rekapId) {
+                            if (window.notyf) notyf.error('Silakan pilih rekap terlebih dahulu');
+                            return;
+                        }
+
+                        const csrf = getCsrfToken();
+                        fetch(`/rekap/${rekapId}/import`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrf
+                            },
+                            body: JSON.stringify({ penawaran_id: {{ $penawaran->id_penawaran }} })
+                        })
+                        .then(async response => {
+                            if (!response.ok) {
+                                if (response.status === 403) {
+                                    if (window.notyf) notyf.error('Rekap ini sudah diimport oleh user lain.');
+                                    throw new Error('Forbidden');
+                                }
+                                const err = await response.json().catch(() => ({}));
+                                throw err;
+                            }
+                            return response.json();
+                        })
+                        .then(payload => {
+                            // payload is array of items
+                            renderRekapTables(payload);
+                            if (window.notyf) notyf.success('Rekap berhasil dimuat.');
                             modal.classList.add("hidden");
-                        };
+                            // switch to Rekap tab if needed
+                            document.querySelectorAll('.tab-btn').forEach(btn => {
+                                if (btn.dataset.tab === 'rekap') btn.click();
+                            });
+                        })
+                        .catch(err => {
+                            console.error('Error loading rekap import:', err);
+                            if (window.notyf) notyf.error('Gagal memuat rekap.');
+                        });
+                    };
+                }
+
+                // Initial load for this penawaran: render if exists
+                fetch(`/rekap/for-penawaran/{{ $penawaran->id_penawaran }}`)
+                .then(res => res.json())
+                .then(payload => {
+                    if (Array.isArray(payload) && payload.length > 0) {
+                        renderRekapTables(payload);
                     } else {
-                        console.warn('⚠️ Close button NOT found!');
+                        // show empty state
+                        const container = document.getElementById('rekapSpreadsheet');
+                        if (container) container.innerHTML = '<div class="text-gray-500">Belum ada data rekap.</div>';
                     }
-
-                    // Event listener untuk Load button
-                    if (loadBtn) {
-                        loadBtn.onclick = function() {
-                            const rekapId = dropdown.value;
-
-                            if (!rekapId) {
-                                if (window.notyf) notyf.error('Silakan pilih rekap terlebih dahulu');
-                                return;
-                            }
-
-                            const csrf = getCsrfToken();
-                            fetch(`/rekap/${rekapId}/import`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': csrf
-                                },
-                                body: JSON.stringify({ penawaran_id: {{ $penawaran->id_penawaran }} })
-                            })
-                            .then(async response => {
-                                if (!response.ok) {
-                                    if (response.status === 403) {
-                                        if (window.notyf) notyf.error('Rekap ini sudah diimport oleh user lain.');
-                                        throw new Error('Forbidden');
-                                    }
-                                    const err = await response.json().catch(() => ({}));
-                                    throw err;
-                                }
-                                return response.json();
-                            })
-                            .then(payload => {
-                                const dataRows = payload.map(it => [
-                                    it.nama_area ?? '',                               
-                                    (it.kategori && it.kategori.nama) ? it.kategori.nama : (it.kategori ?? ''), // Kategori (jika ada)
-                                    it.nama_item ?? '',                               
-                                    it.jumlah ?? 0,                                   
-                                    it.satuan ?? ''                                   
-                                ]);
-                            computeRekapAccumulation();
-
-                                if (window.rekapSpreadsheet && typeof window.rekapSpreadsheet.setData === 'function') {
-                                    window.rekapSpreadsheet.setData(dataRows);
-                                } else {
-                                    window.rekapSpreadsheet = jspreadsheet(document.getElementById('rekapSpreadsheet'), {
-                                        data: dataRows,
-                                        columns: rekapColumns,
-                                        minDimensions: [4, 5],
-                                        tableOverflow: true,
-                                        tableHeight: "300px"
-                                    });
-                                }
-                                computeRekapAccumulation();
-
-                                if (window.notyf) notyf.success('Rekap berhasil dimuat.');
-                                modal.classList.add("hidden");
-                                // switch to Rekap tab if needed
-                                document.querySelectorAll('.tab-btn').forEach(btn => {
-                                    if (btn.dataset.tab === 'rekap') btn.click();
-                                });
-                            })
-                            .catch(err => {
-                                console.error('Error loading rekap import:', err);
-                            });
-                        };
-                    } else {
-                        console.warn('⚠️ Load button NOT found!');
-                    }
-
-                    // Initialize spreadsheet dengan data kosong
-                    try {
-                        const rekapContainer = document.getElementById("rekapSpreadsheet");
-                        if (!rekapContainer) {
-                            console.error('❌ Rekap spreadsheet container NOT FOUND!');
-                        } else {
-                            let needCreate = false;
-
-                            if (!window.rekapSpreadsheet) {
-                                needCreate = true;
-                            } else if (typeof window.rekapSpreadsheet.setData !== 'function') {
-                                console.warn('⚠️ Existing window.rekapSpreadsheet present but not a valid jspreadsheet instance. Will recreate.');
-                                // try to destroy if possible
-                                try {
-                                    if (typeof window.rekapSpreadsheet.destroy === 'function') {
-                                        window.rekapSpreadsheet.destroy();
-                                    }
-                                } catch (err) {
-                                    console.warn('⚠️ Error while destroying invalid instance:', err);
-                                }
-                                needCreate = true;
-                            } else {
-                                // Looks like a valid instance — try to refresh/render
-                                try {
-                                    if (typeof window.rekapSpreadsheet.refresh === 'function') {
-                                        window.rekapSpreadsheet.refresh();
-                                    } else if (typeof window.rekapSpreadsheet.render === 'function') {
-                                        window.rekapSpreadsheet.render();
-                                    } else {
-                                        console.log('ℹ️ Existing rekapSpreadsheet appears valid (no refresh/render method).');
-                                    }
-                                } catch (err) {
-                                    console.warn('⚠️ Refresh failed, will recreate spreadsheet:', err);
-                                    try {
-                                        if (typeof window.rekapSpreadsheet.destroy === 'function') {
-                                            window.rekapSpreadsheet.destroy();
-                                        }
-                                    } catch (e) {
-                                        console.warn('⚠️ Destroy also failed:', e);
-                                    }
-                                    needCreate = true;
-                                }
-                            }
-
-                            if (needCreate) {
-                                window.rekapSpreadsheet = jspreadsheet(rekapContainer, {
-                                data: [
-                                    ['', '', '', 0, ''],
-                                ],
-                                minDimensions: [5, 1],
-                                minSpareRows: 1,
-                                columns: rekapColumns,
-                                tableOverflow: true,
-                                tableWidth: '100%'
-                            });
-                                console.log('✅ Empty spreadsheet initialized successfully (created).', window.rekapSpreadsheet);
-                                // Update accumulation panel after creating empty spreadsheet
-                                try { computeRekapAccumulation(); } catch (err) { console.warn('computeRekapAccumulation error:', err); }
-                            }
-                        }
-                    } catch (err) {
-                        console.error('❌ Error initializing spreadsheet (defensive):', err);
-                        console.error('Error stack:', err && err.stack);
-                    }
-
-                    fetch(`/rekap/for-penawaran/{{ $penawaran->id_penawaran }}`)
-                    .then(res => res.json())
-                    .then(payload => {
-                        if (Array.isArray(payload) && payload.length > 0) {
-                        const dataRows = payload.map(it => [
-                            it.nama_area ?? '',                               
-                            (it.kategori && it.kategori.nama) ? it.kategori.nama : (it.kategori ?? ''), 
-                            it.nama_item ?? '',                               
-                            it.jumlah ?? 0,                                   
-                            it.satuan ?? ''                                   
-                        ]);
-
-                        if (window.rekapSpreadsheet && typeof window.rekapSpreadsheet.setData === 'function') {
-                            window.rekapSpreadsheet.setData(dataRows);
-                        } else {
-                            window.rekapSpreadsheet = jspreadsheet(document.getElementById('rekapSpreadsheet'), {
-                            data: dataRows,
-                            columns: rekapColumns,
-                            minDimensions: [4, 5],
-                            tableOverflow: true,
-                            });
-                        }
-                        }
-                        // Update accumulation panel after loading imported rows (rehydrate)
-                        try { computeRekapAccumulation(); } catch (err) { console.warn('computeRekapAccumulation error:', err); }
-                    })
-                    .catch(e => console.error('Failed to load imported rekap for this penawaran:', e));
-                    console.log('🏁 REKAP TAB INIT - Completed (defensive)');
+                })
+                .catch(e => {
+                    console.error('Failed to load imported rekap for this penawaran:', e);
+                });
                     
 
                 // =====================================================
