@@ -4,6 +4,14 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 @if ($canViewCharts)
+                    <!-- Card Total Omzet Keseluruhan - PALING ATAS -->
+                    @if(Auth::user()->role !== 'staff')
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 w-full text-white shadow-lg mb-6">
+                        <h3 class="text-lg font-semibold mb-2">Total Omzet Keseluruhan</h3>
+                        <p class="text-4xl font-bold">Rp {{ number_format($totalOmzetKeseluruhan ?? 0, 0, ',', '.') }}</p>
+                    </div>
+                    @endif
+                    
                     <!-- Charts untuk Supervisor, Manajer, Administrator, Direktur, dan Staff -->
                     <form method="GET" class="mb-4 flex gap-2 items-center">
                         <input type="month" name="month" value="{{ request('month', \Carbon\Carbon::now()->format('Y-m')) }}"
@@ -22,6 +30,22 @@
                         <h3 class="font-semibold text-sm mb-3 text-center">Penawaran per PIC Admin</h3>
                         <div style="height: 250px;">
                             <canvas id="picChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Chart Omzet per Sales/Staff -->
+                    <div class="bg-gray-50 p-4 rounded-lg mt-6 w-full">
+                        <h3 class="font-semibold text-sm mb-3 text-center">Omzet per Sales/Staff - {{ date('F Y', strtotime($month . '-01')) }}</h3>
+                        <div style="height: 350px;">
+                            <canvas id="omzetPerSalesChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Chart Omzet Per Bulan -->
+                    <div class="bg-gray-50 p-4 rounded-lg mt-6 w-full">
+                        <h3 class="font-semibold text-sm mb-3 text-center">Tren Omzet 12 Bulan Terakhir</h3>
+                        <div style="height: 300px;">
+                            <canvas id="omzetPerBulanChart"></canvas>
                         </div>
                     </div>
                     @endif
@@ -307,6 +331,177 @@
                     }
                 }
             });
+
+            @if(Auth::user()->role !== 'staff')
+            // 5. Bar Chart Omzet Per Sales/Staff
+            const omzetPerSales = {!! json_encode($omzetPerSales) !!};
+            const omzetLabels = omzetPerSales.map(x => x.name);
+            const omzetValues = omzetPerSales.map(x => x.omzet);
+            const omzetJumlah = omzetPerSales.map(x => x.jumlah_penawaran);
+
+            const omzetPerSalesChart = new Chart(document.getElementById('omzetPerSalesChart'), {
+                type: 'bar',
+                data: {
+                    labels: omzetLabels,
+                    datasets: [{
+                        label: 'Omzet (Rp)',
+                        data: omzetValues,
+                        backgroundColor: '#22C55E',
+                        borderColor: '#16A34A',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 12
+                            },
+                            bodyFont: {
+                                size: 11
+                            },
+                            padding: 10,
+                            cornerRadius: 4,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.x;
+                                    const formattedValue = 'Rp ' + value.toLocaleString('id-ID');
+                                    const idx = context.dataIndex;
+                                    const jumlah = omzetJumlah[idx];
+                                    return [
+                                        formattedValue,
+                                        'Jumlah: ' + jumlah
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: {
+                                    size: 9
+                                },
+                                callback: function(value) {
+                                    return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+                                }
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 6. Line Chart Omzet Per Bulan
+            const omzetPerBulan = {!! json_encode($omzetPerBulan) !!};
+            const bulanLabels = omzetPerBulan.map(x => {
+                const date = new Date(x.bulan);
+                return new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' }).format(date);
+            }).reverse();
+            const bulanOmzet = omzetPerBulan.map(x => x.total_omzet).reverse();
+            const bulanJumlah = omzetPerBulan.map(x => x.jumlah_penawaran).reverse();
+
+            const omzetPerBulanChart = new Chart(document.getElementById('omzetPerBulanChart'), {
+                type: 'line',
+                data: {
+                    labels: bulanLabels,
+                    datasets: [{
+                        label: 'Omzet (Rp)',
+                        data: bulanOmzet,
+                        borderColor: '#059669',
+                        backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#059669',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 12
+                            },
+                            bodyFont: {
+                                size: 11
+                            },
+                            padding: 10,
+                            cornerRadius: 4,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    const formattedValue = 'Rp ' + value.toLocaleString('id-ID');
+                                    const idx = context.dataIndex;
+                                    const jumlah = bulanJumlah[idx];
+                                    return [
+                                        formattedValue,
+                                        'Penawaran: ' + jumlah
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Bulan'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 9
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Omzet (Rp)'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    return 'Rp ' + (value / 1000000).toFixed(0) + 'M';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            @endif
         </script>
     @endif
 @endsection

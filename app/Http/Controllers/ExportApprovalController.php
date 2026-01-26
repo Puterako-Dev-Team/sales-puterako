@@ -426,6 +426,14 @@ class ExportApprovalController extends Controller
             'export_approval_status' => 'approved',
         ]);
 
+        // Update status penawaran menjadi 'success'
+        $penawaran = Penawaran::find($approvalRequest->penawaran_id);
+        if ($penawaran) {
+            $penawaran->update([
+                'status' => 'success',
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => '✅ Persetujuan lengkap! Staff sekarang dapat export PDF'
