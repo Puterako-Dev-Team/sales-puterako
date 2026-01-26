@@ -3036,17 +3036,26 @@
                         return;
                     }
 
-                    // Group by area
+                    // Sort payload by item id to preserve insertion order (fallbacks handled)
+                    const sorted = payload.slice().sort((a, b) => {
+                        const ia = (a && typeof a.id !== 'undefined') ? Number(a.id) : 0;
+                        const ib = (b && typeof b.id !== 'undefined') ? Number(b.id) : 0;
+                        return ia - ib;
+                    });
+
+                    // Group by area while preserving the order of first occurrence (based on sorted array)
                     const groups = {};
-                    payload.forEach(it => {
+                    const areaOrder = [];
+                    sorted.forEach(it => {
                         const area = (it.nama_area || 'Umum').toString();
                         if (!groups[area]) groups[area] = [];
                         groups[area].push(it);
+                        if (!areaOrder.includes(area)) areaOrder.push(area);
                     });
 
-                    // Render each area section with a table
-                    Object.keys(groups).forEach(areaName => {
-                        const items = groups[areaName];
+                    // Render each area section in the preserved order
+                    areaOrder.forEach(areaName => {
+                        const items = groups[areaName] || [];
 
                         const areaHeader = document.createElement('div');
                         areaHeader.className = 'mb-4 p-4 rounded bg-green-50';
@@ -3102,7 +3111,7 @@
                         container.appendChild(tableWrapper);
                     });
 
-                    // Akumulasi (subtotal semua area)
+                    // Akumulasi (subtotal semua area) 
                     const map = {};
                     payload.forEach(it => {
                         const nama = (it.nama_item || '').toString().trim();
