@@ -4,10 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Penawaran extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['status', 'note'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
     
     protected $primaryKey = 'id_penawaran';
     
@@ -62,5 +72,14 @@ class Penawaran extends Model
         return $this->hasMany(FollowUp::class, 'penawaran_id', 'id_penawaran')
                     ->where('is_system_generated', true)
                     ->orderBy('created_at', 'desc');
+    }
+    public function followUpSchedule()
+    {
+        return $this->hasOne(FollowUpSchedule::class, 'penawaran_id', 'id_penawaran');
+    }
+
+    public function hasActiveFollowUpSchedule(): bool
+    {
+        return $this->followUpSchedule()->active()->exists();
     }
 }

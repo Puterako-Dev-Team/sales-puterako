@@ -13,6 +13,8 @@ class PenawaranDetail extends Model
         'nama_section',
         'no',
         'tipe',
+        'tipe_id',
+        'tipe_name',
         'deskripsi',
         'qty',
         'satuan',
@@ -21,13 +23,20 @@ class PenawaranDetail extends Model
         'hpp',
         'profit',
         'is_mitra',
+        'color_code',
         'added_cost',
+        'delivery_time',
         'version_id',
     ];
 
     public function penawaran()
     {
         return $this->belongsTo(Penawaran::class, 'id_penawaran');
+    }
+
+    public function tipe()
+    {
+        return $this->belongsTo(Tipe::class, 'tipe_id');
     }
 
     public function version()

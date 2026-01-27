@@ -14,7 +14,18 @@ class PenawaranController extends Controller
 {
     public function index(Request $request)
     {
+        // Manager role tidak bisa melihat list penawaran
+        $userRole = Auth::user()->role ?? null;
+        if ($userRole === 'manager') {
+            abort(403, 'Unauthorized access. Manager tidak memiliki akses ke halaman ini.');
+        }
+
         $query = \App\Models\Penawaran::with('user'); // Eager load user
+
+        // Staff role hanya bisa melihat penawaran mereka sendiri
+        if ($userRole === 'staff') {
+            $query->where('user_id', Auth::id());
+        }
 
         // Filter berdasarkan tanggal
         if ($request->filled('tanggal_dari')) {
@@ -91,6 +102,12 @@ class PenawaranController extends Controller
 
         $query = \App\Models\Penawaran::with('user'); // Eager load user
 
+        // Staff role hanya bisa melihat penawaran mereka sendiri
+        $userRole = Auth::user()->role ?? null;
+        if ($userRole === 'staff') {
+            $query->where('user_id', Auth::id());
+        }
+
         // Apply filters
         if ($request->filled('tanggal_dari')) {
             $query->whereDate('created_at', '>=', $request->tanggal_dari);
@@ -133,16 +150,20 @@ class PenawaranController extends Controller
         $table = view('penawaran.table-content', compact('penawarans'))->render();
 
         // Generate pagination links
-        $pagination = $penawarans->links('penawaran.pagination')->render();
-
+        $pagination = view('components.paginator', ['paginator' => $penawarans])->render();
         $info = '';
         if ($request->hasAny(['tanggal_dari', 'no_penawaran', 'nama_perusahaan', 'status', 'pic_admin'])) {
             $activeFilters = [];
-            if ($request->tanggal_dari) $activeFilters[] = 'Tanggal';
-            if ($request->no_penawaran) $activeFilters[] = 'No Penawaran';
-            if ($request->nama_perusahaan) $activeFilters[] = 'Perusahaan';
-            if ($request->status) $activeFilters[] = 'Status';
-            if ($request->pic_admin) $activeFilters[] = 'PIC';
+            if ($request->tanggal_dari)
+                $activeFilters[] = 'Tanggal';
+            if ($request->no_penawaran)
+                $activeFilters[] = 'No Penawaran';
+            if ($request->nama_perusahaan)
+                $activeFilters[] = 'Perusahaan';
+            if ($request->status)
+                $activeFilters[] = 'Status';
+            if ($request->pic_admin)
+                $activeFilters[] = 'PIC';
 
             $info = view('penawaran.filter-info', [
                 'count' => $penawarans->count(),
@@ -178,6 +199,11 @@ class PenawaranController extends Controller
 
     public function store(Request $request)
     {
+        // Manager role tidak bisa membuat penawaran baru
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat membuat penawaran baru.'], 403);
+        }
+
         $data = $request->all();
 
         // TAMBAH: Auto-set user_id dari Auth user
@@ -218,48 +244,74 @@ class PenawaranController extends Controller
 
     public function edit($id)
     {
+        // Manager role tidak bisa edit penawaran
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat mengedit penawaran.'], 403);
+        }
+
         $penawaran = Penawaran::findOrFail($id);
         return response()->json($penawaran);
     }
 
     public function update(Request $request, $id)
     {
+        // Manager role tidak bisa update penawaran
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat mengupdate penawaran.'], 403);
+        }
+
         $penawaran = Penawaran::findOrFail($id);
         $data = $request->validate([
-            'perihal'         => 'required|string|max:255',
+            'perihal' => 'required|string|max:255',
             'nama_perusahaan' => 'required|string|max:255',
-            'lokasi'          => 'required|string|max:255',
-            'pic_perusahaan'  => 'nullable|string|max:255',
+            'lokasi' => 'required|string|max:255',
+            'pic_perusahaan' => 'nullable|string|max:255',
         ]);
         $penawaran->update($data);
 
         if ($request->ajax()) {
-            return response()->json(['success' => true, 'notify' => [
-                'type' => 'success',
-                'title' => 'Updated',
-                'message' => 'Penawaran diperbarui'
-            ]]);
+            return response()->json([
+                'success' => true,
+                'notify' => [
+                    'type' => 'success',
+                    'title' => 'Updated',
+                    'message' => 'Penawaran diperbarui'
+                ]
+            ]);
         }
         return back()->with('success', 'Penawaran diperbarui');
     }
 
     public function destroy(Request $request, $id)
     {
+        // Manager role tidak bisa delete penawaran
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menghapus penawaran.'], 403);
+        }
+
         $penawaran = Penawaran::findOrFail($id);
         $penawaran->delete();
 
         if ($request->ajax()) {
-            return response()->json(['success' => true, 'notify' => [
-                'type' => 'success',
-                'title' => 'Deleted',
-                'message' => 'Penawaran dihapus (soft)'
-            ]]);
+            return response()->json([
+                'success' => true,
+                'notify' => [
+                    'type' => 'success',
+                    'title' => 'Deleted',
+                    'message' => 'Penawaran dihapus (soft)'
+                ]
+            ]);
         }
         return back()->with('success', 'Penawaran dihapus');
     }
 
     public function restore($id)
     {
+        // Manager role tidak bisa restore penawaran
+        if (Auth::user()->role === 'manager') {
+            return back()->with('error', 'Unauthorized. Manager tidak dapat memulihkan penawaran.');
+        }
+
         $penawaran = Penawaran::onlyTrashed()->findOrFail($id);
         $penawaran->restore();
         return back()->with('success', 'Penawaran dipulihkan');
@@ -280,6 +332,14 @@ class PenawaranController extends Controller
 
     public function storeFollowUp(Request $request, $id)
     {
+        // Manager role tidak bisa menambah follow up
+        if (Auth::user()->role === 'manager') {
+            if ($request->ajax()) {
+                return response()->json(['error' => 'Unauthorized. Manager tidak dapat menambah follow up.'], 403);
+            }
+            return back()->with('error', 'Unauthorized. Manager tidak dapat menambah follow up.');
+        }
+
         $request->validate([
             'nama' => 'required|string|max:255',
             'deskripsi' => 'required|string',
@@ -327,6 +387,14 @@ class PenawaranController extends Controller
 
         $penawaran = \App\Models\Penawaran::find($id);
 
+        $satuans = \App\Models\Satuan::orderBy('nama')->get();
+
+        // Staff role hanya bisa melihat penawaran mereka sendiri
+        $userRole = Auth::user()->role ?? null;
+        if ($userRole === 'staff' && $penawaran && $penawaran->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access to this penawaran');
+        }
+
         $hasVersions = \App\Models\PenawaranVersion::where('penawaran_id', $id)->exists();
         if (!$hasVersions) {
             \App\Models\PenawaranVersion::create([
@@ -362,7 +430,7 @@ class PenawaranController extends Controller
         }
 
         $activeVersionId = $versionRow->id;
-        
+
         $details = PenawaranDetail::where('version_id', $activeVersionId)
             ->orderBy('id_penawaran_detail', 'asc')
             ->get();
@@ -393,7 +461,7 @@ class PenawaranController extends Controller
                 'data' => $items->map(function ($d) {
                     return [
                         'no' => $d->no,
-                        'tipe' => $d->tipe,
+                        'tipe' => $d->tipe_name ?? $d->tipe, // Use tipe_name if available, fallback to tipe
                         'deskripsi' => $d->deskripsi,
                         'qty' => $d->qty,
                         'satuan' => $d->satuan,
@@ -401,7 +469,10 @@ class PenawaranController extends Controller
                         'harga_total' => $d->harga_total,
                         'hpp' => $d->hpp,
                         'is_mitra' => $d->is_mitra,
+                        'color_code' => $d->color_code,
                         'added_cost' => $d->added_cost,
+                        'delivery_time' => $d->delivery_time,
+                        'profit' => $d->profit,
                     ];
                 })->toArray()
             ];
@@ -415,6 +486,7 @@ class PenawaranController extends Controller
             'jasa',
             'activeVersion',
             'versionRow',
+            'activeVersionId',
             'totalPenawaran',
             'grandTotalJasa',
             'grandTotal',
@@ -422,18 +494,23 @@ class PenawaranController extends Controller
             'ppnNominal',
             'grandTotalWithPpn',
             'isBest',
-            'bestPrice'
+            'bestPrice',
+            'satuans'
         ));
     }
 
     public function save(Request $request)
     {
+        // Manager role tidak bisa save/edit penawaran
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menyimpan perubahan penawaran.'], 403);
+        }
+
         $data = $request->all();
         Log::debug('PenawaranController::save payload', $data);
 
         $penawaranId = $data['penawaran_id'] ?? null;
         $sections = $data['sections'] ?? [];
-        $profit = $data['profit'] ?? 0;
         $ppnPersen = $data['ppn_persen'] ?? 11; // Default 11%
         $version = $data['version'] ?? 0;
 
@@ -483,19 +560,30 @@ class PenawaranController extends Controller
 
                     $values = [
                         'tipe' => $row['tipe'] ?? null,
+                        'tipe_name' => $row['tipe'] ?? null,
                         'deskripsi' => $row['deskripsi'] ?? null,
                         'qty' => $row['qty'] ?? null,
                         'satuan' => $row['satuan'] ?? null,
                         'harga_satuan' => $row['harga_satuan'] ?? null,
                         'harga_total' => $hargaTotal,
                         'hpp' => $row['hpp'] ?? null,
-                        'profit' => $profit,
+                        'profit' => $row['profit'] ?? 0,
                         'nama_section' => $namaSection,
                         'area' => $area,
-                        'is_mitra' => isset($row['is_mitra']) ? (int)$row['is_mitra'] : 0,
+                        'is_mitra' => isset($row['is_mitra']) ? (int) $row['is_mitra'] : 0,
+                        'color_code' => isset($row['color_code']) ? (int) $row['color_code'] : 1,
                         'added_cost' => $row['added_cost'] ?? 0,
+                        'delivery_time' => $row['delivery_time'] ?? null,
                         'version_id' => $version_id, // pastikan selalu isi version_id
                     ];
+
+                    // Cari tipe_id berdasarkan tipe_name
+                    if (!empty($row['tipe'])) {
+                        $tipeRecord = \App\Models\Tipe::where('nama', $row['tipe'])->first();
+                        if ($tipeRecord) {
+                            $values['tipe_id'] = $tipeRecord->id;
+                        }
+                    }
 
                     if (isset($existingDetails[$key])) {
                         $existingDetails[$key]->update($values);
@@ -533,6 +621,16 @@ class PenawaranController extends Controller
             $versionRow->ppn_nominal = $ppnNominal;
             $versionRow->grand_total = $grandTotal;
             $versionRow->save();
+
+            // Log activity for editing penawaran
+            $penawaran = Penawaran::find($penawaranId);
+            if ($penawaran) {
+                activity()
+                    ->performedOn($penawaran)
+                    ->causedBy(Auth::user())
+                    ->withProperties(['version' => $version])
+                    ->log('Edited penawaran');
+            }
 
             Log::debug('Penawaran saved', ['id_penawaran' => $penawaranId, 'total' => $totalKeseluruhan]);
 
@@ -599,6 +697,7 @@ class PenawaranController extends Controller
                         'harga_total' => $d->harga_total,
                         'hpp' => $d->hpp,
                         'is_mitra' => $d->is_mitra,
+                        'color_code' => $d->color_code ?? 1,
                     ];
                 })->toArray()
             ];
@@ -702,12 +801,91 @@ class PenawaranController extends Controller
         }
         $filename .= '.pdf';
 
+        // Log activity
+        activity()
+            ->performedOn($penawaran)
+            ->causedBy(Auth::user())
+            ->withProperties(['version' => $activeVersion])
+            ->log('Exported PDF');
+
         // Download PDF
         return $pdf->download($filename);
     }
 
+    public function showLog(Request $request)
+    {
+        $id = $request->query('id');
+        $penawaran = Penawaran::findOrFail($id);
+        
+        $activities = \Spatie\Activitylog\Models\Activity::where('subject_type', Penawaran::class)
+            ->where('subject_id', $id)
+            ->with('causer')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'activities' => $activities->map(function($activity) {
+                return [
+                    'description' => $activity->description,
+                    'causer_name' => $activity->causer ? $activity->causer->name : 'System',
+                    'properties' => $activity->properties,
+                    'created_at' => $activity->created_at->format('d/m/Y H:i:s'),
+                    'created_at_formatted' => $activity->created_at->translatedFormat('l, d F Y H:i')
+                ];
+            })
+        ]);
+    }
+
+    public function countUnreadActivities(Request $request)
+    {
+        $id = $request->query('id');
+        $userId = Auth::id();
+        
+        // Get last read timestamp for this user and penawaran
+        $lastRead = DB::table('activity_reads')
+            ->where('user_id', $userId)
+            ->where('penawaran_id', $id)
+            ->value('last_read_at');
+        
+        // Count activities after last read
+        $query = \Spatie\Activitylog\Models\Activity::where('subject_type', Penawaran::class)
+            ->where('subject_id', $id);
+        
+        if ($lastRead) {
+            $query->where('created_at', '>', $lastRead);
+        }
+        
+        $count = $query->count();
+        
+        return response()->json([
+            'success' => true,
+            'unread_count' => $count
+        ]);
+    }
+
+    public function markActivitiesAsRead(Request $request)
+    {
+        $id = $request->input('id');
+        $userId = Auth::id();
+        
+        DB::table('activity_reads')->updateOrInsert(
+            ['user_id' => $userId, 'penawaran_id' => $id],
+            ['last_read_at' => now(), 'updated_at' => now()]
+        );
+        
+        return response()->json([
+            'success' => true
+        ]);
+    }
+
     public function saveNotes(Request $request, $id)
     {
+        // Manager role tidak bisa save notes
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menyimpan catatan.'], 403);
+        }
+
         $request->validate([
             'note' => 'nullable|string',
             'version' => 'required|integer'
@@ -733,6 +911,11 @@ class PenawaranController extends Controller
 
     public function saveBestPrice(Request $request, $id)
     {
+        // Manager role tidak bisa save best price
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menyimpan harga terbaik.'], 403);
+        }
+
         $version = $request->input('version', 1);
         $isBest = $request->has('is_best_price') ? 1 : 0;
         $bestPrice = $request->input('best_price', 0);
@@ -754,6 +937,11 @@ class PenawaranController extends Controller
 
     public function createRevision($id)
     {
+        // Manager role tidak bisa membuat revisi
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat membuat revisi.'], 403);
+        }
+
         $penawaran = \App\Models\Penawaran::findOrFail($id);
 
         // Ambil versi terakhir
@@ -776,39 +964,41 @@ class PenawaranController extends Controller
 
         // Buat versi baru
         $newVersionRow = \App\Models\PenawaranVersion::create([
-            'penawaran_id'        => $id,
-            'version'             => $newVersion,
-            'notes'               => $oldVersion ? ($oldVersion->notes ?? null) : null,
-            'status'              => 'draft',
-            'jasa_ringkasan'      => $oldVersion ? ($oldVersion->jasa_ringkasan ?? null) : null,
+            'penawaran_id' => $id,
+            'version' => $newVersion,
+            'notes' => $oldVersion ? ($oldVersion->notes ?? null) : null,
+            'status' => 'draft',
+            'jasa_ringkasan' => $oldVersion ? ($oldVersion->jasa_ringkasan ?? null) : null,
             'jasa_profit_percent' => $oldVersion ? ($oldVersion->jasa_profit_percent ?? 0) : 0,
-            'jasa_profit_value'   => $oldVersion ? ($oldVersion->jasa_profit_value ?? 0) : 0,
-            'jasa_pph_percent'    => $oldVersion ? ($oldVersion->jasa_pph_percent ?? 0) : 0,
-            'jasa_pph_value'      => $oldVersion ? ($oldVersion->jasa_pph_value ?? 0) : 0,
-            'jasa_bpjsk_percent'  => $oldVersion ? ($oldVersion->jasa_bpjsk_percent ?? 0) : 0,
-            'jasa_bpjsk_value'    => $oldVersion ? ($oldVersion->jasa_bpjsk_value ?? 0) : 0,
-            'jasa_grand_total'    => $oldVersion ? ($oldVersion->jasa_grand_total ?? 0) : 0,
+            'jasa_profit_value' => $oldVersion ? ($oldVersion->jasa_profit_value ?? 0) : 0,
+            'jasa_pph_percent' => $oldVersion ? ($oldVersion->jasa_pph_percent ?? 0) : 0,
+            'jasa_pph_value' => $oldVersion ? ($oldVersion->jasa_pph_value ?? 0) : 0,
+            'jasa_bpjsk_percent' => $oldVersion ? ($oldVersion->jasa_bpjsk_percent ?? 0) : 0,
+            'jasa_bpjsk_value' => $oldVersion ? ($oldVersion->jasa_bpjsk_value ?? 0) : 0,
+            'jasa_grand_total' => $oldVersion ? ($oldVersion->jasa_grand_total ?? 0) : 0,
         ]);
 
         // Copy penawaran_detail hanya jika ada versi sebelumnya
         if ($oldVersion && $oldVersion->details) {
             foreach ($oldVersion->details as $detail) {
                 \App\Models\PenawaranDetail::create([
-                    'version_id'    => $newVersionRow->id,
-                    'id_penawaran'  => $detail->id_penawaran,
-                    'area'          => $detail->area,
-                    'nama_section'  => $detail->nama_section,
-                    'no'            => $detail->no,
-                    'tipe'          => $detail->tipe,
-                    'deskripsi'     => $detail->deskripsi,
-                    'qty'           => $detail->qty,
-                    'satuan'        => $detail->satuan,
-                    'harga_satuan'  => $detail->harga_satuan,
-                    'harga_total'   => $detail->harga_total,
-                    'hpp'           => $detail->hpp,
-                    'is_mitra'      => $detail->is_mitra,
-                    'added_cost'    => $detail->added_cost,
-                    'profit'        => $detail->profit,
+                    'version_id' => $newVersionRow->id,
+                    'id_penawaran' => $detail->id_penawaran,
+                    'area' => $detail->area,
+                    'nama_section' => $detail->nama_section,
+                    'no' => $detail->no,
+                    'tipe' => $detail->tipe,
+                    'deskripsi' => $detail->deskripsi,
+                    'qty' => $detail->qty,
+                    'satuan' => $detail->satuan,
+                    'harga_satuan' => $detail->harga_satuan,
+                    'harga_total' => $detail->harga_total,
+                    'hpp' => $detail->hpp,
+                    'is_mitra' => $detail->is_mitra,
+                    'color_code' => $detail->color_code,
+                    'added_cost' => $detail->added_cost,
+                    'delivery_time' => $detail->delivery_time,
+                    'profit' => $detail->profit,
                 ]);
             }
         }
@@ -818,39 +1008,46 @@ class PenawaranController extends Controller
             $oldJasa = \App\Models\Jasa::where('version_id', $oldVersion->id)->first();
             if ($oldJasa) {
                 $newJasa = \App\Models\Jasa::create([
-                    'version_id'     => $newVersionRow->id,
-                    'id_penawaran'   => $id,
-                    'ringkasan'      => $oldJasa->ringkasan,
+                    'version_id' => $newVersionRow->id,
+                    'id_penawaran' => $id,
+                    'ringkasan' => $oldJasa->ringkasan,
                     'profit_percent' => $oldJasa->profit_percent,
-                    'profit_value'   => $oldJasa->profit_value,
-                    'pph_percent'    => $oldJasa->pph_percent,
-                    'pph_value'      => $oldJasa->pph_value,
-                    'bpjsk_percent'  => $oldJasa->bpjsk_percent,
-                    'bpjsk_value'    => $oldJasa->bpjsk_value,
-                    'grand_total'    => $oldJasa->grand_total,
+                    'profit_value' => $oldJasa->profit_value,
+                    'pph_percent' => $oldJasa->pph_percent,
+                    'pph_value' => $oldJasa->pph_value,
+                    'bpjsk_percent' => $oldJasa->bpjsk_percent,
+                    'bpjsk_value' => $oldJasa->bpjsk_value,
+                    'grand_total' => $oldJasa->grand_total,
                 ]);
 
                 // Copy JasaDetail
                 $oldJasaDetails = \App\Models\JasaDetail::where('version_id', $oldVersion->id)->get();
                 foreach ($oldJasaDetails as $jasaDetail) {
                     \App\Models\JasaDetail::create([
-                        'version_id'    => $newVersionRow->id,
-                        'id_jasa'       => $newJasa->id_jasa,
-                        'id_penawaran'  => $jasaDetail->id_penawaran,
-                        'nama_section'  => $jasaDetail->nama_section,
-                        'no'            => $jasaDetail->no,
-                        'deskripsi'     => $jasaDetail->deskripsi,
-                        'vol'           => $jasaDetail->vol,
-                        'hari'          => $jasaDetail->hari,
-                        'orang'         => $jasaDetail->orang,
-                        'unit'          => $jasaDetail->unit,
-                        'total'         => $jasaDetail->total,
-                        'pembulatan'    => $jasaDetail->pembulatan,
-                        'profit'        => $jasaDetail->profit,
+                        'version_id' => $newVersionRow->id,
+                        'id_jasa' => $newJasa->id_jasa,
+                        'id_penawaran' => $jasaDetail->id_penawaran,
+                        'nama_section' => $jasaDetail->nama_section,
+                        'no' => $jasaDetail->no,
+                        'deskripsi' => $jasaDetail->deskripsi,
+                        'vol' => $jasaDetail->vol,
+                        'hari' => $jasaDetail->hari,
+                        'orang' => $jasaDetail->orang,
+                        'unit' => $jasaDetail->unit,
+                        'total' => $jasaDetail->total,
+                        'pembulatan' => $jasaDetail->pembulatan,
+                        'profit' => $jasaDetail->profit,
                     ]);
                 }
             }
         }
+
+        // Log activity
+        activity()
+            ->performedOn($penawaran)
+            ->causedBy(Auth::user())
+            ->withProperties(['new_version' => $newVersion])
+            ->log('Created revision');
 
         return redirect()->route('penawaran.show', ['id' => $id, 'version' => $newVersion])
             ->with('success', 'Revisi baru berhasil dibuat (Rev ' . $newVersion . ')');
@@ -858,6 +1055,11 @@ class PenawaranController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
+        // Manager role tidak bisa update status
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat mengupdate status.'], 403);
+        }
+
         $request->validate([
             'status' => 'required|in:draft,success,lost',
             'note' => 'nullable|string|max:1000'
@@ -872,6 +1074,30 @@ class PenawaranController extends Controller
 
         $penawaran->save();
 
-        return redirect()->back()->with('success', 'Status penawaran berhasil diupdate');
+        $statusLabel = match ($request->status) {
+            'success' => 'Selesai',
+            'lost' => 'Gagal',
+            'draft' => 'Draft',
+        };
+
+        return redirect()->back()->with('toast', [
+            'type' => $request->status === 'lost' ? 'error' : 'success',
+            'message' => "Status penawaran berhasil diupdate menjadi {$statusLabel}"
+        ]);
     }
+
+    public function countThisMonth()
+    {
+        $now = new \DateTime();
+        $year = $now->format('Y');
+        $month = $now->format('m');
+        
+        $count = Penawaran::where('user_id', Auth::id())
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
+            ->count();
+        
+        return response()->json(['count' => $count]);
+    }
+
 }

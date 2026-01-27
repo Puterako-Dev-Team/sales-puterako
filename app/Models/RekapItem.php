@@ -12,13 +12,15 @@ class RekapItem extends Model
     protected $fillable = [
         'rekap_id',
         'rekap_kategori_id',
-        'nama_item',
-        'detail'
+        'tipes_id',
+        'nama_area',
+        'jumlah',
+        'satuan_id'
     ];
 
-    protected $casts = [
-        'detail' => 'array', // Otomatis decode/encode JSON
-    ];
+    protected $casts = [];
+    
+    protected $with = ['tipe', 'kategori', 'satuan'];
 
     public function rekap()
     {
@@ -28,5 +30,15 @@ class RekapItem extends Model
     public function kategori()
     {
         return $this->belongsTo(RekapKategori::class, 'rekap_kategori_id', 'id');
+    }
+
+    public function tipe()
+    {
+        return $this->belongsTo(Tipe::class, 'tipes_id', 'id');
+    }
+
+    public function satuan()
+    {
+        return $this->belongsTo(Satuan::class, 'satuan_id', 'id');
     }
 }

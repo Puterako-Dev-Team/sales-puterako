@@ -6,9 +6,13 @@
 <head>
     <meta charset="UTF-8">
     <title>Puterako Super App</title>
-
+    
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <link rel="stylesheet" href="//cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
     <script src="//cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -222,6 +226,19 @@
         .user-dropdown-arrow {
             transition: transform 0.3s ease;
         }
+
+        .notif-dropdown-container:hover .notif-dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .notif-dropdown-menu {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 
@@ -246,11 +263,60 @@
                     <img src="{{ asset('assets/puterako_logo.png') }}" alt="Puterako Logo" class="h-5 w-auto">
                 </div>
             </div>
-            
+
             <div class="flex items-center space-x-4">
+                <div class="relative mr-1 mt-2 notif-dropdown-container">
+                    <button id="notifBell" class="relative focus:outline-bg-green-50 rounded-lg hover:border-color-green-50 transition-colors">
+                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        @if($unreadCount > 0)
+                            <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">
+                                {{ $unreadCount }}
+                            </span>
+                        @endif
+                    </button>
+                    
+                    <!-- Dropdown Notifikasi -->
+                    <div id="notifDropdown" class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-30 notif-dropdown-menu">
+                        <div class="px-4 py-2 border-b font-semibold text-gray-700">Notifikasi</div>
+                        <div class="max-h-80 overflow-y-auto">
+                            @forelse($notifications as $notif)
+                                <a href="{{ route('notifications.read', $notif->id) }}"
+                                class="block px-4 py-2 text-sm border-b last:border-b-0
+                                hover:bg-gray-50
+                                {{ is_null($notif->read_at) ? 'bg-yellow-50 font-semibold' : 'text-gray-700' }}">
+                                    
+                                    <div>{{ $notif->data['title'] ?? 'Notifikasi' }}</div>
+                                    <div class="text-xs text-gray-500">
+                                        {{ $notif->data['body'] ?? '' }}
+                                    </div>
+                                    <div class="text-xs text-gray-400 mt-1">
+                                        {{ $notif->created_at->diffForHumans() }}
+                                    </div>
+                                </a>
+                            @empty
+                                <div class="px-4 py-4 text-center text-gray-400 text-sm">
+                                    Tidak ada notifikasi baru
+                                </div>
+                            @endforelse
+                        </div>
+                        @if($unreadCount > 0)
+                            <div class="px-4 py-2 border-t text-right">
+                                <form method="POST" action="{{ route('notifications.readAll') }}" class="inline">
+                                    @csrf
+                                    <button type="submit" class="text-xs text-green-600 hover:underline">
+                                        Tandai semua sudah dibaca
+                                    </button>
+                                </form>
+                            </div>
+                        @endif
+                    </div>
+                </div>
                 <!-- User Profile Dropdown -->
                 <div class="relative user-dropdown-container">
-                    <button id="userDropdown" type="button" 
+                    <button id="userDropdown" type="button"
                         class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none">
                         <!-- User Avatar -->
                         <div class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
@@ -258,23 +324,25 @@
                                 {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                             </span>
                         </div>
-                        
+
                         <!-- User Info (hidden on mobile) -->
                         <div class="hidden md:block text-left">
                             <p class="text-sm font-medium text-gray-900">{{ Auth::user()->name }}</p>
                             <p class="text-xs text-gray-400 mt-1">Role: {{ ucfirst(Auth::user()->role ?? 'N/A') }}</p>
                         </div>
-                        
+
                         <!-- Dropdown Arrow -->
-                        <svg class="w-4 h-4 text-gray-400 user-dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        <svg class="w-4 h-4 text-gray-400 user-dropdown-arrow" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
                         </svg>
                     </button>
-                    
+
                     <!-- Dropdown Menu -->
-                    <div id="userDropdownMenu" 
+                    <div id="userDropdownMenu"
                         class="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-30 user-dropdown-menu">
-                        
+
                         <!-- User Info in Dropdown -->
                         <div class="px-4 py-3 border-b border-gray-100">
                             <div class="flex items-center space-x-3">
@@ -286,40 +354,43 @@
                                 <div>
                                     <p class="font-medium text-gray-900">{{ Auth::user()->name }}</p>
                                     <p class="text-sm text-gray-500">{{ Auth::user()->email }}</p>
-                                    <p class="text-xs text-gray-400">Role: {{ ucfirst(Auth::user()->role ?? 'N/A') }}</p>
+                                    <p class="text-xs text-gray-400">Role: {{ ucfirst(Auth::user()->role ?? 'N/A') }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Menu Items -->
                         <div class="py-2">
-                            <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            <a href="{{ route('profile') }}"
+                                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                 </svg>
                                 Profile
                             </a>
-                            
-                            <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+
+                            <a href="{{ route('notifications.index') }}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                 </svg>
-                                Settings
+                                Notifikasi
                             </a>
                         </div>
-                        
+
                         <!-- Logout Button -->
                         <div class="border-t border-gray-100 pt-2">
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
-                                <button type="submit" 
+                                <button type="submit"
                                     class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
                                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1">
+                                        </path>
                                     </svg>
                                     Logout
                                 </button>
@@ -360,8 +431,8 @@
                             class="menu-item group flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 relative">
                             <div
                                 class="w-10 h-10 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-                                <svg class="w-6 h-6 transition-colors text-gray-600" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-6 h-6 transition-colors text-gray-600" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
                                     </path>
@@ -404,38 +475,75 @@
                             <!-- Dropdown Menu -->
                             <div id="penawaranMenu" class="dropdown-menu">
                                 <div class="space-y-1 py-2">
+                                    @if(Auth::user()->role !== 'manager')
                                     <a href="{{ route('penawaran.list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                            </path>
                                         </svg>
                                         <span class="menu-label show text-sm text-gray-700">List Penawaran</span>
                                     </a>
+                                    @endif
+                                    @if(in_array(Auth::user()->role, ['supervisor', 'manager', 'direktur']))
+                                    <a href="{{ route('penawaran.approve-list') }}"
+                                        class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        @if(Auth::user()->role === 'manager')
+                                        <span class="menu-label show text-sm text-gray-700">Approve<br>Penawaran</span>
+                                        @else
+                                        <span class="menu-label show text-sm text-gray-700">Approve List</span>
+                                        @endif
+                                    </a>
+                                    @endif
+                                    @if(Auth::user()->role !== 'manager')
                                     <a href="{{ route('rekap.list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                            </path>
                                         </svg>
                                         <span class="menu-label show text-sm text-gray-700">Rekap Survey</span>
                                     </a>
+                                    @endif
+                                    @if(in_array(Auth::user()->role, ['manager', 'direktur']))
+                                    <a href="{{ route('rekap.approve-list') }}"
+                                        class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        <span class="menu-label show text-sm text-gray-700">Approve Rekap</span>
+                                    </a>
+                                    @endif
+                                    @if(Auth::user()->role === 'supervisor' || Auth::user()->role === 'administrator')
+                                        <a href="{{ route('followup.index') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <x-lucide-phone-outgoing class="w-3 h-3 mr-2 inline text-gray-700" />
+                                            <span class="menu-label show text-sm text-gray-700">Atur Follow Up</span>
+                                        </a>
+                                    @endif
                                 </div>
                             </div>
                         </div>
-                        
 
-                         <!-- Klien (dengan Dropdown) -->
+                        <!-- Klien (dengan Dropdown) -->
                         <div>
                             <button id="klienDropdown" type="button"
                                 class="menu-item group flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-200 relative">
                                 <div class="flex items-center space-x-3">
                                     <div
                                         class="w-10 h-10 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-                                        <svg class="w-6 h-6 transition-colors text-gray-600" fill="none"
-                                            stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
-                                            </path>
-                                        </svg>
+                                        <x-lucide-book-user class="w-6 h-6 transition-colors text-gray-600" />
                                     </div>
                                     <div class="menu-label show text-left">
                                         <span class="font-medium transition-colors">Customer</span>
@@ -455,22 +563,153 @@
                                 <div class="space-y-1 py-2">
                                     <a href="{{ route('mitra.list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z">
+                                            </path>
                                         </svg>
                                         <span class="menu-label show text-sm text-gray-700">List Customer</span>
                                     </a>
                                     <a href="#"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                                            </path>
                                         </svg>
                                         <span class="menu-label show text-sm text-gray-700">Detail Klien</span>
                                     </a>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- User Management (hanya untuk administrator) -->
+                        @if(Auth::user()->role === 'administrator')
+                            <div>
+                                <button id="userManagementDropdown" type="button"
+                                    class="menu-item group flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-200 relative">
+                                    <div class="flex items-center space-x-3">
+                                        <div
+                                            class="w-10 h-10 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+                                            <x-lucide-user-round-pen name="users"
+                                                class="w-6 h-6 transition-colors text-gray-600" />
+                                        </div>
+                                        <div class="menu-label show text-left">
+                                            <span class="font-medium transition-colors">Users</span>
+                                            <p class="text-xs text-gray-500 mt-0.5">Kelola user & hak akses</p>
+                                        </div>
+                                    </div>
+                                    <svg class="w-4 h-4 text-gray-400 dropdown-icon menu-label show" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                    <div class="menu-tooltip">Users</div>
+                                </button>
+
+                                <!-- Dropdown Menu -->
+                                <div id="userManagementMenu" class="dropdown-menu">
+                                    <div class="space-y-1 py-2">
+                                        <a href="{{ route('users.index') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                                                </path>
+                                            </svg>
+                                            <span class="menu-label show text-sm text-gray-700">List Users</span>
+                                        </a>
+                                        <a href="{{ route('holidays.index') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                                </path>
+                                            </svg>
+                                            <span class="menu-label show text-sm text-gray-700">Atur Hari Kerja</span>
+                                        </a>
+                                        <a href="{{ route('users.permissions') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                                                </path>
+                                            </svg>
+                                            <span class="menu-label show text-sm text-gray-700">Atur Hak Akses</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Master Data (hanya untuk administrator) -->
+                        @if(Auth::user()->role === 'administrator')
+                            <div>
+                                <button id="masterDataDropdown" type="button"
+                                    class="menu-item group flex items-center justify-between w-full px-4 py-3 rounded-xl transition-all duration-200 relative">
+                                    <div class="flex items-center space-x-3">
+                                        <div
+                                            class="w-10 h-10 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+                                            <svg class="w-6 h-6 transition-colors text-gray-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="menu-label show text-left">
+                                            <span class="font-medium transition-colors">Master Data</span>
+                                            <p class="text-xs text-gray-500 mt-0.5">Kelola data master</p>
+                                        </div>
+                                    </div>
+                                    <svg class="w-4 h-4 text-gray-400 dropdown-icon menu-label show" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                    <div class="menu-tooltip">Master Data</div>
+                                </button>
+
+                                <!-- Dropdown Menu -->
+                                <div id="masterDataMenu" class="dropdown-menu">
+                                    <div class="space-y-1 py-2">
+                                        <a href="{{ route('satuan.index') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                            </svg>
+                                            <span class="menu-label show text-sm text-gray-700">Satuan</span>
+                                        </a>
+                                        <a href="{{ route('tipe.index') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                            </svg>
+                                            <span class="menu-label show text-sm text-gray-700">Barang</span>
+                                        </a>
+                                        <a href="{{ route('rekap-kategori.index') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M7 21H17a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                            </svg>
+                                            <span class="menu-label show text-sm text-gray-700">Kategori Rekap</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
 
 
                     </div>
@@ -498,8 +737,52 @@
         let penawaranDropdownOpen = false;
         let klienDropdownOpen = false;
 
+        // User Management Dropdown (sidebar)
+        const userManagementDropdown = document.getElementById('userManagementDropdown');
+        const userManagementMenu = document.getElementById('userManagementMenu');
+        const userManagementDropdownIcon = userManagementDropdown ? userManagementDropdown.querySelector('.dropdown-icon') : null;
+        let userManagementDropdownOpen = false;
+
+        // User Management Dropdown Toggle (sidebar)
+        if (userManagementDropdown) {
+            userManagementDropdown.addEventListener('click', function () {
+                if (expanded) {
+                    userManagementDropdownOpen = !userManagementDropdownOpen;
+                    if (userManagementDropdownOpen) {
+                        userManagementMenu.classList.add('open');
+                        userManagementDropdownIcon.classList.add('rotate');
+                    } else {
+                        userManagementMenu.classList.remove('open');
+                        userManagementDropdownIcon.classList.remove('rotate');
+                    }
+                }
+            });
+        }
+
+        // Master Data Dropdown (sidebar)
+        const masterDataDropdown = document.getElementById('masterDataDropdown');
+        const masterDataMenu = document.getElementById('masterDataMenu');
+        const masterDataDropdownIcon = masterDataDropdown ? masterDataDropdown.querySelector('.dropdown-icon') : null;
+        let masterDataDropdownOpen = false;
+
+        // Master Data Dropdown Toggle (sidebar)
+        if (masterDataDropdown) {
+            masterDataDropdown.addEventListener('click', function () {
+                if (expanded) {
+                    masterDataDropdownOpen = !masterDataDropdownOpen;
+                    if (masterDataDropdownOpen) {
+                        masterDataMenu.classList.add('open');
+                        masterDataDropdownIcon.classList.add('rotate');
+                    } else {
+                        masterDataMenu.classList.remove('open');
+                        masterDataDropdownIcon.classList.remove('rotate');
+                    }
+                }
+            });
+        }
+
         // Sidebar Toggle
-        toggleBtn.addEventListener('click', function() {
+        toggleBtn.addEventListener('click', function () {
             expanded = !expanded;
             if (expanded) {
                 sidebar.classList.remove('sidebar-collapsed');
@@ -526,11 +809,21 @@
                     klienDropdownIcon.classList.remove('rotate');
                     klienDropdownOpen = false;
                 }
+                if (userManagementDropdownOpen && userManagementMenu) {
+                    userManagementMenu.classList.remove('open');
+                    userManagementDropdownIcon.classList.remove('rotate');
+                    userManagementDropdownOpen = false;
+                }
+                if (masterDataDropdownOpen && masterDataMenu) {
+                    masterDataMenu.classList.remove('open');
+                    masterDataDropdownIcon.classList.remove('rotate');
+                    masterDataDropdownOpen = false;
+                }
             }
         });
 
         // Penawaran Dropdown Toggle
-        penawaranDropdown.addEventListener('click', function() {
+        penawaranDropdown.addEventListener('click', function () {
             if (expanded) {
                 penawaranDropdownOpen = !penawaranDropdownOpen;
                 if (penawaranDropdownOpen) {
@@ -544,7 +837,7 @@
         });
 
         // Klien Dropdown Toggle
-        klienDropdown.addEventListener('click', function() {
+        klienDropdown.addEventListener('click', function () {
             if (expanded) {
                 klienDropdownOpen = !klienDropdownOpen;
                 if (klienDropdownOpen) {
@@ -565,8 +858,8 @@
                 item.classList.add('active');
                 // If it's a submenu item, open the parent dropdown
                 if (item.classList.contains('submenu-item')) {
-                    // Check if it's under penawaran
-                    const parentDropdown = item.closest('#penawaranMenu, #klienMenu');
+                    // Check parent dropdown
+                    const parentDropdown = item.closest('#penawaranMenu, #klienMenu, #userManagementMenu, #masterDataMenu');
                     if (parentDropdown && parentDropdown.id === 'penawaranMenu') {
                         penawaranMenu.classList.add('open');
                         penawaranDropdownIcon.classList.add('rotate');
@@ -575,10 +868,65 @@
                         klienMenu.classList.add('open');
                         klienDropdownIcon.classList.add('rotate');
                         klienDropdownOpen = true;
+                    } else if (parentDropdown && parentDropdown.id === 'userManagementMenu') {
+                        userManagementMenu.classList.add('open');
+                        userManagementDropdownIcon.classList.add('rotate');
+                        userManagementDropdownOpen = true;
+                    } else if (parentDropdown && parentDropdown.id === 'masterDataMenu') {
+                        masterDataMenu.classList.add('open');
+                        masterDataDropdownIcon.classList.add('rotate');
+                        masterDataDropdownOpen = true;
                     }
                 }
             }
         });
+
+        // Toaster Notyf
+       // ===== NOTYF GLOBAL =====
+    window.notyf = new Notyf({
+        duration: 4000,
+        position: { x: 'right', y: 'top' },
+        dismissible: true,
+        ripple: true,
+        types: [
+            {
+                type: 'warning',
+                background: '#f59e0b',
+                icon: false
+            },
+            {
+                type: 'info',
+                background: '#3b82f6',
+                icon: false
+            }
+        ]
+    });
+
+    @if (session('success'))
+        window.notyf.success(@json(session('success')));
+    @endif
+
+    @if (session('error'))
+        window.notyf.error(@json(session('error')));
+    @endif
+
+    @if (session('warning'))
+        window.notyf.open({
+            type: 'warning',
+            message: @json(session('warning'))
+        });
+    @endif
+
+    @if (session('info'))
+        window.notyf.open({
+            type: 'info',
+            message: @json(session('info'))
+        });
+    @endif
+
+    @if ($errors->any())
+        window.notyf.error(@json($errors->first()));
+    @endif
     </script>
 
     @stack('scripts')

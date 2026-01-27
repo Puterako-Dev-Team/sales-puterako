@@ -136,6 +136,41 @@
             }
         }
     </script>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+    <script>
+        window.notyf = new Notyf({
+            duration: 4000,
+            position: { x: 'right', y: 'top' },
+            dismissible: true,
+            ripple: true,
+            types: [
+                { type: 'warning', background: '#f59e0b', icon: false },
+                { type: 'info', background: '#3b82f6', icon: false }
+            ]
+        });
+
+        @if (session('success'))
+            window.notyf.success(@json(session('success')));
+        @endif
+
+        @if (session('error'))
+            window.notyf.error(@json(session('error')));
+        @endif
+
+        @if (session('warning'))
+            window.notyf.open({ type: 'warning', message: @json(session('warning')) });
+        @endif
+
+        @if (session('info'))
+            window.notyf.open({ type: 'info', message: @json(session('info')) });
+        @endif
+
+        @if ($errors->any())
+            window.notyf.error(@json($errors->first()));
+        @endif
+    </script>
 </body>
 
 </html>
