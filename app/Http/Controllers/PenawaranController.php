@@ -213,9 +213,8 @@ class PenawaranController extends Controller
         if ($request->has('no_penawaran_suffix')) {
             $userId = Auth::id();
 
-            // Ambil nomor urut terakhir dari database
-            $lastPenawaran = \App\Models\Penawaran::orderBy('id_penawaran', 'desc')->first();
-            $nextSequence = $lastPenawaran ? ($lastPenawaran->id_penawaran + 1) : 1;
+            // Ambil sequence terakhir untuk user (termasuk data yang di-soft delete)
+            $nextSequence = $this->getMaxSequenceForUser($userId) + 1;
 
             // Format nomor dengan padding 0 di depan (minimal 3 digit)
             $paddedSequence = str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
@@ -1088,16 +1087,34 @@ class PenawaranController extends Controller
 
     public function countThisMonth()
     {
-        $now = new \DateTime();
-        $year = $now->format('Y');
-        $month = $now->format('m');
-        
-        $count = Penawaran::where('user_id', Auth::id())
-            ->whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->count();
-        
-        return response()->json(['count' => $count]);
+        // Kembalikan sequence terakhir (termasuk data yang di-soft delete) untuk user saat ini
+        $max = $this->getMaxSequenceForUser(Auth::id());
+        return response()->json(['count' => $max]);
+    }
+
+    /**
+     * Ambil sequence maksimum dari format no_penawaran untuk user tertentu.
+     * Meng-include data yang sudah di-soft delete agar penomoran tidak reset.
+     */
+    private function getMaxSequenceForUser(int $userId): int
+    {
+        $rows = Penawaran::withTrashed()
+            ->where('user_id', $userId)
+            ->select('no_penawaran')
+            ->orderBy('id_penawaran', 'desc')
+            ->get();
+
+        $max = 0;
+        foreach ($rows as $row) {
+            $no = (string) ($row->no_penawaran ?? '');
+            if (preg_match('/PIB\/SS-SBY\/JK\/\d+-(\d+)\//', $no, $m)) {
+                $seq = (int) $m[1];
+                if ($seq > $max) {
+                    $max = $seq;
+                }
+            }
+        }
+        return $max;
     }
 
 }
