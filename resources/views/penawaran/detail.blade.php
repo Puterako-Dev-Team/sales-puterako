@@ -1236,6 +1236,43 @@
             <script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
 
             <script>
+                // Function untuk scroll ke cell yang dipilih (horizontal)
+                function scrollToSelectedCell(instance, colIndex, rowIndex) {
+                    const table = instance.querySelector('.jexcel');
+                    if (!table) return;
+
+                    const scrollWrapper = instance.closest('.spreadsheet-scroll-wrapper');
+                    if (!scrollWrapper) return;
+
+                    // Dapatkan cell yang dipilih
+                    const cell = table.querySelector(`td[data-x="${colIndex}"]`);
+                    if (!cell) return;
+
+                    const cellRect = cell.getBoundingClientRect();
+                    const wrapperRect = scrollWrapper.getBoundingClientRect();
+
+                    // Cek apakah cell di luar viewport horizontal
+                    const cellLeft = cell.offsetLeft;
+                    const cellRight = cellLeft + cell.offsetWidth;
+                    const wrapperScrollLeft = scrollWrapper.scrollLeft;
+                    const wrapperVisibleWidth = scrollWrapper.clientWidth;
+
+                    // Scroll ke kanan jika cell di luar viewport kanan
+                    if (cellRight > wrapperScrollLeft + wrapperVisibleWidth) {
+                        scrollWrapper.scrollTo({
+                            left: cellRight - wrapperVisibleWidth + 50, // +50 untuk padding
+                            behavior: 'smooth'
+                        });
+                    }
+                    // Scroll ke kiri jika cell di luar viewport kiri
+                    else if (cellLeft < wrapperScrollLeft) {
+                        scrollWrapper.scrollTo({
+                            left: cellLeft - 50, // -50 untuk padding
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+
                 function openStatusModal(status) {
                     const modal = document.getElementById('statusModal');
                     const modalTitle = document.getElementById('modalTitle');
@@ -1977,6 +2014,9 @@
                                     if (r.x >= 2 && r.x <= 5) rowsToRecalc.add(r.y);
                                 });
                                 rowsToRecalc.forEach(r => setTimeout(() => recalcJasaRow(spreadsheet, r), 50));
+                            },
+                            onselection: function (instance, x1, y1, x2, y2, origin) {
+                                scrollToSelectedCell(instance, x2, y2);
                             }
                         });
 
@@ -2583,6 +2623,9 @@
                                 } else {
                                     console.log('⏭️ Skip calculation (column not QTY/HPP/Mitra/Profit/Added Cost)');
                                 }
+                            },
+                            onselection: function (instance, x1, y1, x2, y2, origin) {
+                                scrollToSelectedCell(instance, x2, y2);
                             }
                         });
 

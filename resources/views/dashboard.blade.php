@@ -288,6 +288,7 @@
             // 3. Pie Chart Status
             const statusColorMap = {
                 draft: '#074173', // biru
+                po: '#992cff', // ungu
                 success: '#78C841', // hijau
                 lost: '#DC0000' // merah
             };
