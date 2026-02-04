@@ -304,6 +304,17 @@
                                 required>
                         </div>
 
+                        <div>
+                            <label class="block mb-2 font-medium text-sm text-gray-700">Tipe Penawaran</label>
+                            <select name="tipe" id="f_tipe"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                <option value="">Default (Semua Tab)</option>
+                                <option value="soc">SOC</option>
+                                <option value="barang">Barang</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Pilih tipe untuk menyesuaikan tab detail.</p>
+                        </div>
+
                         <div class="add-only" id="noPenawaranGroup">
                             <label class="block mb-2 font-medium text-sm text-gray-700">No Penawaran</label>
                             <div class="flex items-center space-x-2">
@@ -522,6 +533,12 @@
                     f_perihal.value = d.perihal ?? '';
                     f_lokasi.value = d.lokasi ?? '';
                     f_pic_perusahaan.value = d.pic_perusahaan ?? '';
+
+                    // Set tipe penawaran
+                    const f_tipe = document.getElementById('f_tipe');
+                    if (f_tipe) {
+                        f_tipe.value = d.tipe ?? '';
+                    }
 
                     // Set nama perusahaan dari dropdown
                     const namaPerusahaan = d.nama_perusahaan ?? '';

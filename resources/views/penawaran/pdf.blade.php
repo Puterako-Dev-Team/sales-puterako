@@ -402,11 +402,13 @@
 
         @php
             // Ambil data dari versionRow
+            $tipe = $penawaran->tipe ?? null;
             $ppnPersen = $versionRow->ppn_persen ?? 11;
             $isBest = $versionRow->is_best_price ?? false;
             $bestPrice = $versionRow->best_price ?? 0;
             $totalPenawaran = $details->sum('harga_total');
-            $grandTotalJasa = $jasa->grand_total ?? 0;
+            // Jika tipe penawaran "barang", jangan ikutkan jasa ke perhitungan
+            $grandTotalJasa = ($tipe && $tipe === 'barang') ? 0 : ($jasa->grand_total ?? 0);
             $baseAmount = $isBest && $bestPrice > 0 ? $bestPrice : $totalPenawaran + $grandTotalJasa;
             $ppnNominal = ($baseAmount * $ppnPersen) / 100;
             $grandTotal = $baseAmount + $ppnNominal;
@@ -510,42 +512,44 @@
             @php $sectionNumber++; @endphp
         @endforeach
 
-        <!-- Tabel Quotation Jasa -->
-        <h3 style="font-weight: bold; font-size: 12px; margin-bottom: 6px; margin-top: 10px;">
-            {{ convertToRoman($sectionNumber) }}. Biaya Quotation Jasa
-        </h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Tipe</th>
-                    <th>Deskripsi</th>
-                    <th>Qty</th>
-                    <th>Satuan</th>
-                    <th>Harga Satuan</th>
-                    <th>Harga Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>Jasa</td>
-                    <td>
-                        <pre>{{ $versionRow->jasa_ringkasan ?? '' }}</pre>
-                    </td>
-                    <td>1</td>
-                    <td>Lot</td>
-                    <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
-                    <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
-                </tr>
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="6">Subtotal</td>
-                    <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
-                </tr>
-            </tfoot>
-        </table>
+        @if (!$tipe || $tipe !== 'barang')
+            <!-- Tabel Quotation Jasa (hanya jika tipe bukan Barang) -->
+            <h3 style="font-weight: bold; font-size: 12px; margin-bottom: 6px; margin-top: 10px;">
+                {{ convertToRoman($sectionNumber) }}. Biaya Quotation Jasa
+            </h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Tipe</th>
+                        <th>Deskripsi</th>
+                        <th>Qty</th>
+                        <th>Satuan</th>
+                        <th>Harga Satuan</th>
+                        <th>Harga Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>Jasa</td>
+                        <td>
+                            <pre>{{ $versionRow->jasa_ringkasan ?? '' }}</pre>
+                        </td>
+                        <td>1</td>
+                        <td>Lot</td>
+                        <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
+                        <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="6">Subtotal</td>
+                        <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        @endif
 
         <!-- Summary -->
         <div class="summary clearfix">

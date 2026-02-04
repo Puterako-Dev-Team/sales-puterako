@@ -115,7 +115,8 @@ class JasaController extends Controller
                 $namaSection = $section['nama_section'] ?? '';
                 $pembulatan = $section['pembulatan'] ?? 0;
                 foreach ($section['data'] as $row) {
-                    if (empty($row['deskripsi']) && empty($row['no'])) continue;
+                    // Skip hanya jika semua field penting kosong
+                    if (empty($row['deskripsi']) && empty($row['no']) && empty($row['vol']) && empty($row['hari']) && empty($row['orang']) && empty($row['unit'])) continue;
                     $idJasaDetail = $row['id_jasa_detail'] ?? null;
                     $attrs = [
                         'id_penawaran'  => $penawaranId,
@@ -152,7 +153,7 @@ class JasaController extends Controller
             // Hapus JasaDetail yang tidak ada di payload
             JasaDetail::where('id_jasa', $jasa->id_jasa)
                 ->where('version_id', $version_id)
-                ->whereNotIn(JasaDetail::query()->getModel()->getKeyName(), $processedIds)
+                ->whereNotIn('id_jasa_detail', $processedIds)
                 ->delete();
 
             DB::commit();

@@ -206,6 +206,13 @@ class PenawaranController extends Controller
 
         $data = $request->all();
 
+        // Optional validation for tipe
+        $tipe = $request->input('tipe');
+        if (!in_array($tipe, ['soc', 'barang'])) {
+            $tipe = null;
+        }
+        $data['tipe'] = $tipe;
+
         // TAMBAH: Auto-set user_id dari Auth user
         $data['user_id'] = Auth::id();
 
@@ -265,6 +272,7 @@ class PenawaranController extends Controller
             'nama_perusahaan' => 'required|string|max:255',
             'lokasi' => 'required|string|max:255',
             'pic_perusahaan' => 'nullable|string|max:255',
+            'tipe' => 'nullable|in:soc,barang',
         ]);
         $penawaran->update($data);
 
@@ -477,6 +485,12 @@ class PenawaranController extends Controller
             ];
         })->values()->toArray();
 
+        // Ambil status approval export PDF untuk slider verification
+        $approval = \App\Models\ExportApprovalRequest::where('penawaran_id', $penawaran->id_penawaran ?? $id)
+            ->where('version_id', $activeVersionId)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
         return view('penawaran.detail', compact(
             'penawaran',
             'sections',
@@ -494,7 +508,8 @@ class PenawaranController extends Controller
             'grandTotalWithPpn',
             'isBest',
             'bestPrice',
-            'satuans'
+            'satuans',
+            'approval'
         ));
     }
 
@@ -529,20 +544,13 @@ class PenawaranController extends Controller
         $version_id = $versionRow->id;
 
         try {
-            // key existingDetails dengan normalisasi area & nama_section => hindari null collisions
-            $existingDetails = \App\Models\PenawaranDetail::where('id_penawaran', $penawaranId)
+            // Sederhanakan: selalu rebuild detail untuk versi ini
+            DB::beginTransaction();
+
+            \App\Models\PenawaranDetail::where('id_penawaran', $penawaranId)
                 ->where('version_id', $version_id)
-                ->get()
-                ->keyBy(function ($item) {
-                    $area = (string) ($item->area ?? '');
-                    $nama = (string) ($item->nama_section ?? '');
-                    $no = (string) ($item->no ?? '');
-                    return $no . '|' . $area . '|' . $nama;
-                });
+                ->delete();
 
-            Log::debug('Existing details count', ['count' => $existingDetails->count()]);
-
-            $newKeys = [];
             $totalKeseluruhan = 0;
 
             foreach ($sections as $section) {
@@ -550,10 +558,6 @@ class PenawaranController extends Controller
                 $namaSection = (string) ($section['nama_section'] ?? '');
 
                 foreach ($section['data'] as $row) {
-                    $noStr = (string) ($row['no'] ?? '');
-                    $key = $noStr . '|' . $area . '|' . $namaSection;
-                    $newKeys[] = $key;
-
                     $hargaTotal = floatval($row['harga_total'] ?? 0);
                     $totalKeseluruhan += $hargaTotal;
 
@@ -584,23 +588,14 @@ class PenawaranController extends Controller
                         }
                     }
 
-                    if (isset($existingDetails[$key])) {
-                        $existingDetails[$key]->update($values);
-                    } else {
-                        $createAttrs = array_merge($values, [
-                            'id_penawaran' => $penawaranId,
-                            'no' => $row['no'] ?? null,
-                        ]);
-                        \App\Models\PenawaranDetail::create($createAttrs);
-                    }
+                    $createAttrs = array_merge($values, [
+                        'id_penawaran' => $penawaranId,
+                        'no' => $row['no'] ?? null,
+                    ]);
+
+                    \App\Models\PenawaranDetail::create($createAttrs);
                 }
             }
-
-            // Hapus data yang tidak ada lagi — gunakan nama_section juga
-            \App\Models\PenawaranDetail::where('id_penawaran', $penawaranId)
-                ->where('version_id', $version_id)
-                ->whereNotIn(DB::raw("CONCAT(no, '|', IFNULL(area, ''), '|', IFNULL(nama_section, ''))"), $newKeys)
-                ->delete();
 
             // Hitung total awal penawaran
             $versionRow->penawaran_total_awal = $totalKeseluruhan;
@@ -620,6 +615,8 @@ class PenawaranController extends Controller
             $versionRow->ppn_nominal = $ppnNominal;
             $versionRow->grand_total = $grandTotal;
             $versionRow->save();
+
+            DB::commit();
 
             // Log activity for editing penawaran
             $penawaran = Penawaran::find($penawaranId);
@@ -641,6 +638,13 @@ class PenawaranController extends Controller
                 'grand_total' => $grandTotal
             ]);
         } catch (\Throwable $e) {
+            // Pastikan transaksi dibatalkan jika terjadi error
+            try {
+                DB::rollBack();
+            } catch (\Throwable $rollbackException) {
+                Log::error('PenawaranController::save rollback error: ' . $rollbackException->getMessage());
+            }
+
             Log::error('PenawaranController::save error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString(), 'payload' => $data]);
             return response()->json(['error' => true, 'message' => $e->getMessage()], 500);
         }
