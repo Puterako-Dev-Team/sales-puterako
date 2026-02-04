@@ -4,11 +4,20 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 @if ($canViewCharts)
-                    <!-- Card Total Omzet Keseluruhan - PALING ATAS (untuk non-staff) -->
+                    <!-- Split Cards for Success and PO Omzet -->
                     @if(Auth::user()->role !== 'staff')
-                    <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 w-full text-white shadow-lg mb-6">
-                        <h3 class="text-lg font-semibold mb-2">Total Omzet Keseluruhan</h3>
-                        <p class="text-4xl font-bold">Rp {{ number_format($totalOmzetKeseluruhan ?? 0, 0, ',', '.') }}</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <!-- Card Total Omzet Success -->
+                        <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
+                            <h3 class="text-lg font-semibold mb-2">Total Omzet Success</h3>
+                            <p class="text-4xl font-bold">Rp {{ number_format($totalOmzetKeseluruhanSuccess ?? 0, 0, ',', '.') }}</p>
+                        </div>
+                        
+                        <!-- Card Total Omzet PO -->
+                        <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
+                            <h3 class="text-lg font-semibold mb-2">Total Omzet Purchase Order</h3>
+                            <p class="text-4xl font-bold">Rp {{ number_format($totalOmzetKeseluruhanPO ?? 0, 0, ',', '.') }}</p>
+                        </div>
                     </div>
                     @else
                     @endif
@@ -21,19 +30,41 @@
                     </form>
                     
                     @if(Auth::user()->role !== 'staff')
-                    <!-- Tren Omzet 12 Bulan Terakhir (pindah ke posisi Penawaran per PIC Admin) -->
-                    <div class="bg-gray-50 p-4 rounded-lg mt-6 w-full">
-                        <h3 class="font-semibold text-sm mb-3 text-center">Tren Omzet 12 Bulan Terakhir</h3>
-                        <div style="height: 300px;">
-                            <canvas id="omzetPerBulanChart"></canvas>
+                    <!-- Split Tren Omzet 12 Bulan Terakhir - Success and PO -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                        <!-- Chart Success -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-semibold text-sm mb-3 text-center">Tren Omzet Success - 12 Bulan Terakhir</h3>
+                            <div style="height: 300px;">
+                                <canvas id="omzetPerBulanChartSuccess"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Chart PO -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-semibold text-sm mb-3 text-center">Tren Omzet PO - 12 Bulan Terakhir</h3>
+                            <div style="height: 300px;">
+                                <canvas id="omzetPerBulanChartPO"></canvas>
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- Chart Omzet per Sales/Staff -->
-                    <div class="bg-gray-50 p-4 rounded-lg mt-6 w-full">
-                        <h3 class="font-semibold text-sm mb-3 text-center">Omzet per Sales/Staff - {{ date('F Y', strtotime($month . '-01')) }}</h3>
-                        <div style="height: 350px;">
-                            <canvas id="omzetPerSalesChart"></canvas>
+                    <!-- Split Chart Omzet per Sales/Staff -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                        <!-- Chart Success -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-semibold text-sm mb-3 text-center">Omzet per Sales - Success - {{ date('F Y', strtotime($month . '-01')) }}</h3>
+                            <div style="height: 350px;">
+                                <canvas id="omzetPerSalesChartSuccess"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Chart PO -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-semibold text-sm mb-3 text-center">Omzet per Sales - PO - {{ date('F Y', strtotime($month . '-01')) }}</h3>
+                            <div style="height: 350px;">
+                                <canvas id="omzetPerSalesChartPO"></canvas>
+                            </div>
                         </div>
                     </div>
                     
@@ -81,7 +112,7 @@
                             <div><strong>Role:</strong> {{ ucfirst(Auth::user()->role ?? 'N/A') }}</div>
                             <div><strong>Departemen:</strong> {{ Auth::user()->departemen ?? 'N/A' }}</div>
                             <div><strong>Kantor:</strong> {{ Auth::user()->kantor ?? 'N/A' }}</div>
-                            <div><strong>No HP:</strong> {{ Auth::user()->nohp ?? 'N/A' }}</div>
+                            <div><strong>No HP:</strong> {{ Auth::user()->nohp ?? 'N/vA' }}</div>
                         </div>
                     </div>
                 @endif
@@ -366,19 +397,19 @@
                 });
             }
             @if(Auth::user()->role !== 'staff')
-            // 5. Bar Chart Omzet Per Sales/Staff
-            const omzetPerSales = {!! json_encode($omzetPerSales) !!};
-            const omzetLabels = omzetPerSales.map(x => x.name);
-            const omzetValues = omzetPerSales.map(x => x.omzet);
-            const omzetJumlah = omzetPerSales.map(x => x.jumlah_penawaran);
+            // 5. Bar Chart Omzet Per Sales/Staff - SUCCESS
+            const omzetPerSalesSuccess = {!! json_encode($omzetPerSalesSuccess) !!};
+            const omzetLabelsSuccess = omzetPerSalesSuccess.map(x => x.name);
+            const omzetValuesSuccess = omzetPerSalesSuccess.map(x => x.omzet);
+            const omzetJumlahSuccess = omzetPerSalesSuccess.map(x => x.jumlah_penawaran);
 
-            const omzetPerSalesChart = new Chart(document.getElementById('omzetPerSalesChart'), {
+            const omzetPerSalesChartSuccess = new Chart(document.getElementById('omzetPerSalesChartSuccess'), {
                 type: 'bar',
                 data: {
-                    labels: omzetLabels,
+                    labels: omzetLabelsSuccess,
                     datasets: [{
-                        label: 'Omzet (Rp)',
-                        data: omzetValues,
+                        label: 'Omzet Success (Rp)',
+                        data: omzetValuesSuccess,
                         backgroundColor: '#22C55E',
                         borderColor: '#16A34A',
                         borderWidth: 1
@@ -411,7 +442,7 @@
                                     const value = context.parsed.x;
                                     const formattedValue = 'Rp ' + value.toLocaleString('id-ID');
                                     const idx = context.dataIndex;
-                                    const jumlah = omzetJumlah[idx];
+                                    const jumlah = omzetJumlahSuccess[idx];
                                     return [
                                         formattedValue,
                                         'Jumlah: ' + jumlah
@@ -443,22 +474,99 @@
                 }
             });
 
-            // 6. Line Chart Omzet Per Bulan
-            const omzetPerBulan = {!! json_encode($omzetPerBulan) !!};
-            const bulanLabels = omzetPerBulan.map(x => {
+            // 5b. Bar Chart Omzet Per Sales/Staff - PO
+            const omzetPerSalesPO = {!! json_encode($omzetPerSalesPO) !!};
+            const omzetLabelsPO = omzetPerSalesPO.map(x => x.name);
+            const omzetValuesPO = omzetPerSalesPO.map(x => x.omzet);
+            const omzetJumlahPO = omzetPerSalesPO.map(x => x.jumlah_penawaran);
+
+            const omzetPerSalesChartPO = new Chart(document.getElementById('omzetPerSalesChartPO'), {
+                type: 'bar',
+                data: {
+                    labels: omzetLabelsPO,
+                    datasets: [{
+                        label: 'Omzet PO (Rp)',
+                        data: omzetValuesPO,
+                        backgroundColor: '#a855f7',
+                        borderColor: '#9333ea',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 12
+                            },
+                            bodyFont: {
+                                size: 11
+                            },
+                            padding: 10,
+                            cornerRadius: 4,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.x;
+                                    const formattedValue = 'Rp ' + value.toLocaleString('id-ID');
+                                    const idx = context.dataIndex;
+                                    const jumlah = omzetJumlahPO[idx];
+                                    return [
+                                        formattedValue,
+                                        'Jumlah: ' + jumlah
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: {
+                                    size: 9
+                                },
+                                callback: function(value) {
+                                    return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+                                }
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 6. Line Chart Omzet Per Bulan - SUCCESS
+            const omzetPerBulanSuccess = {!! json_encode($omzetPerBulanSuccess) !!};
+            const bulanLabelsSuccess = omzetPerBulanSuccess.map(x => {
                 const date = new Date(x.bulan);
                 return new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' }).format(date);
             }).reverse();
-            const bulanOmzet = omzetPerBulan.map(x => x.total_omzet).reverse();
-            const bulanJumlah = omzetPerBulan.map(x => x.jumlah_penawaran).reverse();
+            const bulanOmzetSuccess = omzetPerBulanSuccess.map(x => x.total_omzet).reverse();
+            const bulanJumlahSuccess = omzetPerBulanSuccess.map(x => x.jumlah_penawaran).reverse();
 
-            const omzetPerBulanChart = new Chart(document.getElementById('omzetPerBulanChart'), {
+            const omzetPerBulanChartSuccess = new Chart(document.getElementById('omzetPerBulanChartSuccess'), {
                 type: 'line',
                 data: {
-                    labels: bulanLabels,
+                    labels: bulanLabelsSuccess,
                     datasets: [{
-                        label: 'Omzet (Rp)',
-                        data: bulanOmzet,
+                        label: 'Omzet Success (Rp)',
+                        data: bulanOmzetSuccess,
                         borderColor: '#059669',
                         backgroundColor: 'rgba(5, 150, 105, 0.1)',
                         fill: true,
@@ -495,7 +603,99 @@
                                     const value = context.parsed.y;
                                     const formattedValue = 'Rp ' + value.toLocaleString('id-ID');
                                     const idx = context.dataIndex;
-                                    const jumlah = bulanJumlah[idx];
+                                    const jumlah = bulanJumlahSuccess[idx];
+                                    return [
+                                        formattedValue,
+                                        'Penawaran: ' + jumlah
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Bulan'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 9
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Omzet (Rp)'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10
+                                },
+                                callback: function(value) {
+                                    return 'Rp ' + (value / 1000000).toFixed(0) + 'M';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 6b. Line Chart Omzet Per Bulan - PO
+            const omzetPerBulanPO = {!! json_encode($omzetPerBulanPO) !!};
+            const bulanLabelsPO = omzetPerBulanPO.map(x => {
+                const date = new Date(x.bulan);
+                return new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' }).format(date);
+            }).reverse();
+            const bulanOmzetPO = omzetPerBulanPO.map(x => x.total_omzet).reverse();
+            const bulanJumlahPO = omzetPerBulanPO.map(x => x.jumlah_penawaran).reverse();
+
+            const omzetPerBulanChartPO = new Chart(document.getElementById('omzetPerBulanChartPO'), {
+                type: 'line',
+                data: {
+                    labels: bulanLabelsPO,
+                    datasets: [{
+                        label: 'Omzet PO (Rp)',
+                        data: bulanOmzetPO,
+                        borderColor: '#a855f7',
+                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#a855f7',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 12
+                            },
+                            bodyFont: {
+                                size: 11
+                            },
+                            padding: 10,
+                            cornerRadius: 4,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    const formattedValue = 'Rp ' + value.toLocaleString('id-ID');
+                                    const idx = context.dataIndex;
+                                    const jumlah = bulanJumlahPO[idx];
                                     return [
                                         formattedValue,
                                         'Penawaran: ' + jumlah

@@ -57,6 +57,11 @@
             color: #16a34a;
         }
 
+        .status-po {
+            background: #f3e5f5;
+            color: #6a1b9a;
+        }
+
         /* Custom styling untuk Notyf */
         .notyf__toast--error {
             background: #ef4444 !important;
@@ -166,6 +171,12 @@
                 title="Mark as Success">
                 <x-lucide-badge-check class="w-6 h-6 inline-block" />
             </button>
+            <button type="button" onclick="openStatusModal('po')"
+                class="text-white px-2 py-2 rounded hover:shadow-lg font-semibold"
+                style="background-color: #804cb2;"
+                title="Mark As Purchase Order">
+                <x-lucide-shopping-cart class="w-6 h-6 inline-block" />
+            </button>
         </div>
     </div>
     <!-- Modal untuk update status -->
@@ -260,7 +271,11 @@
                         <div><span class="font-medium">Perihal:</span> {{ $penawaran->perihal }}</div>
                         <div><span class="font-medium">Status:</span>
                             <span class="status-badge status-{{ $penawaran->status }}">
-                                {{ ucfirst($penawaran->status) }}
+                                @if($penawaran->status === 'po')
+                                    Purchase Order
+                                @else
+                                    {{ ucfirst($penawaran->status) }}
+                                @endif
                             </span>
                         </div>
                     </div>
@@ -1124,6 +1139,18 @@
                             <form method="POST" action="{{ route('penawaran.saveNotes', $penawaran->id_penawaran) }}" id="notesForm">
                                 @csrf
                                 <input type="hidden" name="version" value="{{ $activeVersion }}">
+                                @php
+                                    // Calculate grand total from backend data for form - MUST match preview calculation
+                                    $totalPenawaran = collect($sections)->sum(fn($s) => collect($s['data'])->sum('harga_total'));
+                                    $totalKeseluruhan = $totalPenawaran + ($versionRow->jasa_grand_total ?? 0);
+                                    $ppnPersen = $versionRow->ppn_persen ?? 11;
+                                    $isBest = $versionRow->is_best_price ?? false;
+                                    $bestPrice = $versionRow->best_price ?? 0;
+                                    $baseAmountForPPN = $isBest ? $bestPrice : $totalKeseluruhan;
+                                    $ppnNominal = ($baseAmountForPPN * $ppnPersen) / 100;
+                                    $formGrandTotal = $baseAmountForPPN + $ppnNominal;
+                                @endphp
+                                <input type="hidden" name="grand_total_calculated" id="grand_total_calculated" value="{{ (int) $formGrandTotal }}">
                                 <div class="mb-4">
                                     <label for="note" class="font-bold mb-2 block">Notes: <span class="text-red-600">*</span></label>
                                     <textarea rows="7" name="note" class="w-full border rounded px-3 py-2"
@@ -1190,6 +1217,8 @@
 
         <script>
             const activeVersion = {{ $activeVersion ?? 0 }};
+            // Global variable to store calculated grand total
+            let currentGrandTotal = 0;
         </script>
         <script>
             const satuanOptions = @json($satuans->pluck('nama'));
@@ -1232,6 +1261,12 @@
                         submitBtn.textContent = 'Tandai Gagal';
                         submitBtn.className = 'px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600';
                         noteInput.placeholder = 'Masukkan alasan penawaran gagal...';
+                    } else if (status === 'po') {
+                        modalTitle.textContent = 'Tandai Penawaran Purchase Order';
+                        submitBtn.textContent = 'Tandai Purchase Order';
+                        submitBtn.className = 'px-4 py-2 text-white rounded hover:shadow-lg';
+                        submitBtn.style.backgroundColor = '#804cb2';
+                        noteInput.placeholder = 'Masukkan catatan untuk purchase order...';
                     }
 
                     modal.classList.remove('hidden');
@@ -1240,6 +1275,23 @@
                 function closeStatusModal() {
                     const modal = document.getElementById('statusModal');
                     modal.classList.add('hidden');
+                }
+
+                // Capture calculated grand total for notes form
+                function captureGrandTotal(e) {
+                    e.preventDefault();
+                    
+                    // Use the raw grand total value calculated by JavaScript
+                    const grandTotalValue = Math.round(currentGrandTotal) || 0;
+                    document.getElementById('grand_total_calculated').value = grandTotalValue;
+                    
+                    console.log('🚀 captureGrandTotal() called');
+                    console.log('   currentGrandTotal:', currentGrandTotal);
+                    console.log('   grandTotalValue to send:', grandTotalValue);
+                    console.log('   form hidden field now has:', document.getElementById('grand_total_calculated').value);
+                    
+                    // Submit the form
+                    document.getElementById('notesForm').submit();
                 }
 
                 // Close modal when clicking outside
@@ -2610,6 +2662,13 @@
                         });
                     }
 
+                    // Initialize from database value if available
+                    const dbGrandTotal = {{ $versionRow->grand_total ?? 0 }};
+                    if (dbGrandTotal > 0) {
+                        currentGrandTotal = dbGrandTotal;
+                        console.log('📊 Initialized currentGrandTotal from DB:', currentGrandTotal);
+                    }
+
                     function updateTotalKeseluruhan() {
                         let totalKeseluruhan = 0;
 
@@ -2638,6 +2697,9 @@
                         const ppnNominal = (baseAmount * ppnPersen) / 100;
                         const grandTotal = baseAmount + ppnNominal;
 
+                        // Store raw value in global variable for direct access
+                        currentGrandTotal = Math.round(grandTotal);
+
                         // update PPN display
                         document.getElementById('ppnPersenDisplay').textContent = ppnPersen;
                         document.getElementById('ppnNominal').textContent = ppnNominal.toLocaleString('id-ID');
@@ -2660,7 +2722,8 @@
                             bestPrice,
                             ppnPersen,
                             ppnNominal,
-                            grandTotal
+                            grandTotal,
+                            currentGrandTotalRaw: currentGrandTotal
                         });
                     }
 

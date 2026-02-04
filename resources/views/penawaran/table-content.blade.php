@@ -176,6 +176,10 @@
                         <span class="inline-block px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
                             Success
                         </span>
+                    @elseif($p->status === 'po')
+                        <span class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full" style="background-color: #804cb2;">
+                            PO
+                        </span>
                     @else
                         <span class="inline-block px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-800 rounded-full">
                             {{ $p->status }}
