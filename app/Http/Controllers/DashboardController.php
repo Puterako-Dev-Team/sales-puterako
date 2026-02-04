@@ -57,7 +57,14 @@ class DashboardController extends Controller
                     ->get();
                     
                 // 4. Omzet per bulan untuk staff - SUCCESS
-                $omzetPerBulanSuccess = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(penawaran_versions.grand_total) as total_omzet, COUNT(penawarans.id_penawaran) as jumlah_penawaran')
+                $latestVersionStaffSuccess = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
+                    ->groupBy('penawaran_id');
+                
+                $omzetPerBulanSuccess = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(penawaran_versions.grand_total) as total_omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
+                    ->joinSub($latestVersionStaffSuccess, 'latest_versions', function($join) {
+                        $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
+                             ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
+                    })
                     ->join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
                     ->where('penawarans.user_id', $userId)
                     ->where('penawarans.status', 'success')
@@ -67,7 +74,14 @@ class DashboardController extends Controller
                     ->get();
                     
                 // 4b. Omzet per bulan untuk staff - PO
-                $omzetPerBulanPO = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(penawaran_versions.grand_total) as total_omzet, COUNT(penawarans.id_penawaran) as jumlah_penawaran')
+                $latestVersionStaffPO = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
+                    ->groupBy('penawaran_id');
+                
+                $omzetPerBulanPO = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(penawaran_versions.grand_total) as total_omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
+                    ->joinSub($latestVersionStaffPO, 'latest_versions', function($join) {
+                        $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
+                             ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
+                    })
                     ->join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
                     ->where('penawarans.user_id', $userId)
                     ->where('penawarans.status', 'po')
@@ -77,13 +91,27 @@ class DashboardController extends Controller
                     ->get();
                     
                 // 6. Total omzet keseluruhan untuk staff - SUCCESS
-                $totalOmzetKeseluruhanSuccess = \App\Models\PenawaranVersion::join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
+                $latestVersionStaffTotalSuccess = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
+                    ->groupBy('penawaran_id');
+                
+                $totalOmzetKeseluruhanSuccess = \App\Models\PenawaranVersion::joinSub($latestVersionStaffTotalSuccess, 'latest_versions', function($join) {
+                        $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
+                             ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
+                    })
+                    ->join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
                     ->where('penawarans.user_id', $userId)
                     ->where('penawarans.status', 'success')
                     ->sum('penawaran_versions.grand_total');
                     
                 // 6b. Total omzet keseluruhan untuk staff - PO
-                $totalOmzetKeseluruhanPO = \App\Models\PenawaranVersion::join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
+                $latestVersionStaffTotalPO = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
+                    ->groupBy('penawaran_id');
+                
+                $totalOmzetKeseluruhanPO = \App\Models\PenawaranVersion::joinSub($latestVersionStaffTotalPO, 'latest_versions', function($join) {
+                        $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
+                             ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
+                    })
+                    ->join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
                     ->where('penawarans.user_id', $userId)
                     ->where('penawarans.status', 'po')
                     ->sum('penawaran_versions.grand_total');
@@ -134,14 +162,21 @@ class DashboardController extends Controller
                     ->get();
                     
                 // 4. Omzet per Sales/Staff untuk bulan terpilih - SUCCESS
+                $latestVersionPerSalesSuccess = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
+                    ->groupBy('penawaran_id');
+                
                 $omzetPerSalesSuccess = \App\Models\User::select('users.id', 'users.name')
                     ->join('penawarans', 'users.id', '=', 'penawarans.user_id')
                     ->join('penawaran_versions', 'penawarans.id_penawaran', '=', 'penawaran_versions.penawaran_id')
+                    ->joinSub($latestVersionPerSalesSuccess, 'latest_versions', function($join) {
+                        $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
+                             ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
+                    })
                     ->where('penawarans.status', 'success')
                     ->whereYear('penawarans.created_at', $year)
                     ->whereMonth('penawarans.created_at', $monthNum)
                     ->groupBy('users.id', 'users.name')
-                    ->selectRaw('users.id, users.name, SUM(penawaran_versions.grand_total) as omzet, COUNT(penawarans.id_penawaran) as jumlah_penawaran')
+                    ->selectRaw('users.id, users.name, SUM(penawaran_versions.grand_total) as omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
                     ->orderByDesc('omzet')
                     ->get()
                     ->map(function ($user) {
@@ -154,14 +189,21 @@ class DashboardController extends Controller
                     ->values();
                     
                 // 4b. Omzet per Sales/Staff untuk bulan terpilih - PO
+                $latestVersionPerSalesPO = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
+                    ->groupBy('penawaran_id');
+                
                 $omzetPerSalesPO = \App\Models\User::select('users.id', 'users.name')
                     ->join('penawarans', 'users.id', '=', 'penawarans.user_id')
                     ->join('penawaran_versions', 'penawarans.id_penawaran', '=', 'penawaran_versions.penawaran_id')
+                    ->joinSub($latestVersionPerSalesPO, 'latest_versions', function($join) {
+                        $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
+                             ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
+                    })
                     ->where('penawarans.status', 'po')
                     ->whereYear('penawarans.created_at', $year)
                     ->whereMonth('penawarans.created_at', $monthNum)
                     ->groupBy('users.id', 'users.name')
-                    ->selectRaw('users.id, users.name, SUM(penawaran_versions.grand_total) as omzet, COUNT(penawarans.id_penawaran) as jumlah_penawaran')
+                    ->selectRaw('users.id, users.name, SUM(penawaran_versions.grand_total) as omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
                     ->orderByDesc('omzet')
                     ->get()
                     ->map(function ($user) {
@@ -174,7 +216,15 @@ class DashboardController extends Controller
                     ->values();
                     
                 // 5. Omzet per bulan (12 bulan terakhir) - SUCCESS
-                $omzetPerBulanSuccess = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(penawaran_versions.grand_total) as total_omzet, COUNT(penawarans.id_penawaran) as jumlah_penawaran')
+                // Subquery untuk mendapatkan versi terbaru per penawaran
+                $latestVersionSuccess = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
+                    ->groupBy('penawaran_id');
+                
+                $omzetPerBulanSuccess = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(penawaran_versions.grand_total) as total_omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
+                    ->joinSub($latestVersionSuccess, 'latest_versions', function($join) {
+                        $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
+                             ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
+                    })
                     ->join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
                     ->where('penawarans.status', 'success')
                     ->groupBy(DB::raw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01")'))
@@ -183,7 +233,14 @@ class DashboardController extends Controller
                     ->get();
                     
                 // 5b. Omzet per bulan (12 bulan terakhir) - PO
-                $omzetPerBulanPO = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(penawaran_versions.grand_total) as total_omzet, COUNT(penawarans.id_penawaran) as jumlah_penawaran')
+                $latestVersionPO = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
+                    ->groupBy('penawaran_id');
+                
+                $omzetPerBulanPO = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(penawaran_versions.grand_total) as total_omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
+                    ->joinSub($latestVersionPO, 'latest_versions', function($join) {
+                        $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
+                             ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
+                    })
                     ->join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
                     ->where('penawarans.status', 'po')
                     ->groupBy(DB::raw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01")'))
@@ -192,12 +249,26 @@ class DashboardController extends Controller
                     ->get();
                     
                 // 7. Total omzet keseluruhan - SUCCESS
-                $totalOmzetKeseluruhanSuccess = \App\Models\PenawaranVersion::join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
+                $latestVersionTotalSuccess = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
+                    ->groupBy('penawaran_id');
+                
+                $totalOmzetKeseluruhanSuccess = \App\Models\PenawaranVersion::joinSub($latestVersionTotalSuccess, 'latest_versions', function($join) {
+                        $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
+                             ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
+                    })
+                    ->join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
                     ->where('penawarans.status', 'success')
                     ->sum('penawaran_versions.grand_total');
                     
                 // 7b. Total omzet keseluruhan - PO
-                $totalOmzetKeseluruhanPO = \App\Models\PenawaranVersion::join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
+                $latestVersionTotalPO = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
+                    ->groupBy('penawaran_id');
+                
+                $totalOmzetKeseluruhanPO = \App\Models\PenawaranVersion::joinSub($latestVersionTotalPO, 'latest_versions', function($join) {
+                        $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
+                             ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
+                    })
+                    ->join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
                     ->where('penawarans.status', 'po')
                     ->sum('penawaran_versions.grand_total');
             }
