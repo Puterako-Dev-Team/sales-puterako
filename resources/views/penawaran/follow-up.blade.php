@@ -25,6 +25,11 @@
             color: #16a34a;
         }
 
+        .status-po {
+            background: #804cb2;
+            color: #ffffff;
+        }
+
         .timeline-item {
             position: relative;
             padding-left: 2rem;
@@ -167,9 +172,15 @@
                         <div><span class="font-medium">No. Penawaran:</span> {{ $penawaran->no_penawaran }}</div>
                         <div><span class="font-medium">Perihal:</span> {{ $penawaran->perihal }}</div>
                         <div><span class="font-medium">Status:</span>
-                            <span class="status-badge status-{{ $penawaran->status }}">
-                                {{ ucfirst($penawaran->status) }}
-                            </span>
+                            @if($penawaran->status === 'po')
+                                <span class="status-badge status-po">
+                                    Purchase Order
+                                </span>
+                            @else
+                                <span class="status-badge status-{{ $penawaran->status }}">
+                                    {{ ucfirst($penawaran->status) }}
+                                </span>
+                            @endif
                         </div>
                     </div>
                 </div>

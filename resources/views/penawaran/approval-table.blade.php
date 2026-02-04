@@ -88,7 +88,7 @@
                     <td class="px-3 py-3 text-center">{{ $requests->firstItem() + $index }}</td>
                     <td class="px-3 py-3">
                         @if($req->penawaran)
-                            <a href="{{ route('penawaran.show', ['id' => $req->penawaran_id, 'version' => $req->version->version ?? 0]) }}" class="text-green-600 hover:underline">
+                            <a href="{{ route('penawaran.show', ['id' => $req->penawaran_id, 'version' => $req->version->version ?? 0, 'referrer' => 'approval']) }}" class="text-green-600 hover:underline">
                                 {{ $req->penawaran->no_penawaran }}
                             </a>
                         @else

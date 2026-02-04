@@ -387,7 +387,7 @@
             <p><strong>{{ $penawaran->nama_perusahaan }}</strong></p>
             <p>{{ $penawaran->lokasi }}</p>
             @if ($penawaran->pic_perusahaan)
-                <p><strong>Up. {{ $penawaran->pic_perusahaan }}</strong></p>
+                <p><strong>{{ $penawaran->pic_perusahaan }}</strong></p>
             @endif
 
             <p style="margin-top: 20px;"><strong>Perihal:</strong> {{ $penawaran->perihal }}</p>

@@ -12,6 +12,51 @@ use Illuminate\Support\Facades\Auth;
 
 class PenawaranController extends Controller
 {
+    /**
+     * Helper method untuk recalculate grand_total otomatis
+     * Formula: Grand Total = (Total Penawaran + Total Jasa) + PPN
+     * 
+     * @param $penawaranId ID penawaran
+     * @param $version Version penawaran
+     * @return float grand_total yang sudah dihitung
+     */
+    private function recalculateGrandTotal($penawaranId, $version)
+    {
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $penawaranId)
+            ->where('version', $version)
+            ->first();
+        
+        if (!$versionRow) {
+            return 0;
+        }
+        
+        // Ambil komponen-komponen
+        $totalPenawaran = floatval($versionRow->penawaran_total_awal ?? 0);
+        $totalJasa = floatval($versionRow->jasa_grand_total ?? 0);
+        $ppnPercent = floatval($versionRow->ppn_persen ?? 11);
+        $isBestPrice = boolval($versionRow->is_best_price ?? false);
+        $bestPrice = floatval($versionRow->best_price ?? 0);
+        
+        // Hitung base amount (gunakan best price jika ada, sebaliknya gunakan penawaran total)
+        $baseAmount = $isBestPrice ? $bestPrice : $totalPenawaran;
+        
+        // Hitung subtotal (penawaran/best price + jasa)
+        $subtotal = $baseAmount + $totalJasa;
+        
+        // Hitung PPN dari subtotal
+        $ppnNominal = ($subtotal * $ppnPercent) / 100;
+        
+        // Grand Total = subtotal + PPN
+        $grandTotal = $subtotal + $ppnNominal;
+        
+        // Update grand_total dan ppn_nominal di database
+        $versionRow->grand_total = $grandTotal;
+        $versionRow->ppn_nominal = $ppnNominal;
+        $versionRow->save();
+        
+        return $grandTotal;
+    }
+    
     public function index(Request $request)
     {
         // Manager role tidak bisa melihat list penawaran
@@ -368,6 +413,11 @@ class PenawaranController extends Controller
             'updated_at' => now()
         ]);
 
+        // If follow-up status is "deal", update the related penawaran status to "po"
+        if ($request->status === 'deal') {
+            Penawaran::where('id_penawaran', $id)->update(['status' => 'po']);
+        }
+
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
@@ -602,21 +652,24 @@ class PenawaranController extends Controller
             // Hitung total awal penawaran
             $versionRow->penawaran_total_awal = $totalKeseluruhan;
 
-
             $isBest = !empty($data['is_best_price']) ? 1 : 0;
             $bestPrice = isset($data['best_price']) ? floatval($data['best_price']) : 0;
-            $baseAmount = $isBest ? $bestPrice : $totalKeseluruhan;
 
-            $ppnNominal = ($baseAmount * $ppnPersen) / 100;
-            $grandTotal = $baseAmount + $ppnNominal;
-
-            // Update ke penawaran_versions (bukan penawarans)
             $versionRow->ppn_persen = $ppnPersen;
             $versionRow->is_best_price = $isBest;
             $versionRow->best_price = $bestPrice;
-            $versionRow->ppn_nominal = $ppnNominal;
-            $versionRow->grand_total = $grandTotal;
             $versionRow->save();
+            
+            // OTOMATIS HITUNG & UPDATE GRAND_TOTAL dengan semua komponen
+            $grandTotal = $this->recalculateGrandTotal($penawaranId, $version);
+
+            // Ambil data terbaru untuk response (termasuk ppn_nominal dan jasa)
+            $versionRowUpdated = \App\Models\PenawaranVersion::where('penawaran_id', $penawaranId)
+                ->where('version', $version)
+                ->first();
+            
+            $totalJasa = floatval($versionRowUpdated->jasa_grand_total ?? 0);
+            $ppnNominal = floatval($versionRowUpdated->ppn_nominal ?? 0);
 
             DB::commit();
 
@@ -630,14 +683,15 @@ class PenawaranController extends Controller
                     ->log('Edited penawaran');
             }
 
-            Log::debug('Penawaran saved', ['id_penawaran' => $penawaranId, 'total' => $totalKeseluruhan]);
+            Log::debug('Penawaran saved', ['id_penawaran' => $penawaranId, 'total' => $totalKeseluruhan, 'grand_total' => $grandTotal]);
 
             return response()->json([
                 'success' => true,
                 'total' => $totalKeseluruhan,
-                'base_amount' => $baseAmount,
+                'grand_total' => $grandTotal,
                 'ppn_nominal' => $ppnNominal,
-                'grand_total' => $grandTotal
+                'total_jasa' => $totalJasa,
+                'message' => 'Penawaran berhasil disimpan. Grand total telah otomatis terupdate!'
             ]);
         } catch (\Throwable $e) {
             // Pastikan transaksi dibatalkan jika terjadi error
@@ -894,10 +948,20 @@ class PenawaranController extends Controller
 
         $request->validate([
             'note' => 'nullable|string',
-            'version' => 'required|integer'
+            'version' => 'required|integer',
+            'grand_total_calculated' => 'nullable|numeric'
         ]);
 
         $version = $request->input('version');
+        $grandTotalCalculated = $request->input('grand_total_calculated', 0);
+
+        \Log::info("SaveNotes Request Data", [
+            'penawaran_id' => $id,
+            'version' => $version,
+            'grand_total_calculated_raw' => $request->input('grand_total_calculated'),
+            'grand_total_calculated_parsed' => $grandTotalCalculated,
+            'all_request_data' => $request->all()
+        ]);
 
         // Cari penawaran version berdasarkan penawaran_id dan version
         $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)
@@ -906,6 +970,14 @@ class PenawaranController extends Controller
 
         if (!$versionRow) {
             return redirect()->back()->with('error', 'Versi penawaran tidak ditemukan.');
+        }
+
+        // Simpan grand_total yang dikirim dari frontend (update jika nilai dikirim dan bukan string '0')
+        if ($grandTotalCalculated !== null && $grandTotalCalculated !== 0 && $grandTotalCalculated !== '0') {
+            $versionRow->grand_total = (int) $grandTotalCalculated;
+            \Log::info("SaveNotes: Updated grand_total to {$grandTotalCalculated} for penawaran_id={$id}, version={$version}");
+        } else {
+            \Log::info("SaveNotes: grand_total NOT updated. Value: {$grandTotalCalculated}, is_null: " . ($grandTotalCalculated === null ? 'true' : 'false'));
         }
 
         // Simpan note ke penawaran_versions
@@ -1068,7 +1140,7 @@ class PenawaranController extends Controller
         }
 
         $request->validate([
-            'status' => 'required|in:draft,success,lost',
+            'status' => 'required|in:draft,success,lost,po',
             'note' => 'nullable|string|max:1000'
         ]);
 
@@ -1085,6 +1157,7 @@ class PenawaranController extends Controller
             'success' => 'Selesai',
             'lost' => 'Gagal',
             'draft' => 'Draft',
+            'po' => 'Purchase Order',
         };
 
         return redirect()->back()->with('toast', [
