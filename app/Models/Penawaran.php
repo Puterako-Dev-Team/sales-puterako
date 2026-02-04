@@ -29,6 +29,7 @@ class Penawaran extends Model
         'no_penawaran',
         'lokasi',
         'tiket',
+        'tipe',
         'is_best_price',
         'best_price',
         'total',

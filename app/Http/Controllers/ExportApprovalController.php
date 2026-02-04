@@ -213,11 +213,23 @@ class ExportApprovalController extends Controller
                 ], 404);
             }
 
-            if (empty($version->jasa_ringkasan) || empty($version->notes)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Ringkasan Jasa dan Notes harus diisi'
-                ], 422);
+            // Validation depends on penawaran tipe:
+            // - barang: only Notes required
+            // - default/SOC: Ringkasan Jasa AND Notes required
+            if ($penawaran->tipe === 'barang') {
+                if (empty($version->notes)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Notes harus diisi'
+                    ], 422);
+                }
+            } else {
+                if (empty($version->jasa_ringkasan) || empty($version->notes)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Ringkasan Jasa dan Notes harus diisi'
+                    ], 422);
+                }
             }
 
             $existingRequest = ExportApprovalRequest::where('version_id', $version->id)

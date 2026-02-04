@@ -306,13 +306,25 @@
         </div>
 
         <div class="bg-white shadow rounded-lg p-6">
+            @php
+                $tipe = $penawaran->tipe ?? null;
+                $showPenawaran = empty($tipe) || $tipe === 'barang';
+                $showJasa = empty($tipe) || $tipe === 'soc';
+            @endphp
+            @php
+                $activeTab = $showPenawaran ? 'penawaran' : ($showJasa ? 'Jasa' : 'preview');
+            @endphp
             <div class="flex border-b mb-4">
+                @if($showPenawaran)
                 <button
-                    class="tab-btn px-4 py-2 font-semibold text-green-600 border-b-2 border-green-600 focus:outline-none"
+                    class="tab-btn px-4 py-2 font-semibold {{ $activeTab === 'penawaran' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600' }} hover:text-green-600 focus:outline-none"
                     data-tab="penawaran">Penawaran</button>
-                <button class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:text-green-600 focus:outline-none"
+                @endif
+                @if($showJasa)
+                <button class="tab-btn px-4 py-2 font-semibold {{ $activeTab === 'Jasa' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600' }} hover:text-green-600 focus:outline-none"
                     data-tab="Jasa">Rincian Jasa</button>
-                <button class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:text-green-600 focus:outline-none"
+                @endif
+                <button class="tab-btn px-4 py-2 font-semibold {{ $activeTab === 'preview' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600' }} hover:text-green-600 focus:outline-none"
                     data-tab="preview">Preview</button>
                 <button class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:text-green-600 focus:outline-none"
                     data-tab="rekap">Rincian Rekap</button>
@@ -320,6 +332,7 @@
 
             <div id="tabContent">
                 <!-- Panel Penawaran -->
+                @if($showPenawaran)
                 <div class="tab-panel" data-tab="penawaran">
                     <!-- Template Selection (Global) -->
                     <div class="p-2 rounded-lg mb-6">
@@ -435,8 +448,10 @@
                         </div>
                     </div>
                 </div>
+                @endif
                 <!-- Panel Jasa -->
-                <div class="tab-panel hidden" data-tab="Jasa">
+                @if($showJasa)
+                <div class="tab-panel {{ $activeTab === 'Jasa' ? '' : 'hidden' }}" data-tab="Jasa">
                     <div class="flex gap-4 mb-4">
                         <div>
                             <label class="block text-sm font-semibold mb-1">Profit (%)</label>
@@ -533,8 +548,9 @@
                         });
                     </script>
                 </div>
+                @endif
                 <!-- Panel Preview -->
-                <div class="tab-panel hidden" data-tab="preview">
+                <div class="tab-panel {{ $activeTab === 'preview' ? '' : 'hidden' }}" data-tab="preview">
                     <style>
                         @media print {
 
@@ -649,12 +665,14 @@
                             <div class="grid grid-cols-2 gap-4 mb-4">
                                 <!-- Left: Required Fields Check -->
                                 <div id="previewValidation" class="p-4 bg-yellow-50 border border-yellow-200 rounded">
-                                    <p class="text-sm font-semibold text-yellow-800 mb-2">⚠️ Sebelum request verifikasi, pastikan:</p>
-                                    <ul class="text-sm text-yellow-700 space-y-1">
-                                        <li id="checkRingkasan" class="flex items-center"><span class="mr-2">❌</span> Ringkasan Jasa sudah diisi</li>
-                                        <li id="checkNotes" class="flex items-center"><span class="mr-2">❌</span> Notes sudah diisi</li>
-                                    </ul>
-                                </div>
+                                            <p class="text-sm font-semibold text-yellow-800 mb-2">⚠️ Sebelum request verifikasi, pastikan:</p>
+                                            <ul class="text-sm text-yellow-700 space-y-1">
+                                                @if($showJasa)
+                                                <li id="checkRingkasan" class="flex items-center"><span class="mr-2">❌</span> Ringkasan Jasa sudah diisi</li>
+                                                @endif
+                                                <li id="checkNotes" class="flex items-center"><span class="mr-2">❌</span> Notes sudah diisi</li>
+                                            </ul>
+                                        </div>
 
                                 <!-- Right: Slider Verification -->
                                 <div class="rounded-lg p-4" style="background-color: #f0fdf4; border: 1px solid #dcfce7;">
@@ -908,10 +926,10 @@
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-16">Qty</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-20">Satuan
                                                 </th>
+                                                <th class="border border-gray-300 px-3 py-2 text-center w-32" style="color: #000000; font-weight: bold;">Keterangan</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-32">Harga
                                                     Satuan
                                                 </th>
-                                                <th class="border border-gray-300 px-3 py-2 text-center w-32" style="color: #000000; font-weight: bold;">Keterangan</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-right w-32">Harga
                                                     Total
                                                 </th>
@@ -950,8 +968,11 @@
                                                             <td class="border border-gray-300 px-3 py-2">
                                                                 {{ $row['satuan'] }}
                                                             </td>
+                                                            <td class="border border-gray-300 px-3 py-2 text-center" style="color: #000000;">{{ $row['delivery_time'] ?? '-' }}</td>
                                                             <td class="border border-gray-300 px-3 py-2 text-right">
-                                                                @if ((int) $row['is_mitra'] === 1)
+                                                                @if ((int) ($row['is_judul'] ?? 0) === 1)
+                                                                    {{-- Kosong jika is_judul --}}
+                                                                @elseif ((int) $row['is_mitra'] === 1)
                                                                     <span style="color:#3498db;font-weight:bold;font-style:italic;">
                                                                         by User
                                                                     </span>
@@ -959,9 +980,10 @@
                                                                     {{ $row['harga_satuan'] > 0 ? 'Rp ' . number_format($row['harga_satuan'], 0, ',', '.') : '' }}
                                                                 @endif
                                                             </td>
-                                                            <td class="border border-gray-300 px-3 py-2 text-center" style="color: #000000;">{{ $row['delivery_time'] ?? '-' }}</td>
                                                             <td class="border border-gray-300 px-3 py-2 text-right">
-                                                                @if ((int) $row['is_mitra'] === 1)
+                                                                @if ((int) ($row['is_judul'] ?? 0) === 1)
+                                                                    {{-- Kosong jika is_judul --}}
+                                                                @elseif ((int) $row['is_mitra'] === 1)
                                                                     <span style="color:#3498db;font-weight:bold;font-style:italic;">
                                                                         by User
                                                                     </span>
@@ -990,6 +1012,7 @@
                         @endforeach
 
                         <!-- Tabel Jasa Detail (hanya sekali di bawah semua section) -->
+                        @if($showJasa)
                         <div class="mb-8 break-inside-avoid">
                             <h3 class="font-bold text-lg mb-3">
                                 {{ convertToRoman($sectionNumber + 1) }}. Biaya Quotation Jasa
@@ -1030,6 +1053,7 @@
                                 </tfoot>
                             </table>
                         </div>
+                        @endif
 
                         <!-- Summary -->
                         <div class="mt-8 flex justify-end">
@@ -1047,8 +1071,10 @@
                                                     }
                                                 }
 
-                                                // Total keseluruhan = total penawaran + jasa grand total
-                                                $totalKeseluruhan = $totalPenawaran + ($versionRow->jasa_grand_total ?? 0);
+                                                // Tambahkan jasa hanya jika tab jasa ditampilkan
+                                                $jasaTotal = ($showJasa ?? false) ? ($versionRow->jasa_grand_total ?? 0) : 0;
+                                                // Total keseluruhan = total penawaran + jasa grand total (opsional)
+                                                $totalKeseluruhan = $totalPenawaran + $jasaTotal;
                                             @endphp
                                             {{ number_format($totalKeseluruhan, 0, ',', '.') }}
                                         </td>
@@ -1115,6 +1141,7 @@
                         </div>
 
                         <!-- Tabel Jasa di Preview -->
+                        @if($showJasa)
                         <form method="POST"
                             action="{{ route('jasa.saveRingkasan', ['id_penawaran' => $penawaran->id_penawaran]) }}"
                             id="ringkasanForm">
@@ -1133,6 +1160,7 @@
                                 Simpan Ringkasan Jasa
                             </button>
                         </form>
+                        @endif
 
                         <!-- Notes -->
                         <div class="mt-8 mb-6">
@@ -1229,6 +1257,10 @@
                 // Data awal dari backend
                 const initialSections = @json($sections);
                 const hasExistingData = initialSections.length > 0;
+                // Tipe penawaran: '' or null means default (all tabs)
+                const tipe = '{{ $penawaran->tipe ?? '' }}';
+                const showPenawaran = !tipe || tipe === 'barang';
+                const showJasa = !tipe || tipe === 'soc';
             </script>
             <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css" />
             <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
@@ -1531,11 +1563,18 @@
                         tabButtons.forEach(btn => {
                             const tab = btn.getAttribute('data-tab');
                             btn.classList.remove('locked');
-                            
-                            if (tab === 'Jasa' && !penawaranSaved) {
+                            // Lock Jasa only if Penawaran tab is shown and not yet saved
+                            if (tab === 'Jasa' && showPenawaran && !penawaranSaved) {
                                 btn.classList.add('locked');
-                            } else if (tab === 'preview' && (!penawaranSaved || !jasaSaved)) {
-                                btn.classList.add('locked');
+                            } else if (tab === 'preview') {
+                                // Preview requirements depend on tipe
+                                if (!tipe) {
+                                    if (!penawaranSaved || !jasaSaved) btn.classList.add('locked');
+                                } else if (tipe === 'soc') {
+                                    if (!jasaSaved) btn.classList.add('locked');
+                                } else if (tipe === 'barang') {
+                                    if (!penawaranSaved) btn.classList.add('locked');
+                                }
                             }
                         });
                     }
@@ -1591,6 +1630,177 @@
                     }
 
                     // =====================================================
+                    // FUNGSI VALIDASI DETAIL (UNTUK TOASTER SPESIFIK)
+                    // =====================================================
+                    function getPenawaranValidationErrors() {
+                        const errors = [];
+
+                        if (!sections || sections.length === 0) {
+                            errors.push('Belum ada baris data yang diisi di Penawaran');
+                            return errors;
+                        }
+
+                        sections.forEach((section, sectionIdx) => {
+                            const sectionElement = document.getElementById(section.id);
+                            if (!sectionElement || !section.spreadsheet) return;
+
+                            const namaSectionInput = sectionElement.querySelector('.nama-section-input');
+                            const rawData = section.spreadsheet.getData() || [];
+
+                            const sectionNumber = sectionIdx + 1;
+
+                            // Nama section (kolom Section) wajib
+                            if (!namaSectionInput || !namaSectionInput.value || namaSectionInput.value.trim() === '') {
+                                errors.push(`Section ${sectionNumber} Kolom Section belum diisi`);
+                            }
+
+                            // Kalau semua baris benar-benar kosong (tidak ada satu cell pun yang terisi),
+                            // langsung anggap section ini belum punya data sama sekali
+                            const allRowsEmpty = rawData.length === 0 || rawData.every(row => {
+                                if (!row) return true;
+                                return row.every(cell => {
+                                    if (cell === null || cell === undefined) return true;
+                                    const text = String(cell).trim();
+                                    // Anggap kosong jika string kosong / 0 / false dan nilai numeriknya 0
+                                    if (text === '' || text === '0' || text.toLowerCase() === 'false') {
+                                        return true;
+                                    }
+                                    return parseNumber(cell) === 0;
+                                });
+                            });
+
+                            if (allRowsEmpty) {
+                                errors.push(`Section ${sectionNumber} belum ada baris data yang diisi`);
+                                return; // tidak perlu cek per kolom
+                            }
+
+                            // Definisi kolom yang wajib per baris (hanya akan dicek jika ada baris berisi)
+                            // Index: 0=No, 1=Tipe, 2=Deskripsi, 3=QTY, 4=Satuan, 5=Harga Satuan, 6=Harga Total, 7=HPP, 8=Mitra, 9=Judul, 10=Profit, 11=Warna, 12=Added Cost, 13=Keterangan
+                            const requiredDefs = [
+                                { index: 1, name: 'Tipe', type: 'numberOrText' },
+                                { index: 2, name: 'Deskripsi', type: 'text' },
+                                { index: 3, name: 'Qty', type: 'numberPositive' },
+                                { index: 4, name: 'Satuan', type: 'text' },
+                                { index: 7, name: 'Hpp', type: 'numberPositive' },
+                                { index: 10, name: 'Profit', type: 'numberPositive' },
+                            ];
+
+                            const missingColumns = new Set();
+
+                            rawData.forEach(row => {
+                                if (!row) return;
+
+                                // Anggap hanya baris yang punya isi (minimal satu kolom ada isi) yang perlu dicek detail
+                                const hasData = row.some(cell => {
+                                    if (cell === null || cell === undefined) return false;
+                                    const text = String(cell).trim();
+                                    if (text !== '' && text.toLowerCase() !== 'false') return true;
+                                    return parseNumber(cell) > 0;
+                                });
+
+                                if (!hasData) return;
+
+                                requiredDefs.forEach(def => {
+                                    if (missingColumns.has(def.name)) return;
+                                    const cellValue = row[def.index];
+
+                                    if (def.type === 'text') {
+                                        if (!cellValue || String(cellValue).trim() === '') {
+                                            missingColumns.add(def.name);
+                                        }
+                                    } else if (def.type === 'numberPositive') {
+                                        if (parseNumber(cellValue) <= 0) {
+                                            missingColumns.add(def.name);
+                                        }
+                                    } else if (def.type === 'numberOrText') {
+                                        if (!cellValue || String(cellValue).trim() === '') {
+                                            missingColumns.add(def.name);
+                                        }
+                                    }
+                                });
+                            });
+
+                            missingColumns.forEach(colName => {
+                                errors.push(`Section ${sectionNumber} Kolom ${colName} belum diisi`);
+                            });
+                        });
+
+                        return errors;
+                    }
+
+                    function getJasaValidationErrors() {
+                        const errors = [];
+
+                        if (!jasaSections || jasaSections.length === 0) {
+                            errors.push('Belum ada baris data yang diisi di Rincian Jasa');
+                            return errors;
+                        }
+
+                        jasaSections.forEach((section, sectionIdx) => {
+                            const sectionElement = document.getElementById(section.id);
+                            if (!sectionElement || !section.spreadsheet) return;
+
+                            const namaSectionInput = sectionElement.querySelector('.nama-section-input');
+                            const rawData = section.spreadsheet.getData() || [];
+
+                            const sectionNumber = sectionIdx + 1;
+
+                            // Nama section jasa wajib
+                            if (!namaSectionInput || !namaSectionInput.value || namaSectionInput.value.trim() === '') {
+                                errors.push(`Section Jasa ${sectionNumber} Kolom Section belum diisi`);
+                            }
+
+                            // Jika semua baris kosong total, langsung error dan skip detail
+                            const allRowsEmpty = rawData.length === 0 || rawData.every(row => {
+                                if (!row) return true;
+                                return row.every(cell => {
+                                    if (cell === null || cell === undefined) return true;
+                                    const text = String(cell).trim();
+                                    if (text === '' || text === '0' || text.toLowerCase() === 'false') {
+                                        return true;
+                                    }
+                                    return parseNumber(cell) === 0;
+                                });
+                            });
+
+                            if (allRowsEmpty) {
+                                errors.push(`Section Jasa ${sectionNumber} belum ada baris data yang diisi`);
+                                return;
+                            }
+
+                            let missingDeskripsi = false;
+                            let missingUnit = false;
+
+                            rawData.forEach(row => {
+                                if (!row) return;
+
+                                const deskripsi = String(row[1] || '').trim();
+                                const unit = parseNumber(row[5]);
+
+                                // Skip baris yang benar-benar kosong
+                                const isRowEmpty = (!deskripsi && (!unit || unit === 0));
+                                if (isRowEmpty) return;
+
+                                if (!deskripsi) missingDeskripsi = true;
+                                if (!unit || isNaN(unit) || unit <= 0) missingUnit = true;
+                            });
+
+                            if (missingDeskripsi) {
+                                errors.push(`Section Jasa ${sectionNumber} Kolom Deskripsi belum diisi`);
+                            }
+                            if (missingUnit) {
+                                errors.push(`Section Jasa ${sectionNumber} Kolom Unit belum diisi`);
+                            }
+                        });
+
+                        return errors;
+                    }
+
+                    // Expose untuk dipakai di slider verifikasi
+                    window.getPenawaranValidationErrors = getPenawaranValidationErrors;
+                    window.getJasaValidationErrors = getJasaValidationErrors;
+
+                    // =====================================================
                     // TAB SWITCHING LOGIC
                     // =====================================================
 
@@ -1602,21 +1812,23 @@
                             const targetTab = this.getAttribute('data-tab');
 
                             // Validasi sebelum switch tab
-                            if (targetTab === 'Jasa' && !penawaranSaved) {
+                            if (targetTab === 'Jasa' && showPenawaran && !penawaranSaved) {
                                 if (!isPenawaranComplete()) {
                                     notyf.error('⚠️ Silakan lengkapi dan simpan data Penawaran terlebih dahulu!');
                                     return;
                                 }
                             }
-                            
-                            if (targetTab === 'preview' && (!penawaranSaved || !jasaSaved)) {
+
+                            if (targetTab === 'preview') {
                                 let errorMsg = '';
-                                if (!penawaranSaved) {
-                                    errorMsg = '⚠️ Silakan lengkapi dan simpan data Penawaran terlebih dahulu!';
-                                } else if (!jasaSaved) {
-                                    errorMsg = '⚠️ Silakan lengkapi dan simpan data Rincian Jasa terlebih dahulu!';
+                                if (!tipe) {
+                                    if (!penawaranSaved) errorMsg = '⚠️ Silakan lengkapi dan simpan data Penawaran terlebih dahulu!';
+                                    else if (!jasaSaved) errorMsg = '⚠️ Silakan lengkapi dan simpan data Rincian Jasa terlebih dahulu!';
+                                } else if (tipe === 'soc') {
+                                    if (!jasaSaved) errorMsg = '⚠️ Silakan lengkapi dan simpan data Rincian Jasa terlebih dahulu!';
+                                } else if (tipe === 'barang') {
+                                    if (!penawaranSaved) errorMsg = '⚠️ Silakan lengkapi dan simpan data Penawaran terlebih dahulu!';
                                 }
-                                
                                 if (errorMsg) {
                                     notyf.error(errorMsg);
                                     return;
@@ -1731,8 +1943,10 @@
                                     updateTabStates();
                                 }
 
-                                document.getElementById('jasaProfitInput').value = jasaProfit;
-                                document.getElementById('jasaPphInput').value = jasaPph;
+                                const jasaProfitInputEl = document.getElementById('jasaProfitInput');
+                                if (jasaProfitInputEl) jasaProfitInputEl.value = jasaProfit;
+                                const jasaPphInputEl = document.getElementById('jasaPphInput');
+                                if (jasaPphInputEl) jasaPphInputEl.value = jasaPph;
 
                                 if (jasaHasExistingData) {
                                     // VIEW MODE
@@ -1767,23 +1981,32 @@
                         });
                     }
 
-                    document.getElementById('jasaAddSectionBtn').addEventListener('click', () => {
-                        createJasaSection(null, jasaIsEditMode);
-                    });
+                    const jasaAddSectionBtn = document.getElementById('jasaAddSectionBtn');
+                    if (jasaAddSectionBtn) {
+                        jasaAddSectionBtn.addEventListener('click', () => {
+                            createJasaSection(null, jasaIsEditMode);
+                        });
+                    }
 
-                    document.getElementById('jasaEditModeBtn').addEventListener('click', () => {
-                        if (jasaSections.length === 0) {
-                            // buat satu section kosong ketika belum ada data
-                            createJasaSection(null, true);
-                        }
-                        toggleJasaEditMode(true);
-                    });
+                    const jasaEditModeBtnMain = document.getElementById('jasaEditModeBtn');
+                    if (jasaEditModeBtnMain) {
+                        jasaEditModeBtnMain.addEventListener('click', () => {
+                            if (jasaSections.length === 0) {
+                                // buat satu section kosong ketika belum ada data
+                                createJasaSection(null, true);
+                            }
+                            toggleJasaEditMode(true);
+                        });
+                    }
 
-                    document.getElementById('jasaCancelEditBtn').addEventListener('click', () => {
-                        if (confirm('Batalkan perubahan dan kembali ke mode view?')) {
-                            window.location.reload();
-                        }
-                    });
+                    const jasaCancelEditBtnMain = document.getElementById('jasaCancelEditBtn');
+                    if (jasaCancelEditBtnMain) {
+                        jasaCancelEditBtnMain.addEventListener('click', () => {
+                            if (confirm('Batalkan perubahan dan kembali ke mode view?')) {
+                                window.location.reload();
+                            }
+                        });
+                    }
 
                     function toggleJasaEditMode(enable) {
                         jasaIsEditMode = enable;
@@ -1794,21 +2017,23 @@
                         const btnAdd = document.getElementById('jasaAddSectionBtn');
 
                         if (jasaHasExistingData) {
-                            btnEdit.classList.toggle('hidden', enable);
-                            btnCancel.classList.toggle('hidden', !enable);
+                            if (btnEdit) btnEdit.classList.toggle('hidden', enable);
+                            if (btnCancel) btnCancel.classList.toggle('hidden', !enable);
                         } else {
                             // Tidak ada data → tidak perlu tombol Edit / Batal
-                            btnEdit.classList.add('hidden');
-                            btnCancel.classList.add('hidden');
+                            if (btnEdit) btnEdit.classList.add('hidden');
+                            if (btnCancel) btnCancel.classList.add('hidden');
                         }
 
                         // Save selalu tampil (sama seperti Penawaran)
-                        btnSave.classList.remove('hidden');
+                        if (btnSave) btnSave.classList.remove('hidden');
                         // Add Section hanya saat edit
-                        btnAdd.classList.toggle('hidden', !enable);
+                        if (btnAdd) btnAdd.classList.toggle('hidden', !enable);
 
-                        document.getElementById('jasaProfitInput').disabled = !enable;
-                        document.getElementById('jasaPphInput').disabled = !enable;
+                        const profitInput = document.getElementById('jasaProfitInput');
+                        if (profitInput) profitInput.disabled = !enable;
+                        const pphInput = document.getElementById('jasaPphInput');
+                        if (pphInput) pphInput.disabled = !enable;
 
                         jasaSections.forEach(section => {
                             const sectionElement = document.getElementById(section.id);
@@ -1832,15 +2057,19 @@
                         });
                     }
 
-                    document.getElementById('jasaEditModeBtn').addEventListener('click', () => {
-                        toggleJasaEditMode(true);
-                    });
+                    if (jasaEditModeBtnMain) {
+                        jasaEditModeBtnMain.addEventListener('click', () => {
+                            toggleJasaEditMode(true);
+                        });
+                    }
 
-                    document.getElementById('jasaCancelEditBtn').addEventListener('click', () => {
-                        if (confirm('Batalkan perubahan dan kembali ke mode view?')) {
-                            window.location.reload();
-                        }
-                    });
+                    if (jasaCancelEditBtnMain) {
+                        jasaCancelEditBtnMain.addEventListener('click', () => {
+                            if (confirm('Batalkan perubahan dan kembali ke mode view?')) {
+                                window.location.reload();
+                            }
+                        });
+                    }
 
                     function recalcJasaRow(spreadsheet, rowIndex) {
                         // Ambil data fresh dari spreadsheet
@@ -1908,9 +2137,10 @@
                             row.orang || 0,
                             row.unit || 0,
                             row.total || 0,
+                            row.id_jasa_detail || null
                         ]) : [
-                            ['', '', 0, 0, 0, 0, 0],
-                            ['', '', 0, 0, 0, 0, 0],
+                            ['', '', 0, 0, 0, 0, 0, null],
+                            ['', '', 0, 0, 0, 0, 0, null],
                         ];
 
                         const sectionHTML = `
@@ -1998,6 +2228,11 @@
                                 mask: 'Rp #.##0',
                                 decimal: ',',
                             },
+                            {
+                                title: 'ID',
+                                width: 0,
+                                type: 'hidden'
+                            },
                             ],
                             tableOverflow: true,
                             tableWidth: '100%',
@@ -2023,7 +2258,7 @@
                         const sectionElement = document.getElementById(sectionId);
 
                         sectionElement.querySelector('.add-row-btn').addEventListener('click', () => {
-                            spreadsheet.insertRow();
+                            spreadsheet.insertRow(['', '', 0, 0, 0, 0, 0, null]);
                         });
 
                         sectionElement.querySelector('.delete-section-btn').addEventListener('click', () => {
@@ -2144,7 +2379,8 @@
                         if (overallGrandEl) overallGrandEl.textContent = totalGrand.toLocaleString('id-ID');
                         
                         // Hitung BPJS dan Grand Total
-                        const useBpjs = document.getElementById('jasaUseBpjs').checked;
+                        const jasaUseBpjsEl = document.getElementById('jasaUseBpjs');
+                        const useBpjs = jasaUseBpjsEl ? jasaUseBpjsEl.checked : false;
                         const bpjsPercent = {{ $versionRow->jasa_bpjsk_percent ?? 0 }};
                         
                         let bpjsValue = 0;
@@ -2172,38 +2408,64 @@
                     }
 
                     // Input profit jasa - hanya untuk informasi, tidak mempengaruhi perhitungan
-                    document.getElementById('jasaProfitInput').addEventListener('input', function () {
-                        jasaProfit = parseNumber(this.value) || 0;
-                        jasaSections.forEach(s => computeJasaSectionTotals(s));
-                    });
+                    const jasaProfitInput = document.getElementById('jasaProfitInput');
+                    if (jasaProfitInput) {
+                        jasaProfitInput.addEventListener('input', function () {
+                            jasaProfit = parseNumber(this.value) || 0;
+                            jasaSections.forEach(s => computeJasaSectionTotals(s));
+                        });
+                    }
 
-                    document.getElementById('jasaPphInput').addEventListener('input', function () {
-                        jasaPph = parseNumber(this.value) || 0;
-                        jasaSections.forEach(s => computeJasaSectionTotals(s));
-                    });
+                    const jasaPphInput = document.getElementById('jasaPphInput');
+                    if (jasaPphInput) {
+                        jasaPphInput.addEventListener('input', function () {
+                            jasaPph = parseNumber(this.value) || 0;
+                            jasaSections.forEach(s => computeJasaSectionTotals(s));
+                        });
+                    }
 
                     // Switch untuk BPJS
-                    document.getElementById('jasaUseBpjs').addEventListener('change', function () {
-                        updateJasaOverallSummary();
-                    });
+                    const jasaUseBpjsSwitch = document.getElementById('jasaUseBpjs');
+                    if (jasaUseBpjsSwitch) {
+                        jasaUseBpjsSwitch.addEventListener('change', function () {
+                            updateJasaOverallSummary();
+                        });
+                    }
 
                     function dedupeSectionData(section) {
                         const seen = new Set();
                         const filtered = [];
-                        (section.data || []).forEach(r => {
-                            const key =
-                                `${section.nama_section || ''}||${String(r.no || '')}||${String((r.deskripsi || '').trim())}||${String(r.total || '')}`;
-                            if (!seen.has(key)) {
-                                seen.add(key);
-                                filtered.push(r);
+                        (section.data || []).forEach((r, index) => {
+                            // Jangan duplikasi jika row kosong
+                            const isEmpty = !r.deskripsi && !r.no && !r.vol && !r.hari && !r.orang && !r.unit;
+                            if (isEmpty && !r.id_jasa_detail) {
+                                return; // Skip row yang benar-benar kosong
+                            }
+                            
+                            // Untuk data yang ada ID (existing data), gunakan ID sebagai unique key
+                            if (r.id_jasa_detail && r.id_jasa_detail !== null) {
+                                const idKey = `existing_${r.id_jasa_detail}`;
+                                if (!seen.has(idKey)) {
+                                    seen.add(idKey);
+                                    filtered.push(r);
+                                }
+                            } else {
+                                // Untuk data baru (tanpa ID), gunakan kombinasi field + index untuk uniqueness
+                                const newKey = `new_${section.nama_section || ''}_${String(r.no || '')}_${String((r.deskripsi || '').trim())}_${String(r.vol || '')}_${String(r.hari || '')}_${String(r.orang || '')}_${String(r.unit || '')}_${index}`;
+                                if (!seen.has(newKey)) {
+                                    seen.add(newKey);
+                                    filtered.push(r);
+                                }
                             }
                         });
                         return filtered;
                     }
 
                     // Tombol simpan jasa
-                    document.getElementById('jasaSaveAllBtn').addEventListener('click', () => {
-                        const btn = document.getElementById('jasaSaveAllBtn');
+                    const jasaSaveAllBtn = document.getElementById('jasaSaveAllBtn');
+                    if (jasaSaveAllBtn) {
+                        jasaSaveAllBtn.addEventListener('click', () => {
+                            const btn = document.getElementById('jasaSaveAllBtn');
                         
                         // Validasi sebelum menyimpan
                         let validationErrors = [];
@@ -2270,6 +2532,26 @@
                         btn.innerHTML = "⏳ Menyimpan...";
                         btn.disabled = true;
 
+                        // Beri delay kecil untuk memastikan spreadsheet data ter-update
+                        setTimeout(() => {
+                            collectAndSaveJasaData(btn);
+                        }, 100);
+                        });
+                    }
+
+                    function collectAndSaveJasaData(btn) {
+                        // Force recalculation of all rows before collecting data
+                        jasaSections.forEach(section => {
+                            const data = section.spreadsheet.getData();
+                            for (let i = 0; i < data.length; i++) {
+                                try {
+                                    recalcJasaRow(section.spreadsheet, i);
+                                } catch(e) {
+                                    console.log('Recalc failed for row', i, 'in section', section.id, e);
+                                }
+                            }
+                        });
+
                         const allSectionsData = jasaSections.map(section => {
                             const sectionElement = document.getElementById(section.id);
                             const namaSectionInput = sectionElement.querySelector('.nama-section-input');
@@ -2287,21 +2569,23 @@
                                 id_jasa_detail: row[7] || null
                             }));
 
+                            const processedData = dedupeSectionData({
+                                nama_section: namaSectionInput.value,
+                                data
+                            });
+
                             return {
                                 nama_section: namaSectionInput.value,
                                 pembulatan: parseInt(pembulatanInput.value) || 0,
-                                data: dedupeSectionData({
-                                    nama_section: namaSectionInput.value,
-                                    data
-                                })
+                                data: processedData
                             };
                         });
 
                         console.log('💾 Saving jasa data:', {
                             penawaran_id: {{ $penawaran->id_penawaran }},
-                            profit: parseNumber(document.getElementById('jasaProfitInput').value),
-                            pph: parseNumber(document.getElementById('jasaPphInput').value),
-                            use_bpjs: document.getElementById('jasaUseBpjs').checked,
+                            profit: parseNumber((document.getElementById('jasaProfitInput') || {}).value),
+                            pph: parseNumber((document.getElementById('jasaPphInput') || {}).value),
+                            use_bpjs: (document.getElementById('jasaUseBpjs') || {checked:false}).checked,
                             sections: allSectionsData
                         });
 
@@ -2313,14 +2597,12 @@
                             },
                             body: JSON.stringify({
                                 penawaran_id: {{ $penawaran->id_penawaran }},
-                                profit: parseNumber(document.getElementById('jasaProfitInput')
-                                    .value) || 0,
-                                pph: parseNumber(document.getElementById('jasaPphInput').value) ||
-                                    0,
-                                use_bpjs: document.getElementById('jasaUseBpjs').checked ? 1 : 0,
+                                profit: parseNumber(((document.getElementById('jasaProfitInput') || {})).value) || 0,
+                                pph: parseNumber(((document.getElementById('jasaPphInput') || {})).value) || 0,
+                                use_bpjs: ((document.getElementById('jasaUseBpjs') || {checked:false}).checked) ? 1 : 0,
                                 sections: allSectionsData,
                                 version: {{ $activeVersion ?? 0 }}
-                                            })
+                            })
                         })
                             .then(res => res.json())
                             .then(data => {
@@ -2340,7 +2622,7 @@
                                     btn.disabled = false;
                                 }, 2000);
                             });
-                    });
+                    }
 
                     // =====================================================
                     // FUNGSI PENAWARAN
@@ -2359,8 +2641,9 @@
                         let hpp = parseNumber(row[7]);
                         let qty = parseNumber(row[3]);
                         let isMitra = row[8] ? true : false;
-                        let profitRaw = parseNumber(row[9]) || 0;
-                        let addedCost = parseNumber(row[11]) || 0;
+                        let isJudul = row[9] ? true : false;
+                        let profitRaw = parseNumber(row[10]) || 0;
+                        let addedCost = parseNumber(row[12]) || 0;
 
                         let profitDecimal = profitRaw;
                         if (profitRaw > 1) profitDecimal = profitRaw / 100;
@@ -2368,7 +2651,8 @@
                         let hargaSatuan = 0;
                         let total = 0;
 
-                        if (isMitra) {
+                        // Jika is_mitra atau is_judul dichecklist, harga jadi 0
+                        if (isMitra || isJudul) {
                             hargaSatuan = 0;
                             total = 0;
                         } else if (profitDecimal > 0 && profitDecimal < 1) {
@@ -2399,8 +2683,9 @@
                                 const hpp = parseNumber(row[7]);
                                 const qty = parseNumber(row[3]);
                                 const isMitra = row[8] ? true : false;
-                                const profitRaw = parseNumber(row[9]) || 0;
-                                const addedCost = parseNumber(row[11]) || 0;
+                                const isJudul = row[9] ? true : false;
+                                const profitRaw = parseNumber(row[10]) || 0;
+                                const addedCost = parseNumber(row[12]) || 0;
 
                                 let profitDecimal = profitRaw;
                                 if (profitRaw > 1) profitDecimal = profitRaw / 100;
@@ -2408,7 +2693,8 @@
                                 let hargaSatuan = 0;
                                 let total = 0;
 
-                                if (isMitra) {
+                                // Jika is_mitra atau is_judul dichecklist, harga jadi 0
+                                if (isMitra || isJudul) {
                                     hargaSatuan = 0;
                                     total = 0;
                                 } else if (profitDecimal > 0 && profitDecimal < 1) {
@@ -2440,16 +2726,21 @@
                     function toggleEditMode(enable) {
                         isEditMode = enable;
 
+                        const editBtn = document.getElementById('editModeBtn');
+                        const cancelBtn = document.getElementById('cancelEditBtn');
+                        const saveBtn = document.getElementById('saveAllBtn');
+                        const addBtn = document.getElementById('addSectionBtn');
+
                         if (hasExistingData) {
-                            document.getElementById('editModeBtn').classList.toggle('hidden', enable);
-                            document.getElementById('cancelEditBtn').classList.toggle('hidden', !enable);
+                            if (editBtn) editBtn.classList.toggle('hidden', enable);
+                            if (cancelBtn) cancelBtn.classList.toggle('hidden', !enable);
                         } else {
-                            document.getElementById('editModeBtn').classList.add('hidden');
-                            document.getElementById('cancelEditBtn').classList.add('hidden');
+                            if (editBtn) editBtn.classList.add('hidden');
+                            if (cancelBtn) cancelBtn.classList.add('hidden');
                         }
 
-                        document.getElementById('saveAllBtn').classList.remove('hidden');
-                        document.getElementById('addSectionBtn').classList.toggle('hidden', !enable);
+                        if (saveBtn) saveBtn.classList.remove('hidden');
+                        if (addBtn) addBtn.classList.toggle('hidden', !enable);
 
                         sections.forEach(section => {
                             const sectionElement = document.getElementById(section.id);
@@ -2504,13 +2795,14 @@
                             row.harga_total || 0,
                             row.hpp || 0,
                             row.is_mitra ? true : false,
+                            row.is_judul ? true : false,
                             row.profit || 0,
                             row.color_code || 1,
                             row.added_cost || 0,
                             row.delivery_time || ''
                         ]) : [
-                            ['', '', '', 0, '', 0, 0, 0, false, 0, 1, 0, ''],
-                            ['', '', '', 0, '', 0, 0, 0, false, 0, 1, 0, ''],
+                            ['', '', '', 0, '', 0, 0, 0, false, false, 0, 1, 0, ''],
+                            ['', '', '', 0, '', 0, 0, 0, false, false, 0, 1, 0, ''],
                         ];
 
                         const sectionHTML = `
@@ -2583,6 +2875,7 @@
                                     decimal: ','
                                 },
                                 { title: 'Mitra', width: 80, type: 'checkbox' },
+                                { title: 'Judul', width: 80, type: 'checkbox' },
                                 {
                                     title: 'Profit (%)',
                                     width: 100,
@@ -2629,15 +2922,16 @@
                                     rowIndex,
                                     value,
                                     columnName: ['No', 'Tipe', 'Deskripsi', 'QTY', 'Satuan',
-                                        'Harga Satuan', 'Harga Total', 'HPP', 'Mitra', 'Profit (%)', 'Warna', 'Added Cost', 'Keterangan'
+                                        'Harga Satuan', 'Harga Total', 'HPP', 'Mitra', 'Judul', 'Profit (%)', 'Warna', 'Added Cost', 'Keterangan'
                                     ][colIndex]
                                 });
 
-                                if (colIndex == 3 || colIndex == 7 || colIndex == 8 || colIndex == 9 || colIndex == 11) {
+                                // colIndex: 3=QTY, 7=HPP, 8=Mitra, 9=Judul, 10=Profit, 12=Added Cost
+                                if (colIndex == 3 || colIndex == 7 || colIndex == 8 || colIndex == 9 || colIndex == 10 || colIndex == 12) {
                                     console.log('✨ Triggering recalculateRow with new value:', value);
                                     recalculateRow(spreadsheet, rowIndex, colIndex, value);
                                 } else {
-                                    console.log('⏭️ Skip calculation (column not QTY/HPP/Mitra/Profit/Added Cost)');
+                                    console.log('⏭️ Skip calculation (column not QTY/HPP/Mitra/Judul/Profit/Added Cost)');
                                 }
                             },
                             onselection: function (instance, x1, y1, x2, y2, origin) {
@@ -2740,14 +3034,18 @@
                         });
 
                         // Update Total (sum of section subtotals)
-                        document.getElementById('totalKeseluruhan').textContent = totalKeseluruhan.toLocaleString('id-ID');
+                        const totalKesEl = document.getElementById('totalKeseluruhan');
+                        if (totalKesEl) totalKesEl.textContent = totalKeseluruhan.toLocaleString('id-ID');
 
                         // read PPN
-                        const ppnPersen = parseNumber(document.getElementById('ppnInput').value) || 0;
+                        const ppnInputEl = document.getElementById('ppnInput');
+                        const ppnPersen = ppnInputEl ? (parseNumber(ppnInputEl.value) || 0) : 0;
 
                         // read Best Price toggle and value
-                        const useBest = document.getElementById('isBestPrice').checked;
-                        const bestPriceRaw = document.getElementById('bestPriceInput').value || '0';
+                        const isBestEl = document.getElementById('isBestPrice');
+                        const useBest = isBestEl ? !!isBestEl.checked : false;
+                        const bestInputEl = document.getElementById('bestPriceInput');
+                        const bestPriceRaw = bestInputEl ? (bestInputEl.value || '0') : '0';
                         const bestPrice = parseNumber(bestPriceRaw);
 
                         // base amount for PPN and grand total
@@ -2760,20 +3058,26 @@
                         currentGrandTotal = Math.round(grandTotal);
 
                         // update PPN display
-                        document.getElementById('ppnPersenDisplay').textContent = ppnPersen;
-                        document.getElementById('ppnNominal').textContent = ppnNominal.toLocaleString('id-ID');
+                        const ppnPersenDisplayEl = document.getElementById('ppnPersenDisplay');
+                        if (ppnPersenDisplayEl) ppnPersenDisplayEl.textContent = ppnPersen;
+                        const ppnNominalEl = document.getElementById('ppnNominal');
+                        if (ppnNominalEl) ppnNominalEl.textContent = ppnNominal.toLocaleString('id-ID');
 
                         // show/hide best price display row
                         const bestRow = document.getElementById('bestPriceDisplayRow');
-                        if (useBest) {
-                            bestRow.style.display = 'flex';
-                            document.getElementById('bestPriceDisplay').textContent = bestPrice.toLocaleString('id-ID');
-                        } else {
-                            bestRow.style.display = 'none';
+                        if (bestRow) {
+                            if (useBest) {
+                                bestRow.style.display = 'flex';
+                                const bestDispEl = document.getElementById('bestPriceDisplay');
+                                if (bestDispEl) bestDispEl.textContent = bestPrice.toLocaleString('id-ID');
+                            } else {
+                                bestRow.style.display = 'none';
+                            }
                         }
 
                         // update grand total (based on baseAmount)
-                        document.getElementById('grandTotal').textContent = grandTotal.toLocaleString('id-ID');
+                        const grandTotalEl = document.getElementById('grandTotal');
+                        if (grandTotalEl) grandTotalEl.textContent = grandTotal.toLocaleString('id-ID');
 
                         console.log('💰 Total Summary:', {
                             totalKeseluruhan,
@@ -2803,12 +3107,13 @@
                         updateTotalKeseluruhan();
                     }
 
-                    // Event listener untuk perubahan PPN
-                    document.getElementById('ppnInput').addEventListener('input', updateTotalKeseluruhan);
-                    document
-                        .getElementById('isBestPrice').addEventListener('change', updateTotalKeseluruhan);
-                    document.getElementById(
-                        'bestPriceInput').addEventListener('input', updateTotalKeseluruhan);
+                    // Event listener untuk perubahan PPN (guard when Penawaran UI exists)
+                    const ppnInput = document.getElementById('ppnInput');
+                    if (ppnInput) ppnInput.addEventListener('input', updateTotalKeseluruhan);
+                    const isBestChk = document.getElementById('isBestPrice');
+                    if (isBestChk) isBestChk.addEventListener('change', updateTotalKeseluruhan);
+                    const bestPriceInput = document.getElementById('bestPriceInput');
+                    if (bestPriceInput) bestPriceInput.addEventListener('input', updateTotalKeseluruhan);
 
                     function setBestPriceInputState() {
                         const chk = document.getElementById('isBestPrice');
@@ -2833,30 +3138,38 @@
                     setBestPriceInputState();
 
                     // ganti listener existing supaya juga set state + update totals
-                    document.getElementById('isBestPrice').addEventListener('change', function () {
-                        setBestPriceInputState();
-                        updateTotalKeseluruhan();
-                    });
+                    if (isBestChk) {
+                        isBestChk.addEventListener('change', function () {
+                            setBestPriceInputState();
+                            updateTotalKeseluruhan();
+                        });
+                    }
 
-                    document.getElementById('bestPriceInput').addEventListener('input', updateTotalKeseluruhan);
+                    if (bestPriceInput) {
+                        bestPriceInput.addEventListener('input', updateTotalKeseluruhan);
+                    }
 
                     // =====================================================
                     // EVENT LISTENERS PENAWARAN
                     // =====================================================
 
-                    document.getElementById('addSectionBtn').addEventListener('click', () => createSection());
+                    const addSectionBtn = document.getElementById('addSectionBtn');
+                    if (addSectionBtn) addSectionBtn.addEventListener('click', () => createSection());
 
-                    document.getElementById('editModeBtn').addEventListener('click', () => {
+                    const editModeBtn = document.getElementById('editModeBtn');
+                    if (editModeBtn) editModeBtn.addEventListener('click', () => {
                         toggleEditMode(true);
                     });
 
-                    document.getElementById('cancelEditBtn').addEventListener('click', () => {
+                    const cancelEditBtn = document.getElementById('cancelEditBtn');
+                    if (cancelEditBtn) cancelEditBtn.addEventListener('click', () => {
                         if (confirm('Batalkan perubahan dan kembali ke mode view?')) {
                             window.location.reload();
                         }
                     });
 
-                    document.getElementById('saveAllBtn').addEventListener('click', function () {
+                    const saveAllBtn = document.getElementById('saveAllBtn');
+                    if (saveAllBtn) saveAllBtn.addEventListener('click', function () {
                         const btn = this;
                         btn.innerHTML = "⏳ Menyimpan...";
                         btn.disabled = true;
@@ -2877,12 +3190,14 @@
                         }
 
                         // Validasi baris data di setiap section
-                        const requiredColumns = [1, 2, 3, 4, 7, 9, 10]; // Tipe, Deskripsi, QTY, Satuan, HPP, Profit, Warna
+                        // Index: 0=No, 1=Tipe, 2=Deskripsi, 3=QTY, 4=Satuan, 5=Harga Satuan, 6=Harga Total, 7=HPP, 8=Mitra, 9=Judul, 10=Profit, 11=Warna, 12=Added Cost, 13=Keterangan
+                        const requiredColumns = [1, 2, 3, 4, 7, 10, 11]; // Tipe, Deskripsi, QTY, Satuan, HPP, Profit, Warna
                         const columnNames = ['Tipe', 'Deskripsi', 'QTY', 'Satuan', 'HPP', 'Profit (%)', 'Warna'];
                         
                         for (let sectionIdx = 0; sectionIdx < sections.length; sectionIdx++) {
                             const section = sections[sectionIdx];
                             const rawData = section.spreadsheet.getData();
+                            let sectionHasData = false;
                             
                             for (let rowIdx = 0; rowIdx < rawData.length; rowIdx++) {
                                 const row = rawData[rowIdx];
@@ -2893,17 +3208,18 @@
                                     // Check if has text content in key fields
                                     if ([0, 1, 2, 4].includes(idx)) return cell && String(cell).trim() !== ''; // No, Tipe, Deskripsi, Satuan
                                     // Check if has numeric values
-                                    if ([3, 5, 6, 7, 11].includes(idx)) return parseNumber(cell) > 0; // QTY, HargaSatuan, HargaTotal, HPP, AddedCost
+                                    if ([3, 5, 6, 7, 12].includes(idx)) return parseNumber(cell) > 0; // QTY, HargaSatuan, HargaTotal, HPP, AddedCost
                                     return false;
                                 });
                                 
                                 if (!hasSignificantData) continue; // Skip completely empty rows
+                                sectionHasData = true;
                                 
                                 // Check required columns only for rows with data
                                 requiredColumns.forEach((colIdx, posIdx) => {
                                     const cellValue = String(row[colIdx] || '').trim();
                                     // For numeric fields (QTY, HPP, Profit), check if > 0
-                                    if ([3, 7, 9].includes(colIdx)) {
+                                    if ([3, 7, 10].includes(colIdx)) {
                                         if (parseNumber(cellValue) <= 0) {
                                             missingColumns.push(columnNames[posIdx]);
                                         }
@@ -2920,6 +3236,12 @@
                                         `Section ${sectionIdx + 1}, Baris ${rowIdx + 1}: Kolom ${missingColumns.join(', ')} tidak boleh kosong`
                                     );
                                 }
+                            }
+
+                            // Jika satu section sama sekali tidak punya baris berisi,
+                            // anggap tidak valid (harus ada minimal 1 baris data)
+                            if (!sectionHasData) {
+                                validationErrors.push(`Section ${sectionIdx + 1}: Minimal 1 baris data harus diisi`);
                             }
                         }
 
@@ -2982,10 +3304,11 @@
                                     harga_total: parseNumber(row[6]),
                                     hpp: parseNumber(row[7]),
                                     is_mitra: row[8] ? 1 : 0,
-                                    profit: parseNumber(row[9]) || 0,
-                                    color_code: row[10] || 1,
-                                    added_cost: parseNumber(row[11]) || 0,
-                                    delivery_time: row[12] || ''
+                                    is_judul: row[9] ? 1 : 0,
+                                    profit: parseNumber(row[10]) || 0,
+                                    color_code: row[11] || 1,
+                                    added_cost: parseNumber(row[12]) || 0,
+                                    delivery_time: row[13] || ''
                                 })).filter(row => 
                                     // Only keep rows that have actual data (not completely empty)
                                     row.no || row.tipe || row.deskripsi || row.satuan || row.delivery_time || 
@@ -3003,12 +3326,9 @@
                             },
                             body: JSON.stringify({
                                 penawaran_id: {{ $penawaran->id_penawaran }},
-                                ppn_persen: parseNumber(document.getElementById('ppnInput')
-                                    .value) || 11,
-                                is_best_price: document.getElementById('isBestPrice').checked ? 1 :
-                                    0,
-                                best_price: parseNumber(document.getElementById('bestPriceInput')
-                                    .value) || 0,
+                                ppn_persen: parseNumber(((document.getElementById('ppnInput') || {})).value) || 11,
+                                is_best_price: ((document.getElementById('isBestPrice') || {checked:false}).checked) ? 1 : 0,
+                                best_price: parseNumber(((document.getElementById('bestPriceInput') || {})).value || 0) || 0,
                                 sections: allSectionsData,
                                 version: {{ $activeVersion ? $activeVersion : 0 }}
                                             })
@@ -3225,26 +3545,55 @@
                     // INISIALISASI PENAWARAN
                     // =====================================================
 
-                    // Cek apakah ada draft tersimpan di localStorage
-                    const savedDraft = loadAutoSaveData();
-                    if (savedDraft && savedDraft.sections && savedDraft.sections.length > 0) {
-                        const savedTime = new Date(savedDraft.saved_at);
-                        const formattedTime = savedTime.toLocaleString('id-ID', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
+                    if (showPenawaran) {
+                        // Cek apakah ada draft tersimpan di localStorage
+                        const savedDraft = loadAutoSaveData();
+                        if (savedDraft && savedDraft.sections && savedDraft.sections.length > 0) {
+                            const savedTime = new Date(savedDraft.saved_at);
+                            const formattedTime = savedTime.toLocaleString('id-ID', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
 
-                        // Tampilkan modal konfirmasi restore
-                        if (confirm(`📂 Ditemukan draft tersimpan pada ${formattedTime}.\n\nApakah Anda ingin memulihkan draft tersebut?\n\nKlik OK untuk memulihkan, atau Cancel untuk mengabaikan dan menggunakan data dari database.`)) {
-                            restoreAutoSaveData(savedDraft);
+                            // Tampilkan modal konfirmasi restore
+                            if (confirm(`📂 Ditemukan draft tersimpan pada ${formattedTime}.\n\nApakah Anda ingin memulihkan draft tersebut?\n\nKlik OK untuk memulihkan, atau Cancel untuk mengabaikan dan menggunakan data dari database.`)) {
+                                restoreAutoSaveData(savedDraft);
+                            } else {
+                                // User memilih tidak restore, clear localStorage
+                                clearAutoSaveData();
+                                
+                                // Load dari database seperti biasa
+                                if (initialSections.length > 0) {
+                                    console.log('🗄️ Loading existing data...', {
+                                        totalSections: initialSections.length
+                                    });
+
+                                    initialSections.forEach((section, idx) => {
+                                        console.log(`Creating section ${idx + 1}:`, section);
+                                        createSection(section);
+                                    });
+
+                                    toggleEditMode(false);
+                                    console.log('🔒 Mode: VIEW (data exists)');
+
+                                    console.log('🚀 Initial calculation with per-row profit values');
+                                    recalculateAll();
+                                    
+                                    if (jasaInitialSections.length > 0) {
+                                        jasaSaved = true;
+                                    }
+                                } else {
+                                    console.log('🆕 Creating new empty section...');
+                                    createSection();
+                                    toggleEditMode(true);
+                                    console.log('✏️ Mode: EDIT (new data)');
+                                }
+                            }
                         } else {
-                            // User memilih tidak restore, clear localStorage
-                            clearAutoSaveData();
-                            
-                            // Load dari database seperti biasa
+                            // Tidak ada draft, load seperti biasa
                             if (initialSections.length > 0) {
                                 console.log('🗄️ Loading existing data...', {
                                     totalSections: initialSections.length
@@ -3258,9 +3607,11 @@
                                 toggleEditMode(false);
                                 console.log('🔒 Mode: VIEW (data exists)');
 
+                                // Trigger kalkulasi awal setelah semua section dibuat
                                 console.log('🚀 Initial calculation with per-row profit values');
                                 recalculateAll();
                                 
+                                // Jika ada data jasa, tandai sebagai saved
                                 if (jasaInitialSections.length > 0) {
                                     jasaSaved = true;
                                 }
@@ -3271,43 +3622,16 @@
                                 console.log('✏️ Mode: EDIT (new data)');
                             }
                         }
-                    } else {
-                        // Tidak ada draft, load seperti biasa
-                        if (initialSections.length > 0) {
-                            console.log('🗄️ Loading existing data...', {
-                                totalSections: initialSections.length
-                            });
-
-                            initialSections.forEach((section, idx) => {
-                                console.log(`Creating section ${idx + 1}:`, section);
-                                createSection(section);
-                            });
-
-                            toggleEditMode(false);
-                            console.log('🔒 Mode: VIEW (data exists)');
-
-                            // Trigger kalkulasi awal setelah semua section dibuat
-                            console.log('🚀 Initial calculation with per-row profit values');
-                            recalculateAll();
-                            
-                            // Jika ada data jasa, tandai sebagai saved
-                            if (jasaInitialSections.length > 0) {
-                                jasaSaved = true;
-                            }
-                        } else {
-                            console.log('🆕 Creating new empty section...');
-                            createSection();
-                            toggleEditMode(true);
-                            console.log('✏️ Mode: EDIT (new data)');
-                        }
                     }
                     
                     // Update tab states awal
                     updateTabStates();
                     
-                    // Load jasa data dan tunggu sampai selesai sebelum restore tab
-                    loadJasaData().then(() => {
-                        // Update tab states setelah jasa data loaded
+                    // Load jasa data jika tab Jasa tersedia, lalu restore tab
+                    const shouldLoadJasa = (typeof showJasa !== 'undefined') ? showJasa : true;
+                    const jasaLoadPromise = shouldLoadJasa ? loadJasaData() : Promise.resolve();
+                    jasaLoadPromise.then(() => {
+                        // Update tab states setelah (opsional) jasa data loaded
                         updateTabStates();
                         
                         // Restore active tab from localStorage
@@ -3636,9 +3960,49 @@
                                '{{ csrf_token() }}';
                     }
 
+                    // Validasi data Penawaran/Jasa sebelum slider bisa dipakai
+                    function validateBeforeSlider() {
+                        let errors = [];
+
+                        // Tipe kosong (default) -> semua aktif validasi
+                        if (!tipe) {
+                            if (typeof window.getPenawaranValidationErrors === 'function') {
+                                errors = errors.concat(window.getPenawaranValidationErrors());
+                            }
+                            if (typeof window.getJasaValidationErrors === 'function') {
+                                errors = errors.concat(window.getJasaValidationErrors());
+                            }
+                        } else if (tipe === 'barang') {
+                            // Tipe Barang -> hanya validasi Tab Penawaran
+                            if (typeof window.getPenawaranValidationErrors === 'function') {
+                                errors = errors.concat(window.getPenawaranValidationErrors());
+                            }
+                        } else if (tipe === 'soc') {
+                            // Tipe SOC -> hanya validasi Rincian Jasa
+                            if (typeof window.getJasaValidationErrors === 'function') {
+                                errors = errors.concat(window.getJasaValidationErrors());
+                            }
+                        }
+
+                        if (errors.length > 0) {
+                            const messageHtml = errors
+                                .map((e, idx) => `${idx + 1}. ${e}`)
+                                .join('<br>');
+
+                            notyf.error({
+                                message: `<strong>Validasi Data:</strong><br>${messageHtml}`,
+                                duration: 7000
+                            });
+                            return false;
+                        }
+
+                        return true;
+                    }
+
                     // Function to check validation
                     function checkPreviewValidation() {
-                        const ringkasanFilled = ringkasanInput && ringkasanInput.value.trim().length > 0;
+                        const requireRingkasan = typeof showJasa !== 'undefined' ? showJasa : true;
+                        const ringkasanFilled = !requireRingkasan || (ringkasanInput && ringkasanInput.value.trim().length > 0);
                         const notesFilled = noteInput && noteInput.value.trim().length > 0;
 
                         // Update validation UI
@@ -3669,7 +4033,7 @@
                             }
                         }
 
-                        return ringkasanFilled && notesFilled;
+                        return notesFilled && ringkasanFilled;
                     }
 
                     // Spring back animation
@@ -3782,8 +4146,13 @@
                     // Mouse events - DRAG ONLY WHEN MOVING MOUSE
                     slider.addEventListener('mousedown', (e) => {
                         if (hasRequestedVerification) return;
+                        // Validasi detail Penawaran/Jasa dulu
+                        if (!validateBeforeSlider()) return;
                         if (!checkPreviewValidation()) {
-                            notyf.error('⚠️ Silakan isi Ringkasan Jasa dan Notes terlebih dahulu!');
+                            const msg = (typeof showJasa !== 'undefined' && showJasa)
+                                ? '⚠️ Silakan isi Ringkasan Jasa dan Notes terlebih dahulu!'
+                                : '⚠️ Silakan isi Notes terlebih dahulu!';
+                            notyf.error(msg);
                             return;
                         }
                         isDragging = true;
@@ -3840,8 +4209,13 @@
                     // Touch events for mobile - DRAG ONLY WHEN TOUCHING
                     slider.addEventListener('touchstart', (e) => {
                         if (hasRequestedVerification) return;
+                        // Validasi detail Penawaran/Jasa dulu
+                        if (!validateBeforeSlider()) return;
                         if (!checkPreviewValidation()) {
-                            notyf.error('⚠️ Silakan isi Ringkasan Jasa dan Notes terlebih dahulu!');
+                            const msg = (typeof showJasa !== 'undefined' && showJasa)
+                                ? '⚠️ Silakan isi Ringkasan Jasa dan Notes terlebih dahulu!'
+                                : '⚠️ Silakan isi Notes terlebih dahulu!';
+                            notyf.error(msg);
                             return;
                         }
                         isDragging = true;

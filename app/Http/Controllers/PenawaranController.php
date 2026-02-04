@@ -251,6 +251,13 @@ class PenawaranController extends Controller
 
         $data = $request->all();
 
+        // Optional validation for tipe
+        $tipe = $request->input('tipe');
+        if (!in_array($tipe, ['soc', 'barang'])) {
+            $tipe = null;
+        }
+        $data['tipe'] = $tipe;
+
         // TAMBAH: Auto-set user_id dari Auth user
         $data['user_id'] = Auth::id();
 
@@ -310,6 +317,7 @@ class PenawaranController extends Controller
             'nama_perusahaan' => 'required|string|max:255',
             'lokasi' => 'required|string|max:255',
             'pic_perusahaan' => 'nullable|string|max:255',
+            'tipe' => 'nullable|in:soc,barang',
         ]);
         $penawaran->update($data);
 
@@ -518,6 +526,7 @@ class PenawaranController extends Controller
                         'harga_total' => $d->harga_total,
                         'hpp' => $d->hpp,
                         'is_mitra' => $d->is_mitra,
+                        'is_judul' => $d->is_judul,
                         'color_code' => $d->color_code,
                         'added_cost' => $d->added_cost,
                         'delivery_time' => $d->delivery_time,
@@ -526,6 +535,12 @@ class PenawaranController extends Controller
                 })->toArray()
             ];
         })->values()->toArray();
+
+        // Ambil status approval export PDF untuk slider verification
+        $approval = \App\Models\ExportApprovalRequest::where('penawaran_id', $penawaran->id_penawaran ?? $id)
+            ->where('version_id', $activeVersionId)
+            ->orderBy('created_at', 'desc')
+            ->first();
 
         return view('penawaran.detail', compact(
             'penawaran',
@@ -544,7 +559,8 @@ class PenawaranController extends Controller
             'grandTotalWithPpn',
             'isBest',
             'bestPrice',
-            'satuans'
+            'satuans',
+            'approval'
         ));
     }
 
@@ -579,20 +595,13 @@ class PenawaranController extends Controller
         $version_id = $versionRow->id;
 
         try {
-            // key existingDetails dengan normalisasi area & nama_section => hindari null collisions
-            $existingDetails = \App\Models\PenawaranDetail::where('id_penawaran', $penawaranId)
+            // Sederhanakan: selalu rebuild detail untuk versi ini
+            DB::beginTransaction();
+
+            \App\Models\PenawaranDetail::where('id_penawaran', $penawaranId)
                 ->where('version_id', $version_id)
-                ->get()
-                ->keyBy(function ($item) {
-                    $area = (string) ($item->area ?? '');
-                    $nama = (string) ($item->nama_section ?? '');
-                    $no = (string) ($item->no ?? '');
-                    return $no . '|' . $area . '|' . $nama;
-                });
+                ->delete();
 
-            Log::debug('Existing details count', ['count' => $existingDetails->count()]);
-
-            $newKeys = [];
             $totalKeseluruhan = 0;
 
             foreach ($sections as $section) {
@@ -600,10 +609,6 @@ class PenawaranController extends Controller
                 $namaSection = (string) ($section['nama_section'] ?? '');
 
                 foreach ($section['data'] as $row) {
-                    $noStr = (string) ($row['no'] ?? '');
-                    $key = $noStr . '|' . $area . '|' . $namaSection;
-                    $newKeys[] = $key;
-
                     $hargaTotal = floatval($row['harga_total'] ?? 0);
                     $totalKeseluruhan += $hargaTotal;
 
@@ -620,6 +625,7 @@ class PenawaranController extends Controller
                         'nama_section' => $namaSection,
                         'area' => $area,
                         'is_mitra' => isset($row['is_mitra']) ? (int) $row['is_mitra'] : 0,
+                        'is_judul' => isset($row['is_judul']) ? (int) $row['is_judul'] : 0,
                         'color_code' => isset($row['color_code']) ? (int) $row['color_code'] : 1,
                         'added_cost' => $row['added_cost'] ?? 0,
                         'delivery_time' => $row['delivery_time'] ?? null,
@@ -634,23 +640,14 @@ class PenawaranController extends Controller
                         }
                     }
 
-                    if (isset($existingDetails[$key])) {
-                        $existingDetails[$key]->update($values);
-                    } else {
-                        $createAttrs = array_merge($values, [
-                            'id_penawaran' => $penawaranId,
-                            'no' => $row['no'] ?? null,
-                        ]);
-                        \App\Models\PenawaranDetail::create($createAttrs);
-                    }
+                    $createAttrs = array_merge($values, [
+                        'id_penawaran' => $penawaranId,
+                        'no' => $row['no'] ?? null,
+                    ]);
+
+                    \App\Models\PenawaranDetail::create($createAttrs);
                 }
             }
-
-            // Hapus data yang tidak ada lagi — gunakan nama_section juga
-            \App\Models\PenawaranDetail::where('id_penawaran', $penawaranId)
-                ->where('version_id', $version_id)
-                ->whereNotIn(DB::raw("CONCAT(no, '|', IFNULL(area, ''), '|', IFNULL(nama_section, ''))"), $newKeys)
-                ->delete();
 
             // Hitung total awal penawaran
             $versionRow->penawaran_total_awal = $totalKeseluruhan;
@@ -674,6 +671,8 @@ class PenawaranController extends Controller
             $totalJasa = floatval($versionRowUpdated->jasa_grand_total ?? 0);
             $ppnNominal = floatval($versionRowUpdated->ppn_nominal ?? 0);
 
+            DB::commit();
+
             // Log activity for editing penawaran
             $penawaran = Penawaran::find($penawaranId);
             if ($penawaran) {
@@ -695,6 +694,13 @@ class PenawaranController extends Controller
                 'message' => 'Penawaran berhasil disimpan. Grand total telah otomatis terupdate!'
             ]);
         } catch (\Throwable $e) {
+            // Pastikan transaksi dibatalkan jika terjadi error
+            try {
+                DB::rollBack();
+            } catch (\Throwable $rollbackException) {
+                Log::error('PenawaranController::save rollback error: ' . $rollbackException->getMessage());
+            }
+
             Log::error('PenawaranController::save error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString(), 'payload' => $data]);
             return response()->json(['error' => true, 'message' => $e->getMessage()], 500);
         }
@@ -750,6 +756,7 @@ class PenawaranController extends Controller
                         'harga_total' => $d->harga_total,
                         'hpp' => $d->hpp,
                         'is_mitra' => $d->is_mitra,
+                        'is_judul' => $d->is_judul,
                         'color_code' => $d->color_code ?? 1,
                     ];
                 })->toArray()
@@ -1066,6 +1073,7 @@ class PenawaranController extends Controller
                     'harga_total' => $detail->harga_total,
                     'hpp' => $detail->hpp,
                     'is_mitra' => $detail->is_mitra,
+                    'is_judul' => $detail->is_judul,
                     'color_code' => $detail->color_code,
                     'added_cost' => $detail->added_cost,
                     'delivery_time' => $detail->delivery_time,
