@@ -911,10 +911,10 @@
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-16">Qty</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-20">Satuan
                                                 </th>
+                                                <th class="border border-gray-300 px-3 py-2 text-center w-32" style="color: #000000; font-weight: bold;">Keterangan</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-32">Harga
                                                     Satuan
                                                 </th>
-                                                <th class="border border-gray-300 px-3 py-2 text-center w-32" style="color: #000000; font-weight: bold;">Keterangan</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-right w-32">Harga
                                                     Total
                                                 </th>
@@ -953,8 +953,11 @@
                                                             <td class="border border-gray-300 px-3 py-2">
                                                                 {{ $row['satuan'] }}
                                                             </td>
+                                                            <td class="border border-gray-300 px-3 py-2 text-center" style="color: #000000;">{{ $row['delivery_time'] ?? '-' }}</td>
                                                             <td class="border border-gray-300 px-3 py-2 text-right">
-                                                                @if ((int) $row['is_mitra'] === 1)
+                                                                @if ((int) ($row['is_judul'] ?? 0) === 1)
+                                                                    {{-- Kosong jika is_judul --}}
+                                                                @elseif ((int) $row['is_mitra'] === 1)
                                                                     <span style="color:#3498db;font-weight:bold;font-style:italic;">
                                                                         by User
                                                                     </span>
@@ -962,9 +965,10 @@
                                                                     {{ $row['harga_satuan'] > 0 ? 'Rp ' . number_format($row['harga_satuan'], 0, ',', '.') : '' }}
                                                                 @endif
                                                             </td>
-                                                            <td class="border border-gray-300 px-3 py-2 text-center" style="color: #000000;">{{ $row['delivery_time'] ?? '-' }}</td>
                                                             <td class="border border-gray-300 px-3 py-2 text-right">
-                                                                @if ((int) $row['is_mitra'] === 1)
+                                                                @if ((int) ($row['is_judul'] ?? 0) === 1)
+                                                                    {{-- Kosong jika is_judul --}}
+                                                                @elseif ((int) $row['is_mitra'] === 1)
                                                                     <span style="color:#3498db;font-weight:bold;font-style:italic;">
                                                                         by User
                                                                     </span>
@@ -1582,13 +1586,14 @@
                             }
 
                             // Definisi kolom yang wajib per baris (hanya akan dicek jika ada baris berisi)
+                            // Index: 0=No, 1=Tipe, 2=Deskripsi, 3=QTY, 4=Satuan, 5=Harga Satuan, 6=Harga Total, 7=HPP, 8=Mitra, 9=Judul, 10=Profit, 11=Warna, 12=Added Cost, 13=Keterangan
                             const requiredDefs = [
                                 { index: 1, name: 'Tipe', type: 'numberOrText' },
                                 { index: 2, name: 'Deskripsi', type: 'text' },
                                 { index: 3, name: 'Qty', type: 'numberPositive' },
                                 { index: 4, name: 'Satuan', type: 'text' },
                                 { index: 7, name: 'Hpp', type: 'numberPositive' },
-                                { index: 9, name: 'Profit', type: 'numberPositive' },
+                                { index: 10, name: 'Profit', type: 'numberPositive' },
                             ];
 
                             const missingColumns = new Set();
@@ -2544,8 +2549,9 @@
                         let hpp = parseNumber(row[7]);
                         let qty = parseNumber(row[3]);
                         let isMitra = row[8] ? true : false;
-                        let profitRaw = parseNumber(row[9]) || 0;
-                        let addedCost = parseNumber(row[11]) || 0;
+                        let isJudul = row[9] ? true : false;
+                        let profitRaw = parseNumber(row[10]) || 0;
+                        let addedCost = parseNumber(row[12]) || 0;
 
                         let profitDecimal = profitRaw;
                         if (profitRaw > 1) profitDecimal = profitRaw / 100;
@@ -2553,7 +2559,8 @@
                         let hargaSatuan = 0;
                         let total = 0;
 
-                        if (isMitra) {
+                        // Jika is_mitra atau is_judul dichecklist, harga jadi 0
+                        if (isMitra || isJudul) {
                             hargaSatuan = 0;
                             total = 0;
                         } else if (profitDecimal > 0 && profitDecimal < 1) {
@@ -2584,8 +2591,9 @@
                                 const hpp = parseNumber(row[7]);
                                 const qty = parseNumber(row[3]);
                                 const isMitra = row[8] ? true : false;
-                                const profitRaw = parseNumber(row[9]) || 0;
-                                const addedCost = parseNumber(row[11]) || 0;
+                                const isJudul = row[9] ? true : false;
+                                const profitRaw = parseNumber(row[10]) || 0;
+                                const addedCost = parseNumber(row[12]) || 0;
 
                                 let profitDecimal = profitRaw;
                                 if (profitRaw > 1) profitDecimal = profitRaw / 100;
@@ -2593,7 +2601,8 @@
                                 let hargaSatuan = 0;
                                 let total = 0;
 
-                                if (isMitra) {
+                                // Jika is_mitra atau is_judul dichecklist, harga jadi 0
+                                if (isMitra || isJudul) {
                                     hargaSatuan = 0;
                                     total = 0;
                                 } else if (profitDecimal > 0 && profitDecimal < 1) {
@@ -2683,13 +2692,14 @@
                             row.harga_total || 0,
                             row.hpp || 0,
                             row.is_mitra ? true : false,
+                            row.is_judul ? true : false,
                             row.profit || 0,
                             row.color_code || 1,
                             row.added_cost || 0,
                             row.delivery_time || ''
                         ]) : [
-                            ['', '', '', 0, '', 0, 0, 0, false, 0, 1, 0, ''],
-                            ['', '', '', 0, '', 0, 0, 0, false, 0, 1, 0, ''],
+                            ['', '', '', 0, '', 0, 0, 0, false, false, 0, 1, 0, ''],
+                            ['', '', '', 0, '', 0, 0, 0, false, false, 0, 1, 0, ''],
                         ];
 
                         const sectionHTML = `
@@ -2762,6 +2772,7 @@
                                     decimal: ','
                                 },
                                 { title: 'Mitra', width: 80, type: 'checkbox' },
+                                { title: 'Judul', width: 80, type: 'checkbox' },
                                 {
                                     title: 'Profit (%)',
                                     width: 100,
@@ -2803,15 +2814,16 @@
                                     rowIndex,
                                     value,
                                     columnName: ['No', 'Tipe', 'Deskripsi', 'QTY', 'Satuan',
-                                        'Harga Satuan', 'Harga Total', 'HPP', 'Mitra', 'Profit (%)', 'Warna', 'Added Cost', 'Keterangan'
+                                        'Harga Satuan', 'Harga Total', 'HPP', 'Mitra', 'Judul', 'Profit (%)', 'Warna', 'Added Cost', 'Keterangan'
                                     ][colIndex]
                                 });
 
-                                if (colIndex == 3 || colIndex == 7 || colIndex == 8 || colIndex == 9 || colIndex == 11) {
+                                // colIndex: 3=QTY, 7=HPP, 8=Mitra, 9=Judul, 10=Profit, 12=Added Cost
+                                if (colIndex == 3 || colIndex == 7 || colIndex == 8 || colIndex == 9 || colIndex == 10 || colIndex == 12) {
                                     console.log('✨ Triggering recalculateRow with new value:', value);
                                     recalculateRow(spreadsheet, rowIndex, colIndex, value);
                                 } else {
-                                    console.log('⏭️ Skip calculation (column not QTY/HPP/Mitra/Profit/Added Cost)');
+                                    console.log('⏭️ Skip calculation (column not QTY/HPP/Mitra/Judul/Profit/Added Cost)');
                                 }
                             }
                         });
@@ -3056,7 +3068,8 @@
                         }
 
                         // Validasi baris data di setiap section
-                        const requiredColumns = [1, 2, 3, 4, 7, 9, 10]; // Tipe, Deskripsi, QTY, Satuan, HPP, Profit, Warna
+                        // Index: 0=No, 1=Tipe, 2=Deskripsi, 3=QTY, 4=Satuan, 5=Harga Satuan, 6=Harga Total, 7=HPP, 8=Mitra, 9=Judul, 10=Profit, 11=Warna, 12=Added Cost, 13=Keterangan
+                        const requiredColumns = [1, 2, 3, 4, 7, 10, 11]; // Tipe, Deskripsi, QTY, Satuan, HPP, Profit, Warna
                         const columnNames = ['Tipe', 'Deskripsi', 'QTY', 'Satuan', 'HPP', 'Profit (%)', 'Warna'];
                         
                         for (let sectionIdx = 0; sectionIdx < sections.length; sectionIdx++) {
@@ -3073,7 +3086,7 @@
                                     // Check if has text content in key fields
                                     if ([0, 1, 2, 4].includes(idx)) return cell && String(cell).trim() !== ''; // No, Tipe, Deskripsi, Satuan
                                     // Check if has numeric values
-                                    if ([3, 5, 6, 7, 11].includes(idx)) return parseNumber(cell) > 0; // QTY, HargaSatuan, HargaTotal, HPP, AddedCost
+                                    if ([3, 5, 6, 7, 12].includes(idx)) return parseNumber(cell) > 0; // QTY, HargaSatuan, HargaTotal, HPP, AddedCost
                                     return false;
                                 });
                                 
@@ -3084,7 +3097,7 @@
                                 requiredColumns.forEach((colIdx, posIdx) => {
                                     const cellValue = String(row[colIdx] || '').trim();
                                     // For numeric fields (QTY, HPP, Profit), check if > 0
-                                    if ([3, 7, 9].includes(colIdx)) {
+                                    if ([3, 7, 10].includes(colIdx)) {
                                         if (parseNumber(cellValue) <= 0) {
                                             missingColumns.push(columnNames[posIdx]);
                                         }
@@ -3169,10 +3182,11 @@
                                     harga_total: parseNumber(row[6]),
                                     hpp: parseNumber(row[7]),
                                     is_mitra: row[8] ? 1 : 0,
-                                    profit: parseNumber(row[9]) || 0,
-                                    color_code: row[10] || 1,
-                                    added_cost: parseNumber(row[11]) || 0,
-                                    delivery_time: row[12] || ''
+                                    is_judul: row[9] ? 1 : 0,
+                                    profit: parseNumber(row[10]) || 0,
+                                    color_code: row[11] || 1,
+                                    added_cost: parseNumber(row[12]) || 0,
+                                    delivery_time: row[13] || ''
                                 })).filter(row => 
                                     // Only keep rows that have actual data (not completely empty)
                                     row.no || row.tipe || row.deskripsi || row.satuan || row.delivery_time || 

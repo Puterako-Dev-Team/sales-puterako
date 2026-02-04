@@ -13,20 +13,19 @@
 
         .pdf-header {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 100px;
+            top: 10px;
+            left: 25px;
+            right: 25px;
+            height: 90px;
             text-align: center;
             z-index: 10;
-            width: 100%;
         }
 
         .pdf-header img {
             width: 100%;
             max-width: 100%;
-            max-height: 100px;
-            object-fit: cover;
+            max-height: 90px;
+            object-fit: contain;
             display: block;
             margin: 0 auto;
             padding: 0;
@@ -457,8 +456,8 @@
                         <th>Deskripsi</th>
                         <th>Qty</th>
                         <th>Satuan</th>
-                        <th>Harga Satuan</th>
-                        <th>Keterangan</th>
+                        <th style="text-align: center;">Keterangan</th>
+                        <th style="width: 15%; text-align: right;">Harga Satuan</th>
                         <th>Harga Total</th>
                     </tr>
                 </thead>
@@ -481,17 +480,21 @@
                                 <td>{{ $row->deskripsi }}</td>
                                 <td>{{ $row->qty }}</td>
                                 <td>{{ $row->satuan }}</td>
-                                <td>
-                                    @if (!empty($row->is_mitra))
+                                <td style="color: #000000 ; text-align: center;">{{ $row->delivery_time ?? '-' }}</td>
+                                <td style="text-align: right;">
+                                    @if (!empty($row->is_judul))
+                                        {{-- Kosong jika is_judul --}}
+                                    @elseif (!empty($row->is_mitra))
                                         <span style="color:#3498db;font-weight:bold; font-style: italic;">by
                                             User</span>
                                     @else
                                         {{ $row->harga_satuan > 0 ? number_format($row->harga_satuan, 0, ',', '.') : '' }}
                                     @endif
                                 </td>
-                                <td style="color: #000000;">{{ $row->delivery_time ?? '-' }}</td>
                                 <td>
-                                    @if (!empty($row->is_mitra))
+                                    @if (!empty($row->is_judul))
+                                        {{-- Kosong jika is_judul --}}
+                                    @elseif (!empty($row->is_mitra))
                                         <span style="color:#3498db;font-weight:bold; font-style: italic;">by
                                             User</span>
                                     @else
@@ -517,34 +520,32 @@
             <h3 style="font-weight: bold; font-size: 12px; margin-bottom: 6px; margin-top: 10px;">
                 {{ convertToRoman($sectionNumber) }}. Biaya Quotation Jasa
             </h3>
-            <table>
+            <table class="jasa-table">
                 <thead>
                     <tr>
-                        <th>No</th>
-                        <th>Tipe</th>
-                        <th>Deskripsi</th>
-                        <th>Qty</th>
-                        <th>Satuan</th>
-                        <th>Harga Satuan</th>
-                        <th>Harga Total</th>
+                        <th style="width: 4%; text-align: center;">No</th>
+                        <th style="width: 46%;">Deskripsi</th>
+                        <th style="width: 10%; text-align: center;">Qty</th>
+                        <th style="width: 10%; text-align: center;">Satuan</th>
+                        <th style="width: 15%; text-align: right;">Harga Satuan</th>
+                        <th style="width: 15%; text-align: right;">Harga Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>1</td>
-                        <td>Jasa</td>
+                        <td style="text-align: center;">1</td>
                         <td>
                             <pre>{{ $versionRow->jasa_ringkasan ?? '' }}</pre>
                         </td>
-                        <td>1</td>
-                        <td>Lot</td>
-                        <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
-                        <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
+                        <td style="text-align: center;">1</td>
+                        <td style="text-align: center;">Lot</td>
+                        <td style="text-align: right;">{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
+                        <td style="text-align: right;">{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
                     </tr>
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="6">Subtotal</td>
+                        <td colspan="5">Subtotal</td>
                         <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
                     </tr>
                 </tfoot>

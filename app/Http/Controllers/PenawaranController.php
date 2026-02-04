@@ -476,6 +476,7 @@ class PenawaranController extends Controller
                         'harga_total' => $d->harga_total,
                         'hpp' => $d->hpp,
                         'is_mitra' => $d->is_mitra,
+                        'is_judul' => $d->is_judul,
                         'color_code' => $d->color_code,
                         'added_cost' => $d->added_cost,
                         'delivery_time' => $d->delivery_time,
@@ -574,6 +575,7 @@ class PenawaranController extends Controller
                         'nama_section' => $namaSection,
                         'area' => $area,
                         'is_mitra' => isset($row['is_mitra']) ? (int) $row['is_mitra'] : 0,
+                        'is_judul' => isset($row['is_judul']) ? (int) $row['is_judul'] : 0,
                         'color_code' => isset($row['color_code']) ? (int) $row['color_code'] : 1,
                         'added_cost' => $row['added_cost'] ?? 0,
                         'delivery_time' => $row['delivery_time'] ?? null,
@@ -700,6 +702,7 @@ class PenawaranController extends Controller
                         'harga_total' => $d->harga_total,
                         'hpp' => $d->hpp,
                         'is_mitra' => $d->is_mitra,
+                        'is_judul' => $d->is_judul,
                         'color_code' => $d->color_code ?? 1,
                     ];
                 })->toArray()
@@ -998,6 +1001,7 @@ class PenawaranController extends Controller
                     'harga_total' => $detail->harga_total,
                     'hpp' => $detail->hpp,
                     'is_mitra' => $detail->is_mitra,
+                    'is_judul' => $detail->is_judul,
                     'color_code' => $detail->color_code,
                     'added_cost' => $detail->added_cost,
                     'delivery_time' => $detail->delivery_time,
