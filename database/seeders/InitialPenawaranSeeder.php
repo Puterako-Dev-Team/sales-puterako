@@ -22,7 +22,7 @@ class InitialPenawaranSeeder extends Seeder
             [
                 'user_id' => 1,
                 'name' => 'Ria',
-                'count' => 30
+                'count' => 14
             ],
             [
                 'user_id' => 2,

@@ -23,6 +23,7 @@ class PenawaranDetail extends Model
         'hpp',
         'profit',
         'is_mitra',
+        'is_judul',
         'color_code',
         'added_cost',
         'delivery_time',

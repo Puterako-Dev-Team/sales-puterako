@@ -18,6 +18,51 @@ class JasaController extends Controller
         if ($total <= 5_000_000_000) return 0.0012;
         return 0.0010;
     }
+
+    /**
+     * Helper method untuk recalculate grand_total otomatis saat jasa disimpan
+     * Formula: Grand Total = (Total Penawaran + Total Jasa) + PPN
+     * 
+     * @param $penawaranId ID penawaran
+     * @param $version Version penawaran
+     * @return array dengan grand_total dan ppn_nominal
+     */
+    private function recalculateGrandTotal($penawaranId, $version)
+    {
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $penawaranId)
+            ->where('version', $version)
+            ->first();
+        
+        if (!$versionRow) {
+            return ['grand_total' => 0, 'ppn_nominal' => 0];
+        }
+        
+        // Ambil komponen-komponen
+        $totalPenawaran = floatval($versionRow->penawaran_total_awal ?? 0);
+        $totalJasa = floatval($versionRow->jasa_grand_total ?? 0);
+        $ppnPercent = floatval($versionRow->ppn_persen ?? 11);
+        $isBestPrice = boolval($versionRow->is_best_price ?? false);
+        $bestPrice = floatval($versionRow->best_price ?? 0);
+        
+        // Hitung base amount (gunakan best price jika ada, sebaliknya gunakan penawaran total)
+        $baseAmount = $isBestPrice && $bestPrice > 0 ? $bestPrice : $totalPenawaran;
+        
+        // Hitung subtotal (penawaran/best price + jasa)
+        $subtotal = $baseAmount + $totalJasa;
+        
+        // Hitung PPN dari subtotal
+        $ppnNominal = ($subtotal * $ppnPercent) / 100;
+        
+        // Grand Total = subtotal + PPN
+        $grandTotal = $subtotal + $ppnNominal;
+        
+        // Update grand_total dan ppn_nominal di database
+        $versionRow->grand_total = $grandTotal;
+        $versionRow->ppn_nominal = $ppnNominal;
+        $versionRow->save();
+        
+        return ['grand_total' => $grandTotal, 'ppn_nominal' => $ppnNominal];
+    }
     public function save(Request $request)
     {
         $data = $request->all();
@@ -115,7 +160,8 @@ class JasaController extends Controller
                 $namaSection = $section['nama_section'] ?? '';
                 $pembulatan = $section['pembulatan'] ?? 0;
                 foreach ($section['data'] as $row) {
-                    if (empty($row['deskripsi']) && empty($row['no'])) continue;
+                    // Skip hanya jika semua field penting kosong
+                    if (empty($row['deskripsi']) && empty($row['no']) && empty($row['vol']) && empty($row['hari']) && empty($row['orang']) && empty($row['unit'])) continue;
                     $idJasaDetail = $row['id_jasa_detail'] ?? null;
                     $attrs = [
                         'id_penawaran'  => $penawaranId,
@@ -152,8 +198,11 @@ class JasaController extends Controller
             // Hapus JasaDetail yang tidak ada di payload
             JasaDetail::where('id_jasa', $jasa->id_jasa)
                 ->where('version_id', $version_id)
-                ->whereNotIn(JasaDetail::query()->getModel()->getKeyName(), $processedIds)
+                ->whereNotIn('id_jasa_detail', $processedIds)
                 ->delete();
+
+            // OTOMATIS HITUNG & UPDATE GRAND_TOTAL dengan semua komponen
+            $grandTotalResult = $this->recalculateGrandTotal($penawaranId, $version);
 
             DB::commit();
 
@@ -168,7 +217,10 @@ class JasaController extends Controller
                 'bpjsk_percent' => $bpjskPercent * 100,
                 'bpjsk_value' => $bpjskValue,
                 'grand_total' => $grandTotalJasaFinal,
+                'grand_total_penawaran' => $grandTotalResult['grand_total'],
+                'ppn_nominal' => $grandTotalResult['ppn_nominal'],
                 'processed_ids' => $processedIds,
+                'message' => 'Rincian jasa berhasil disimpan. Grand total telah otomatis terupdate!'
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();

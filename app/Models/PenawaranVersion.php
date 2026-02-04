@@ -12,6 +12,7 @@ class PenawaranVersion extends Model
         'version',
         'notes',
         'status',
+        'grand_total',
         'penawaran_total_awal',
         'jasa_total_awal',
         'jasa_profit_percent',

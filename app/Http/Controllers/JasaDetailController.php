@@ -77,7 +77,8 @@ class JasaDetailController extends Controller
             $namaSection = $section['nama_section'] ?? null;
             $pembulatan = $section['pembulatan'] ?? 0;
             foreach ($section['data'] as $row) {
-                if (empty($row['deskripsi']) && empty($row['no'])) continue;
+                // Skip hanya jika semua field penting kosong
+                if (empty($row['deskripsi']) && empty($row['no']) && empty($row['vol']) && empty($row['hari']) && empty($row['orang']) && empty($row['unit'])) continue;
 
                 $idJasaDetail = $row['id_jasa_detail'] ?? null;
                 $values = [
@@ -114,7 +115,8 @@ class JasaDetailController extends Controller
 
         // Hapus JasaDetail yang tidak ada di payload untuk versi ini
         JasaDetail::where('version_id', $version_id)
-            ->whereNotIn(JasaDetail::query()->getModel()->getKeyName(), $processedIds)
+            ->where('id_penawaran', $penawaranId)
+            ->whereNotIn('id_jasa_detail', $processedIds)
             ->delete();
 
         return response()->json(['success' => true]);
