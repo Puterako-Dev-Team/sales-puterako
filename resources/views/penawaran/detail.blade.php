@@ -2472,6 +2472,17 @@
                             deleteRowBtn.classList.toggle('hidden', !enable);
                             deleteSectionBtn.classList.toggle('hidden', !enable);
                         });
+
+                        // Start/Stop auto-save berdasarkan mode edit
+                        if (enable) {
+                            if (typeof startAutoSave === 'function') {
+                                startAutoSave();
+                            }
+                        } else {
+                            if (typeof stopAutoSave === 'function') {
+                                stopAutoSave();
+                            }
+                        }
                     }
 
                     function createSection(sectionData = null) {
@@ -2607,6 +2618,11 @@
                             tableHeight: '100%',
                             editable: isEditMode,
                             onchange: function (instance, cell, colIndex, rowIndex, value) {
+                                // Mark data sebagai unsaved untuk auto-save
+                                if (typeof markAsUnsaved === 'function') {
+                                    markAsUnsaved();
+                                }
+                                
                                 console.log('📝 Spreadsheet onChange:', {
                                     spreadsheetId,
                                     colIndex,
@@ -3012,6 +3028,12 @@
                                 console.log('✅ Data saved with totals:', data);
                                 // Set flag bahwa Penawaran sudah berhasil disimpan
                                 penawaranSaved = true;
+                                
+                                // Clear draft dari localStorage setelah berhasil save ke database
+                                if (typeof clearAutoSaveData === 'function') {
+                                    clearAutoSaveData();
+                                }
+                                
                                 notyf.success(data.message || 'Penawaran berhasil disimpan');
                                 btn.innerHTML = "✅ Tersimpan!";
                                 setTimeout(() => {
@@ -3030,35 +3052,254 @@
                     });
 
                     // =====================================================
+                    // AUTO-SAVE TO LOCALSTORAGE (Setiap 1 menit)
+                    // =====================================================
+                    let hasUnsavedChanges = false;
+                    let autoSaveInterval = null;
+                    const LOCAL_STORAGE_KEY = `penawaran_autosave_{{ $penawaran->id_penawaran }}_v{{ $activeVersion ? $activeVersion : 0 }}`;
+
+                    // Fungsi untuk menandai ada perubahan
+                    function markAsUnsaved() {
+                        hasUnsavedChanges = true;
+                    }
+
+                    // Fungsi auto-save ke localStorage (bisa dipanggil berulang kali)
+                    function autoSavePenawaran() {
+                        // Skip jika tidak dalam edit mode atau tidak ada section
+                        if (!isEditMode || sections.length === 0) {
+                            console.log('⏭️ Auto-save skipped: not in edit mode or no sections');
+                            return false;
+                        }
+
+                        console.log('💾 Auto-saving penawaran data to localStorage...');
+
+                        // Kumpulkan semua data termasuk yang belum lengkap
+                        const allSectionsData = sections.map(section => {
+                            const sectionElement = document.getElementById(section.id);
+                            const areaSelect = sectionElement.querySelector('.area-select');
+                            const namaSectionInput = sectionElement.querySelector('.nama-section-input');
+                            const rawData = section.spreadsheet.getData();
+
+                            return {
+                                area: areaSelect.value || '',
+                                nama_section: namaSectionInput.value || '',
+                                data: rawData.map(row => ({
+                                    no: row[0] || '',
+                                    tipe: row[1] || '',
+                                    deskripsi: row[2] || '',
+                                    qty: parseNumber(row[3]) || 0,
+                                    satuan: row[4] || '',
+                                    harga_satuan: parseNumber(row[5]) || 0,
+                                    harga_total: parseNumber(row[6]) || 0,
+                                    hpp: parseNumber(row[7]) || 0,
+                                    is_mitra: row[8] ? 1 : 0,
+                                    profit: parseNumber(row[9]) || 0,
+                                    color_code: row[10] || 1,
+                                    added_cost: parseNumber(row[11]) || 0,
+                                    delivery_time: row[12] || ''
+                                }))
+                            };
+                        });
+
+                        const autoSaveData = {
+                            penawaran_id: {{ $penawaran->id_penawaran }},
+                            version: {{ $activeVersion ? $activeVersion : 0 }},
+                            ppn_persen: parseNumber(document.getElementById('ppnInput').value) || 11,
+                            is_best_price: document.getElementById('isBestPrice').checked ? 1 : 0,
+                            best_price: parseNumber(document.getElementById('bestPriceInput').value) || 0,
+                            sections: allSectionsData,
+                            saved_at: new Date().toISOString()
+                        };
+
+                        try {
+                            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(autoSaveData));
+                            hasUnsavedChanges = false;
+                            const now = new Date();
+                            console.log('✅ Auto-save to localStorage successful at', now.toLocaleTimeString());
+                            
+                            notyf.success({
+                                message: 'Autosaving...',
+                                duration: 2000,
+                                dismissible: true
+                            });
+                            return true;
+                        } catch (error) {
+                            console.error('❌ Auto-save to localStorage failed:', error);
+                            return false;
+                        }
+                    }
+
+                    // Fungsi untuk load data dari localStorage
+                    function loadAutoSaveData() {
+                        try {
+                            const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+                            if (savedData) {
+                                return JSON.parse(savedData);
+                            }
+                        } catch (error) {
+                            console.error('❌ Failed to load auto-save data:', error);
+                        }
+                        return null;
+                    }
+
+                    // Fungsi untuk clear auto-save data dari localStorage
+                    function clearAutoSaveData() {
+                        try {
+                            localStorage.removeItem(LOCAL_STORAGE_KEY);
+                            console.log('🗑️ Auto-save data cleared from localStorage');
+                        } catch (error) {
+                            console.error('❌ Failed to clear auto-save data:', error);
+                        }
+                    }
+
+                    // Fungsi untuk restore data dari localStorage ke spreadsheet
+                    function restoreAutoSaveData(savedData) {
+                        if (!savedData || !savedData.sections) return false;
+
+                        console.log('🔄 Restoring data from localStorage...', savedData);
+
+                        // Clear existing sections first
+                        sections.forEach(section => {
+                            const sectionElement = document.getElementById(section.id);
+                            if (sectionElement) sectionElement.remove();
+                        });
+                        sections.length = 0;
+                        sectionCounter = 0;
+
+                        // Restore PPN dan Best Price
+                        document.getElementById('ppnInput').value = savedData.ppn_persen || 11;
+                        document.getElementById('isBestPrice').checked = savedData.is_best_price == 1;
+                        document.getElementById('bestPriceInput').value = savedData.best_price || 0;
+
+                        // Recreate sections dengan data dari localStorage
+                        savedData.sections.forEach(sectionData => {
+                            createSection(sectionData);
+                        });
+
+                        // Masuk edit mode
+                        toggleEditMode(true);
+
+                        // Recalculate
+                        setTimeout(() => {
+                            recalculateAll();
+                            updateTotalKeseluruhan();
+                        }, 200);
+
+                        console.log('✅ Data restored from localStorage');
+                        notyf.success({
+                            message: '📂 Draft sebelumnya berhasil dipulihkan',
+                            duration: 3000
+                        });
+
+                        return true;
+                    }
+
+                    // Start auto-save interval (setiap 1 menit)
+                    function startAutoSave() {
+                        if (autoSaveInterval) {
+                            clearInterval(autoSaveInterval);
+                        }
+                        autoSaveInterval = setInterval(autoSavePenawaran, 60000); // 1 menit
+                        console.log('🔄 Auto-save started (setiap 1 menit)');
+                    }
+
+                    // Stop auto-save
+                    function stopAutoSave() {
+                        if (autoSaveInterval) {
+                            clearInterval(autoSaveInterval);
+                            autoSaveInterval = null;
+                            console.log('⏹️ Auto-save stopped');
+                        }
+                    }
+
+                    // Warning sebelum meninggalkan halaman jika ada perubahan
+                    window.addEventListener('beforeunload', function(e) {
+                        if (isEditMode && hasUnsavedChanges) {
+                            e.preventDefault();
+                            e.returnValue = 'Anda memiliki perubahan yang belum disimpan. Yakin ingin meninggalkan halaman?';
+                            return e.returnValue;
+                        }
+                    });
+
+                    // =====================================================
                     // INISIALISASI PENAWARAN
                     // =====================================================
 
-                    if (initialSections.length > 0) {
-                        console.log('🗄️ Loading existing data...', {
-                            totalSections: initialSections.length
+                    // Cek apakah ada draft tersimpan di localStorage
+                    const savedDraft = loadAutoSaveData();
+                    if (savedDraft && savedDraft.sections && savedDraft.sections.length > 0) {
+                        const savedTime = new Date(savedDraft.saved_at);
+                        const formattedTime = savedTime.toLocaleString('id-ID', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
                         });
 
-                        initialSections.forEach((section, idx) => {
-                            console.log(`Creating section ${idx + 1}:`, section);
-                            createSection(section);
-                        });
+                        // Tampilkan modal konfirmasi restore
+                        if (confirm(`📂 Ditemukan draft tersimpan pada ${formattedTime}.\n\nApakah Anda ingin memulihkan draft tersebut?\n\nKlik OK untuk memulihkan, atau Cancel untuk mengabaikan dan menggunakan data dari database.`)) {
+                            restoreAutoSaveData(savedDraft);
+                        } else {
+                            // User memilih tidak restore, clear localStorage
+                            clearAutoSaveData();
+                            
+                            // Load dari database seperti biasa
+                            if (initialSections.length > 0) {
+                                console.log('🗄️ Loading existing data...', {
+                                    totalSections: initialSections.length
+                                });
 
-                        toggleEditMode(false);
-                        console.log('🔒 Mode: VIEW (data exists)');
+                                initialSections.forEach((section, idx) => {
+                                    console.log(`Creating section ${idx + 1}:`, section);
+                                    createSection(section);
+                                });
 
-                        // Trigger kalkulasi awal setelah semua section dibuat
-                        console.log('🚀 Initial calculation with per-row profit values');
-                        recalculateAll();
-                        
-                        // Jika ada data jasa, tandai sebagai saved
-                        if (jasaInitialSections.length > 0) {
-                            jasaSaved = true;
+                                toggleEditMode(false);
+                                console.log('🔒 Mode: VIEW (data exists)');
+
+                                console.log('🚀 Initial calculation with per-row profit values');
+                                recalculateAll();
+                                
+                                if (jasaInitialSections.length > 0) {
+                                    jasaSaved = true;
+                                }
+                            } else {
+                                console.log('🆕 Creating new empty section...');
+                                createSection();
+                                toggleEditMode(true);
+                                console.log('✏️ Mode: EDIT (new data)');
+                            }
                         }
                     } else {
-                        console.log('🆕 Creating new empty section...');
-                        createSection();
-                        toggleEditMode(true);
-                        console.log('✏️ Mode: EDIT (new data)');
+                        // Tidak ada draft, load seperti biasa
+                        if (initialSections.length > 0) {
+                            console.log('🗄️ Loading existing data...', {
+                                totalSections: initialSections.length
+                            });
+
+                            initialSections.forEach((section, idx) => {
+                                console.log(`Creating section ${idx + 1}:`, section);
+                                createSection(section);
+                            });
+
+                            toggleEditMode(false);
+                            console.log('🔒 Mode: VIEW (data exists)');
+
+                            // Trigger kalkulasi awal setelah semua section dibuat
+                            console.log('🚀 Initial calculation with per-row profit values');
+                            recalculateAll();
+                            
+                            // Jika ada data jasa, tandai sebagai saved
+                            if (jasaInitialSections.length > 0) {
+                                jasaSaved = true;
+                            }
+                        } else {
+                            console.log('🆕 Creating new empty section...');
+                            createSection();
+                            toggleEditMode(true);
+                            console.log('✏️ Mode: EDIT (new data)');
+                        }
                     }
                     
                     // Update tab states awal
