@@ -258,6 +258,38 @@ class PenawaranController extends Controller
         }
         $data['tipe'] = $tipe;
 
+        // Handle template type
+        $templateType = $request->input('template_type', 'template_puterako');
+        $data['template_type'] = $templateType;
+
+        // Handle BoQ file upload if template is template_boq
+        if ($templateType === 'template_boq' && $request->hasFile('boq_file')) {
+            try {
+                $result = uploadFile($request->file('boq_file'), 'boq-files');
+                if ($result['success']) {
+                    $data['boq_file_path'] = $result['data']['path'];
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'notify' => [
+                            'type' => 'error',
+                            'title' => 'Error',
+                            'message' => 'Gagal upload file: ' . $result['message']
+                        ]
+                    ], 422);
+                }
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'notify' => [
+                        'type' => 'error',
+                        'title' => 'Error',
+                        'message' => 'Error saat upload: ' . $e->getMessage()
+                    ]
+                ], 422);
+            }
+        }
+
         // TAMBAH: Auto-set user_id dari Auth user
         $data['user_id'] = Auth::id();
 
@@ -318,7 +350,53 @@ class PenawaranController extends Controller
             'lokasi' => 'required|string|max:255',
             'pic_perusahaan' => 'nullable|string|max:255',
             'tipe' => 'nullable|in:soc,barang',
+            'template_type' => 'nullable|in:template_puterako,template_boq',
         ]);
+
+        // Handle template type
+        if ($request->has('template_type')) {
+            $data['template_type'] = $request->input('template_type');
+        }
+
+        // Handle BoQ file upload if template is template_boq
+        if ($request->input('template_type') === 'template_boq' && $request->hasFile('boq_file')) {
+            try {
+                // Delete old file if exists
+                if ($penawaran->boq_file_path) {
+                    deleteFile($penawaran->boq_file_path);
+                }
+
+                $result = uploadFile($request->file('boq_file'), 'boq-files');
+                if ($result['success']) {
+                    $data['boq_file_path'] = $result['data']['path'];
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'notify' => [
+                            'type' => 'error',
+                            'title' => 'Error',
+                            'message' => 'Gagal upload file: ' . $result['message']
+                        ]
+                    ], 422);
+                }
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'notify' => [
+                        'type' => 'error',
+                        'title' => 'Error',
+                        'message' => 'Error saat upload: ' . $e->getMessage()
+                    ]
+                ], 422);
+            }
+        } elseif ($request->input('template_type') === 'template_puterako') {
+            // Clear boq_file_path if switching to template_puterako
+            if ($penawaran->boq_file_path) {
+                deleteFile($penawaran->boq_file_path);
+            }
+            $data['boq_file_path'] = null;
+        }
+
         $penawaran->update($data);
 
         if ($request->ajax()) {
@@ -1171,6 +1249,110 @@ class PenawaranController extends Controller
         // Kembalikan sequence terakhir (termasuk data yang di-soft delete) untuk user saat ini
         $max = $this->getMaxSequenceForUser(Auth::id());
         return response()->json(['count' => $max]);
+    }
+
+    /**
+     * Upload supporting document
+     */
+    public function uploadSupportingDocument(Request $request, $id)
+    {
+        $penawaran = Penawaran::findOrFail($id);
+
+        $request->validate([
+            'file' => 'required|file|max:10240',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $result = uploadFile($request->file('file'), 'supporting-documents');
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message']
+                ], 422);
+            }
+
+            $doc = \App\Models\PenawaranSupportingDocument::create([
+                'id_penawaran' => $penawaran->id_penawaran,
+                'file_path' => $result['data']['path'],
+                'original_filename' => $result['data']['original_name'],
+                'file_type' => $result['data']['extension'],
+                'file_size' => $result['data']['size'],
+                'uploaded_by' => Auth::user()->name,
+                'notes' => $request->input('notes'),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dokumen berhasil diupload',
+                'document' => $doc
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get supporting documents
+     */
+    public function getSupportingDocuments($id)
+    {
+        $penawaran = Penawaran::findOrFail($id);
+        $documents = $penawaran->supportingDocuments()->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'documents' => $documents
+        ]);
+    }
+
+    /**
+     * Delete supporting document
+     */
+    public function deleteSupportingDocument($id, $docId)
+    {
+        $penawaran = Penawaran::findOrFail($id);
+        $document = \App\Models\PenawaranSupportingDocument::where('id', $docId)
+            ->where('id_penawaran', $penawaran->id_penawaran)
+            ->firstOrFail();
+
+        try {
+            deleteFile($document->file_path);
+            $document->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Dokumen berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download supporting document
+     */
+    public function downloadSupportingDocument($id)
+    {
+        $penawaran = Penawaran::findOrFail($id);
+        $docId = request('doc_id');
+        
+        $document = \App\Models\PenawaranSupportingDocument::where('id', $docId)
+            ->where('id_penawaran', $penawaran->id_penawaran)
+            ->firstOrFail();
+
+        if (!$document->file_path) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk('public')->download($document->file_path);
     }
 
     /**
