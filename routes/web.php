@@ -18,6 +18,7 @@ use App\Http\Controllers\SatuanController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RekapKategoriController;
+use App\Http\Controllers\FileUploadController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -57,6 +58,12 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{id}', [PenawaranController::class, 'update'])->name('update');
         Route::post('/{id}/restore', [PenawaranController::class, 'restore'])->name('penawaran.restore');
         Route::delete('/{id}', [PenawaranController::class, 'destroy'])->name('penawaran.delete');
+
+        // Supporting documents routes
+        Route::post('/{id}/upload-support-doc', [PenawaranController::class, 'uploadSupportingDocument'])->name('penawaran.uploadSupportDoc');
+        Route::get('/{id}/supporting-documents', [PenawaranController::class, 'getSupportingDocuments'])->name('penawaran.getSupportDocs');
+        Route::post('/{id}/delete-support-doc/{docId}', [PenawaranController::class, 'deleteSupportingDocument'])->name('penawaran.deleteSupportDoc');
+        Route::get('/{id}/download-support-doc', [PenawaranController::class, 'downloadSupportingDocument'])->name('penawaran.downloadSupportDoc');
 
         // Approval list for approvers
         Route::get('/approve-list', [ExportApprovalController::class, 'index'])->name('penawaran.approve-list');
@@ -173,4 +180,15 @@ Route::middleware(['auth'])->group(function () {
     // Notification routes
     Route::get('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
+
+    // File Upload routes
+    Route::prefix('upload')->name('upload.')->group(function () {
+        Route::post('/', [FileUploadController::class, 'upload'])->name('single');
+        Route::post('/multiple', [FileUploadController::class, 'uploadMultiple'])->name('multiple');
+        Route::delete('/delete', [FileUploadController::class, 'delete'])->name('delete');
+        Route::delete('/delete-multiple', [FileUploadController::class, 'deleteMultiple'])->name('delete-multiple');
+        Route::get('/info', [FileUploadController::class, 'info'])->name('info');
+        Route::get('/download', [FileUploadController::class, 'download'])->name('download');
+        Route::get('/allowed-extensions', [FileUploadController::class, 'allowedExtensions'])->name('allowed-extensions');
+    });
 });

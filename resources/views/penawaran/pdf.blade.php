@@ -292,6 +292,25 @@
 
         .signature {
             margin-top: 50px;
+            position: relative;
+            min-height: 100px;
+        }
+
+        .signature-stamp {
+            position: absolute;
+            top: -35px;
+            left: 50px;
+            width: 100px;
+            height: auto;
+            transform: rotate(-20deg);
+            opacity: 0.8;
+            filter: sepia(1) hue-rotate(200deg) saturate(5) brightness(0.6);
+        }
+
+        .signature-stamp img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
         }
 
         .signature-line {
@@ -593,6 +612,9 @@
             <p>Demikian penawaran ini kami sampaikan</p>
             <p style="margin-top: 8px;"><strong>Hormat kami,</strong></p>
             <div class="signature">
+                <div class="signature-stamp">
+                    <img src="{{ public_path('assets/stamps.png') }}" alt="Puterako Stamp">
+                </div>
                 <p class="signature-line"></p>
                 <p class="signature-name">Junly Kodradjaya</p>
             </div>
