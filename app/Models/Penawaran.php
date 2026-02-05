@@ -30,6 +30,8 @@ class Penawaran extends Model
         'lokasi',
         'tiket',
         'tipe',
+        'template_type',
+        'boq_file_path',
         'is_best_price',
         'best_price',
         'total',
@@ -77,6 +79,11 @@ class Penawaran extends Model
     public function followUpSchedule()
     {
         return $this->hasOne(FollowUpSchedule::class, 'penawaran_id', 'id_penawaran');
+    }
+
+    public function supportingDocuments()
+    {
+        return $this->hasMany(PenawaranSupportingDocument::class, 'id_penawaran', 'id_penawaran');
     }
 
     public function hasActiveFollowUpSchedule(): bool

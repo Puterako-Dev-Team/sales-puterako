@@ -304,6 +304,28 @@
                                 required>
                         </div>
 
+                        <!-- Template Type Selection -->
+                        <div>
+                            <label class="block mb-2 font-medium text-sm text-gray-700">Template Penawaran</label>
+                            <select name="template_type" id="f_template_type"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                <option value="template_puterako">Template Puterako</option>
+                                <option value="template_boq">Template BoQ</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Pilih template untuk penawaran ini.</p>
+                        </div>
+
+                        <!-- BoQ File Upload (Hidden by default) -->
+                        <div id="boqFileGroup" class="hidden">
+                            <label class="block mb-2 font-medium text-sm text-gray-700">Upload File BoQ</label>
+                            <div class="relative">
+                                <input type="file" name="boq_file" id="f_boq_file"
+                                    accept=".pdf,.xls,.xlsx,.doc,.docx"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                <p class="text-xs text-gray-500 mt-1">Format: PDF, Excel, atau Word (Maks 10MB)</p>
+                            </div>
+                        </div>
+
                         <div>
                             <label class="block mb-2 font-medium text-sm text-gray-700">Tipe Penawaran</label>
                             <select name="tipe" id="f_tipe"
@@ -494,6 +516,30 @@
             }
         });
 
+        /* ================== TEMPLATE TYPE DROPDOWN LOGIC ================== */
+        const f_template_type = document.getElementById('f_template_type');
+        const f_tipe = document.getElementById('f_tipe');
+        const boqFileGroup = document.getElementById('boqFileGroup');
+        const f_boq_file = document.getElementById('f_boq_file');
+
+        f_template_type.addEventListener('change', function () {
+            const selectedTemplate = this.value;
+
+            if (selectedTemplate === 'template_boq') {
+                // Show file upload and disable tipe field
+                boqFileGroup.classList.remove('hidden');
+                f_tipe.disabled = true;
+                f_tipe.classList.add('bg-gray-100', 'cursor-not-allowed');
+                f_tipe.value = ''; // Clear tipe value
+            } else {
+                // Hide file upload and enable tipe field
+                boqFileGroup.classList.add('hidden');
+                f_tipe.disabled = false;
+                f_tipe.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                f_boq_file.value = ''; // Clear file selection
+            }
+        });
+
         function resetForm() {
             penawaranForm.reset();
             methodField.value = '';
@@ -502,6 +548,12 @@
             // Reset lokasi state
             f_lokasi.readOnly = false;
             f_lokasi.classList.remove('bg-gray-100');
+
+            // Reset template type logic
+            f_template_type.value = 'template_puterako';
+            boqFileGroup.classList.add('hidden');
+            f_tipe.disabled = false;
+            f_tipe.classList.remove('bg-gray-100', 'cursor-not-allowed');
         }
 
         function setupAdd() {
@@ -534,8 +586,11 @@
                     f_lokasi.value = d.lokasi ?? '';
                     f_pic_perusahaan.value = d.pic_perusahaan ?? '';
 
+                    // Set template type
+                    f_template_type.value = d.template_type ?? 'template_puterako';
+                    f_template_type.dispatchEvent(new Event('change'));
+
                     // Set tipe penawaran
-                    const f_tipe = document.getElementById('f_tipe');
                     if (f_tipe) {
                         f_tipe.value = d.tipe ?? '';
                     }

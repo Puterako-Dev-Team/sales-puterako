@@ -328,6 +328,8 @@
                     data-tab="preview">Preview</button>
                 <button class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:text-green-600 focus:outline-none"
                     data-tab="rekap">Rincian Rekap</button>
+                <button class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:text-green-600 focus:outline-none"
+                    data-tab="dokumen">Dokumen Pendukung</button>
             </div>
 
             <div id="tabContent">
@@ -1227,6 +1229,95 @@
                         <div class="text-gray-500">Belum ada data rekap.</div>
                     </div>
                 </div>
+                </div>
+
+                <!-- Dokumen Pendukung Tab -->
+                <div class="tab-panel hidden" data-tab="dokumen">
+                    <div class="space-y-6">
+                        <!-- BoQ File Section -->
+                        @if($penawaran->template_type === 'template_boq' && $penawaran->boq_file_path)
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                            <h3 class="font-bold text-blue-900 mb-4">File BoQ (Template BoQ)</h3>
+                            <div class="flex items-center gap-4 p-4 bg-white border border-blue-200 rounded">
+                                <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 12c4.418 0 8-1.79 8-4s-3.582-4-8-4-8 1.79-8 4 3.582 4 8 4zm0 0v6m0 0c-4.418 0-8 1.79-8 4s3.582 4 8 4 8-1.79 8-4-3.582-4-8-4zm0 0V8"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    <p class="font-semibold text-gray-900">{{ basename($penawaran->boq_file_path) }}</p>
+                                    <p class="text-sm text-gray-600">File BoQ dari penawaran</p>
+                                </div>
+                                <a href="{{ route('upload.download') }}?path={{ urlencode($penawaran->boq_file_path) }}" 
+                                   class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                    Download
+                                </a>
+                            </div>
+                        </div>
+                        @endif
+
+                        <!-- Supporting Documents Section -->
+                        <div class="border border-gray-200 rounded-lg p-6">
+                            <h3 class="font-bold text-gray-900 mb-4">File Pendukung Tambahan</h3>
+                            
+                            <!-- Upload Form -->
+                            <div class="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                <form id="supportDocForm" class="space-y-4">
+                                    @csrf
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Pilih File</label>
+                                        <input type="file" id="supportDocFile" name="file"
+                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+                                            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                                            required>
+                                        <p class="text-xs text-gray-500 mt-1">Format: PDF, Word, Excel, atau Gambar (Maks 10MB)</p>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Catatan (Opsional)</label>
+                                        <textarea id="supportDocNotes" name="notes"
+                                            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                                            rows="2" placeholder="Tambahkan catatan tentang file ini..."></textarea>
+                                    </div>
+
+                                    <button type="submit" id="uploadSupportDocBtn"
+                                        class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
+                                        Upload Dokumen Pendukung
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Documents List -->
+                            <div id="supportDocsList">
+                                @forelse($penawaran->supportingDocuments as $doc)
+                                    <div class="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded mb-3" data-doc-id="{{ $doc->id }}">
+                                        <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        <div class="flex-1">
+                                            <p class="font-semibold text-gray-900">{{ $doc->original_filename }}</p>
+                                            @if($doc->notes)
+                                                <p class="text-sm text-gray-600 mt-1">{{ $doc->notes }}</p>
+                                            @endif
+                                            <p class="text-xs text-gray-500 mt-1">Diupload: {{ $doc->created_at->format('d/m/Y H:i') }}</p>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <a href="{{ route('upload.download') }}?path={{ urlencode($doc->file_path) }}"
+                                               class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-sm">
+                                                Download
+                                            </a>
+                                            <button type="button" onclick="deleteSupportDoc({{ $doc->id }}, {{ $penawaran->id_penawaran }})"
+                                                class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 text-sm">
+                                                Hapus
+                                            </button>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="text-center text-gray-500 py-8">
+                                        <p>Belum ada dokumen pendukung.</p>
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="importRekapModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
@@ -4238,6 +4329,157 @@
                             springBack();
                         }
                     });
+
+                    // =======================
+                    // TAB DISABLE LOGIC FOR TEMPLATE BoQ
+                    // =======================
+                    const templateType = '{{ $penawaran->template_type }}';
+                    if (templateType === 'template_boq') {
+                        const tabButtons = document.querySelectorAll('.tab-btn');
+                        const disabledTabs = ['penawaran', 'Jasa', 'preview', 'rekap'];
+                        
+                        tabButtons.forEach(btn => {
+                            const tabName = btn.getAttribute('data-tab');
+                            if (disabledTabs.includes(tabName)) {
+                                btn.classList.add('locked');
+                                btn.disabled = true;
+                                btn.style.opacity = '0.5';
+                                btn.style.cursor = 'not-allowed';
+                                btn.title = 'Tab ini dinonaktifkan untuk Template BoQ';
+                            }
+                        });
+
+                        // Auto-navigate to dokumen tab if template_boq
+                        const dokumenBtn = Array.from(tabButtons).find(btn => btn.getAttribute('data-tab') === 'dokumen');
+                        if (dokumenBtn) {
+                            setTimeout(() => {
+                                dokumenBtn.click();
+                            }, 100);
+                        }
+                    }
+
+                    // =======================
+                    // SUPPORTING DOCUMENTS FUNCTIONALITY
+                    // =======================
+                    const supportDocForm = document.getElementById('supportDocForm');
+                    const uploadBtn = document.getElementById('uploadSupportDocBtn');
+                    const supportDocFile = document.getElementById('supportDocFile');
+
+                    if (supportDocForm) {
+                        supportDocForm.addEventListener('submit', async function(e) {
+                            e.preventDefault();
+                            
+                            const file = supportDocFile.files[0];
+                            const notes = document.getElementById('supportDocNotes').value;
+                            
+                            if (!file) {
+                                alert('Pilih file terlebih dahulu');
+                                return;
+                            }
+
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('notes', notes);
+                            formData.append('_token', document.querySelector('input[name="_token"]').value);
+                            
+                            uploadBtn.disabled = true;
+                            uploadBtn.textContent = 'Uploading...';
+
+                            try {
+                                const response = await fetch('{{ route("penawaran.uploadSupportDoc", $penawaran->id_penawaran) }}', {
+                                    method: 'POST',
+                                    body: formData,
+                                    headers: {
+                                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    }
+                                });
+
+                                const data = await response.json();
+
+                                if (data.success) {
+                                    supportDocFile.value = '';
+                                    document.getElementById('supportDocNotes').value = '';
+                                    loadSupportingDocuments();
+                                    notyf.success('Dokumen berhasil diupload');
+                                } else {
+                                    notyf.error(data.message || 'Gagal upload dokumen');
+                                }
+                            } catch (error) {
+                                console.error('Error:', error);
+                                notyf.error('Error uploading dokumen');
+                            } finally {
+                                uploadBtn.disabled = false;
+                                uploadBtn.textContent = 'Upload Dokumen Pendukung';
+                            }
+                        });
+                    }
+
+                    // Load supporting documents function
+                    function loadSupportingDocuments() {
+                        const penId = {{ $penawaran->id_penawaran }};
+                        fetch(`/penawaran/${penId}/supporting-documents`, {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            const container = document.getElementById('supportDocsList');
+                            if (data.documents && data.documents.length > 0) {
+                                container.innerHTML = data.documents.map(doc => `
+                                    <div class="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded mb-3" data-doc-id="${doc.id}">
+                                        <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        <div class="flex-1">
+                                            <p class="font-semibold text-gray-900">${doc.original_filename}</p>
+                                            ${doc.notes ? `<p class="text-sm text-gray-600 mt-1">${doc.notes}</p>` : ''}
+                                            <p class="text-xs text-gray-500 mt-1">Diupload: ${new Date(doc.created_at).toLocaleDateString('id-ID', {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'})}</p>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <a href="/penawaran/${penId}/download-support-doc?doc_id=${doc.id}"
+                                               class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-sm">
+                                                Download
+                                            </a>
+                                            <button type="button" onclick="deleteSupportDoc(${doc.id}, ${penId})"
+                                                class="bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 text-sm">
+                                                Hapus
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('');
+                            } else {
+                                container.innerHTML = '<div class="text-center text-gray-500 py-8"><p>Belum ada dokumen pendukung.</p></div>';
+                            }
+                        });
+                    }
+
+                    // Delete supporting document function
+                    window.deleteSupportDoc = function(docId, penId) {
+                        if (!confirm('Yakin ingin menghapus dokumen ini?')) return;
+                        
+                        fetch(`/penawaran/${penId}/delete-support-doc/${docId}`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                loadSupportingDocuments();
+                                notyf.success('Dokumen berhasil dihapus');
+                            } else {
+                                notyf.error(data.message || 'Gagal menghapus dokumen');
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error:', err);
+                            notyf.error('Error menghapus dokumen');
+                        });
+                    };
                 });
             </script>
         @endpush
