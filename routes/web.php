@@ -57,6 +57,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{id}/edit', [PenawaranController::class, 'edit'])->name('edit');          // AJAX get data
         Route::put('/{id}', [PenawaranController::class, 'update'])->name('update');
         Route::post('/{id}/restore', [PenawaranController::class, 'restore'])->name('penawaran.restore');
+        Route::delete('/{id}/force-delete', [PenawaranController::class, 'forceDelete'])->name('penawaran.forceDelete');
         Route::delete('/{id}', [PenawaranController::class, 'destroy'])->name('penawaran.delete');
 
         // Supporting documents routes
