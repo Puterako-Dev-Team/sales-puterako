@@ -82,6 +82,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{requestId}/approve-supervisor', [ExportApprovalController::class, 'approveBySupervisor'])->name('export-approval.approve-supervisor');
         Route::post('/{requestId}/approve-manager', [ExportApprovalController::class, 'approveByManager'])->name('export-approval.approve-manager');
         Route::post('/{requestId}/approve-direktur', [ExportApprovalController::class, 'approveByDirektor'])->name('export-approval.approve-direktur');
+        Route::get('/{requestId}/export-excel', [ExportApprovalController::class, 'exportExcel'])->name('export-approval.export-excel');
     });
 
     // Tipe routes (protected) - Admin only

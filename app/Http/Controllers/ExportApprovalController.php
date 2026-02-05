@@ -451,4 +451,26 @@ class ExportApprovalController extends Controller
             'message' => '✅ Persetujuan lengkap! Staff sekarang dapat export PDF'
         ]);
     }
+
+    /**
+     * Export penawaran to Excel (for supervisor, manager, direktur only)
+     */
+    public function exportExcel(Request $request, $requestId)
+    {
+        $user = Auth::user();
+        $allowedRoles = ['supervisor', 'manager', 'direktur'];
+
+        if (!in_array($user->role, $allowedRoles, true)) {
+            abort(403, 'Hanya supervisor, manager, atau direktur yang dapat export Excel');
+        }
+
+        $approvalRequest = ExportApprovalRequest::with(['penawaran', 'version'])->findOrFail($requestId);
+
+        if (!$approvalRequest->penawaran || !$approvalRequest->version) {
+            abort(404, 'Penawaran atau versi tidak ditemukan');
+        }
+
+        $export = new \App\Exports\PenawaranApprovalExport($approvalRequest);
+        return $export->download();
+    }
 }
