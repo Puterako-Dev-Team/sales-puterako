@@ -145,25 +145,35 @@
                             }
                         @endphp
 
-                        @if($canApprove)
-                            <button type="button"
-                                class="approve-btn {{ $buttonColor }} text-white px-3 py-2 rounded {{ $buttonHoverColor }} transition text-xs font-semibold {{ $isRepresentative ? 'ring-2 ring-yellow-300' : '' }}"
-                                data-url="{{ $approveRoute }}"
-                                data-id="{{ $req->id }}"
-                                data-no="{{ $req->penawaran->no_penawaran ?? '-' }}"
-                                data-company="{{ $req->penawaran->nama_perusahaan ?? '-' }}"
-                                data-version="{{ $req->version->version ?? '-' }}"
-                                data-is-representative="{{ $isRepresentative ? 'true' : 'false' }}">
-                                @if($isRepresentative)
-                                    <svg class="w-3 h-3 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                    </svg>
-                                @endif
-                                {{ $buttonText }}
-                            </button>
-                        @else
-                            <span class="text-xs text-gray-500">Tidak ada aksi</span>
-                        @endif
+                        <div class="flex items-center justify-center gap-2">
+                            {{-- Export Excel Button - Always visible for management --}}
+                            <a href="{{ route('export-approval.export-excel', $req->id) }}"
+                                class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 transition text-xs font-semibold inline-flex items-center"
+                                title="Export Excel">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Excel
+                            </a>
+
+                            @if($canApprove)
+                                <button type="button"
+                                    class="approve-btn {{ $buttonColor }} text-white px-3 py-2 rounded {{ $buttonHoverColor }} transition text-xs font-semibold {{ $isRepresentative ? 'ring-2 ring-yellow-300' : '' }}"
+                                    data-url="{{ $approveRoute }}"
+                                    data-id="{{ $req->id }}"
+                                    data-no="{{ $req->penawaran->no_penawaran ?? '-' }}"
+                                    data-company="{{ $req->penawaran->nama_perusahaan ?? '-' }}"
+                                    data-version="{{ $req->version->version ?? '-' }}"
+                                    data-is-representative="{{ $isRepresentative ? 'true' : 'false' }}">
+                                    @if($isRepresentative)
+                                        <svg class="w-3 h-3 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                        </svg>
+                                    @endif
+                                    {{ $buttonText }}
+                                </button>
+                            @endif
+                        </div>
                     </td>
                     </tr>
         @empty
