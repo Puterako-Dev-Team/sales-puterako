@@ -57,6 +57,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{id}/edit', [PenawaranController::class, 'edit'])->name('edit');          // AJAX get data
         Route::put('/{id}', [PenawaranController::class, 'update'])->name('update');
         Route::post('/{id}/restore', [PenawaranController::class, 'restore'])->name('penawaran.restore');
+        Route::delete('/{id}/force-delete', [PenawaranController::class, 'forceDelete'])->name('penawaran.forceDelete');
         Route::delete('/{id}', [PenawaranController::class, 'destroy'])->name('penawaran.delete');
 
         // Supporting documents routes
@@ -82,6 +83,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{requestId}/approve-supervisor', [ExportApprovalController::class, 'approveBySupervisor'])->name('export-approval.approve-supervisor');
         Route::post('/{requestId}/approve-manager', [ExportApprovalController::class, 'approveByManager'])->name('export-approval.approve-manager');
         Route::post('/{requestId}/approve-direktur', [ExportApprovalController::class, 'approveByDirektor'])->name('export-approval.approve-direktur');
+        Route::get('/{requestId}/export-excel', [ExportApprovalController::class, 'exportExcel'])->name('export-approval.export-excel');
     });
 
     // Tipe routes (protected) - Admin only

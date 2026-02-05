@@ -87,9 +87,14 @@ class PenawaranController extends Controller
             $query->where('nama_perusahaan', 'like', '%' . $request->nama_perusahaan . '%');
         }
 
-        // Filter berdasarkan status
+        // Filter berdasarkan status (termasuk deleted untuk admin)
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            if ($request->status === 'deleted' && $userRole === 'administrator') {
+                // Untuk admin, tampilkan hanya yang soft deleted
+                $query->onlyTrashed();
+            } else {
+                $query->where('status', $request->status);
+            }
         }
 
         // PERBAIKI: Filter berdasarkan PIC Admin dari tabel users
@@ -166,8 +171,14 @@ class PenawaranController extends Controller
             $query->where('nama_perusahaan', 'like', '%' . $request->nama_perusahaan . '%');
         }
 
+        // Filter berdasarkan status (termasuk deleted untuk admin)
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            if ($request->status === 'deleted' && $userRole === 'administrator') {
+                // Untuk admin, tampilkan hanya yang soft deleted
+                $query->onlyTrashed();
+            } else {
+                $query->where('status', $request->status);
+            }
         }
 
         // PERBAIKI: Filter PIC Admin berdasarkan user name
@@ -435,16 +446,57 @@ class PenawaranController extends Controller
         return back()->with('success', 'Penawaran dihapus');
     }
 
-    public function restore($id)
+    public function restore(Request $request, $id)
     {
-        // Manager role tidak bisa restore penawaran
-        if (Auth::user()->role === 'manager') {
-            return back()->with('error', 'Unauthorized. Manager tidak dapat memulihkan penawaran.');
+        // Hanya administrator yang bisa restore penawaran
+        if (Auth::user()->role !== 'administrator') {
+            if ($request->ajax()) {
+                return response()->json(['error' => 'Unauthorized. Hanya administrator yang dapat memulihkan penawaran.'], 403);
+            }
+            return back()->with('error', 'Unauthorized. Hanya administrator yang dapat memulihkan penawaran.');
         }
 
         $penawaran = Penawaran::onlyTrashed()->findOrFail($id);
         $penawaran->restore();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'notify' => [
+                    'type' => 'success',
+                    'title' => 'Berhasil',
+                    'message' => 'Penawaran berhasil dipulihkan'
+                ]
+            ]);
+        }
         return back()->with('success', 'Penawaran dipulihkan');
+    }
+
+    public function forceDelete(Request $request, $id)
+    {
+        // Hanya administrator yang bisa hard delete penawaran
+        if (Auth::user()->role !== 'administrator') {
+            if ($request->ajax()) {
+                return response()->json(['error' => 'Unauthorized. Hanya administrator yang dapat menghapus permanen.'], 403);
+            }
+            return back()->with('error', 'Unauthorized. Hanya administrator yang dapat menghapus permanen.');
+        }
+
+        $penawaran = Penawaran::onlyTrashed()->findOrFail($id);
+        
+        $penawaran->forceDelete();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'notify' => [
+                    'type' => 'success',
+                    'title' => 'Berhasil',
+                    'message' => 'Penawaran dihapus secara permanen'
+                ]
+            ]);
+        }
+        return back()->with('success', 'Penawaran dihapus permanen');
     }
 
     public function followUp($id)
@@ -1033,7 +1085,7 @@ class PenawaranController extends Controller
         $version = $request->input('version');
         $grandTotalCalculated = $request->input('grand_total_calculated', 0);
 
-        \Log::info("SaveNotes Request Data", [
+        Log::info("SaveNotes Request Data", [
             'penawaran_id' => $id,
             'version' => $version,
             'grand_total_calculated_raw' => $request->input('grand_total_calculated'),
@@ -1053,9 +1105,9 @@ class PenawaranController extends Controller
         // Simpan grand_total yang dikirim dari frontend (update jika nilai dikirim dan bukan string '0')
         if ($grandTotalCalculated !== null && $grandTotalCalculated !== 0 && $grandTotalCalculated !== '0') {
             $versionRow->grand_total = (int) $grandTotalCalculated;
-            \Log::info("SaveNotes: Updated grand_total to {$grandTotalCalculated} for penawaran_id={$id}, version={$version}");
+            Log::info("SaveNotes: Updated grand_total to {$grandTotalCalculated} for penawaran_id={$id}, version={$version}");
         } else {
-            \Log::info("SaveNotes: grand_total NOT updated. Value: {$grandTotalCalculated}, is_null: " . ($grandTotalCalculated === null ? 'true' : 'false'));
+            Log::info("SaveNotes: grand_total NOT updated. Value: {$grandTotalCalculated}, is_null: " . ($grandTotalCalculated === null ? 'true' : 'false'));
         }
 
         // Simpan note ke penawaran_versions

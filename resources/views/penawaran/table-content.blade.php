@@ -185,36 +185,54 @@
                             {{ $p->status }}
                         </span>
                     @endif
+                    @if($p->trashed())
+                        <span class="inline-block px-2 py-1 text-xs font-semibold bg-red-500 text-white rounded-full ml-1">
+                            Deleted
+                        </span>
+                    @endif
                 </td>
                 <td class="px-2 py-2 text-center">
                     <div class="flex gap-1 justify-center">
-                        @if ($p->tiket)
-                            <button class="bg-gray-300 text-gray-700 px-2 py-1 rounded flex items-center gap-1 text-xs" disabled>
-                                <x-lucide-ticket class="w-4 h-4" />
-                                Tiket
+                        @if($p->trashed())
+                            {{-- Tombol untuk item yang sudah dihapus (soft deleted) --}}
+                            <button class="btn-restore bg-blue-500 text-white px-2 py-2 rounded flex items-center gap-1 text-xs hover:bg-blue-700 transition"
+                                data-id="{{ $p->id_penawaran }}" title="Pulihkan">
+                                <x-lucide-rotate-ccw class="w-5 h-5 inline" />
+                            </button>
+                            <button class="btn-hard-delete bg-red-700 text-white px-2 py-2 rounded flex items-center gap-1 text-xs hover:bg-red-900 transition"
+                                data-id="{{ $p->id_penawaran }}" title="Hapus Permanen">
+                                <x-lucide-trash-2 class="w-5 h-5 inline" />
                             </button>
                         @else
-                            <a href="{{ route('penawaran.show', ['id' => $p->id_penawaran]) }}"
-                                class="bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 transition relative"
-                                title="Lihat Detail"
-                                data-penawaran-id="{{ $p->id_penawaran }}">
-                                <x-lucide-file-text class="w-5 h-5 inline" />
-                                <span class="activity-badge hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"></span>
+                            {{-- Tombol untuk item yang belum dihapus --}}
+                            @if ($p->tiket)
+                                <button class="bg-gray-300 text-gray-700 px-2 py-1 rounded flex items-center gap-1 text-xs" disabled>
+                                    <x-lucide-ticket class="w-4 h-4" />
+                                    Tiket
+                                </button>
+                            @else
+                                <a href="{{ route('penawaran.show', ['id' => $p->id_penawaran]) }}"
+                                    class="bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 transition relative"
+                                    title="Lihat Detail"
+                                    data-penawaran-id="{{ $p->id_penawaran }}">
+                                    <x-lucide-file-text class="w-5 h-5 inline" />
+                                    <span class="activity-badge hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"></span>
+                                </a>
+                                <button class="btn-edit bg-yellow-500 text-white px-2 py-2 rounded flex items-center gap-1 text-xs hover:bg-yellow-700 transition"
+                                    data-id="{{ $p->id_penawaran }}" title="Edit">
+                                    <x-lucide-square-pen class="w-5 h-5 inline" />
+                                </button>
+                            <a href="{{ route('penawaran.followUp', $p->id_penawaran) }}"
+                                class="bg-[#008817] text-white px-2 py-2 rounded flex items-center gap-1 text-xs hover:bg-green-800 transition"
+                                title="Follow Up">
+                                <x-lucide-phone-outgoing class="w-5 h-5 inline" />
                             </a>
-                            <button class="btn-edit bg-yellow-500 text-white px-2 py-2 rounded flex items-center gap-1 text-xs hover:bg-yellow-700 transition"
-                                data-id="{{ $p->id_penawaran }}" title="Edit">
-                                <x-lucide-square-pen class="w-5 h-5 inline" />
+                            @endif
+                            <button class="btn-delete bg-red-500 text-white px-2 py-2 rounded hover:bg-red-700 transition"
+                                data-id="{{ $p->id_penawaran }}" title="Hapus Data">
+                                <x-lucide-trash-2 class="w-5 h-5 inline" />
                             </button>
-                        <a href="{{ route('penawaran.followUp', $p->id_penawaran) }}"
-                            class="bg-[#008817] text-white px-2 py-2 rounded flex items-center gap-1 text-xs hover:bg-green-800 transition"
-                            title="Follow Up">
-                            <x-lucide-phone-outgoing class="w-5 h-5 inline" />
-                        </a>
                         @endif
-                        <button class="btn-delete bg-red-500 text-white px-2 py-2 rounded hover:bg-red-700 transition"
-                            data-id="{{ $p->id_penawaran }}" title="Hapus Data">
-                            <x-lucide-trash-2 class="w-5 h-5 inline" />
-                        </button>
                     </div>
                 </td>
             </tr>

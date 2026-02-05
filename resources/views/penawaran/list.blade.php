@@ -188,6 +188,10 @@
                             <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>Draft</option>
                             <option value="lost" {{ request('status') == 'lost' ? 'selected' : '' }}>Lost</option>
                             <option value="success" {{ request('status') == 'success' ? 'selected' : '' }}>Success</option>
+                            <option value="po" {{ request('status') == 'po' ? 'selected' : '' }}>PO</option>
+                            @if(Auth::user()->role === 'administrator')
+                            <option value="deleted" {{ request('status') == 'deleted' ? 'selected' : '' }}>Deleted</option>
+                            @endif
                         </select>
                     </div>
 
@@ -373,11 +377,46 @@
     <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded shadow p-6 w-full max-w-sm">
             <h3 class="text-lg font-semibold mb-2">Hapus Penawaran?</h3>
-            <p class="text-sm text-gray-600 mb-4">Data akan dihapus sementara (soft delete) dan bisa dipulihkan.</p>
+            <p class="text-sm text-gray-600 mb-4">Data akan dihapus sementara (soft delete) dan bisa dipulihkan. Hubungi administrator jika sudah menghapus data penawaran.</p>
             <div class="flex justify-end gap-3">
                 <button id="btnCancelDelete" class="px-4 py-2 border rounded text-sm">Batal</button>
                 <button id="btnConfirmDelete" class="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">
                     Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Restore -->
+    <div id="restoreModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded shadow p-6 w-full max-w-sm">
+            <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
+                <x-lucide-rotate-ccw class="w-5 h-5 text-green-600" />
+                Pulihkan Penawaran?
+            </h3>
+            <p class="text-sm text-gray-600 mb-4">Data penawaran akan dipulihkan kembali ke status sebelum dihapus.</p>
+            <div class="flex justify-end gap-3">
+                <button id="btnCancelRestore" class="px-4 py-2 border rounded text-sm">Batal</button>
+                <button id="btnConfirmRestore" class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">
+                    Pulihkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Hard Delete -->
+    <div id="hardDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded shadow p-6 w-full max-w-sm">
+            <h3 class="text-lg font-semibold mb-2 flex items-center gap-2 text-red-600">
+                <x-lucide-alert-triangle class="w-5 h-5" />
+                Hapus Permanen?
+            </h3>
+            <p class="text-sm text-gray-600 mb-2">Data penawaran akan <strong class="text-red-600">dihapus secara permanen</strong> dari database.</p>
+            <p class="text-sm text-red-500 font-medium mb-4">⚠️ Tindakan ini tidak dapat dibatalkan!</p>
+            <div class="flex justify-end gap-3">
+                <button id="btnCancelHardDelete" class="px-4 py-2 border rounded text-sm">Batal</button>
+                <button id="btnConfirmHardDelete" class="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">
+                    Hapus Permanen
                 </button>
             </div>
         </div>
@@ -693,7 +732,93 @@
                 });
         });
 
-        /* ================== EVENT DELEGATION UNTUK EDIT / HAPUS ================== */
+        /* ================== RESTORE (PULIHKAN) ================== */
+        const restoreModal = document.getElementById('restoreModal');
+        const btnCancelRestore = document.getElementById('btnCancelRestore');
+        const btnConfirmRestore = document.getElementById('btnConfirmRestore');
+        let restoreTargetId = null;
+
+        function openRestoreModal(id) {
+            restoreTargetId = id;
+            restoreModal.classList.remove('hidden');
+            restoreModal.classList.add('flex');
+        }
+        function closeRestoreModal() {
+            restoreModal.classList.add('hidden');
+            restoreModal.classList.remove('flex');
+            restoreTargetId = null;
+        }
+        btnCancelRestore.addEventListener('click', closeRestoreModal);
+        restoreModal.addEventListener('click', e => {
+            if (e.target === restoreModal) closeRestoreModal();
+        });
+        btnConfirmRestore.addEventListener('click', () => {
+            if (!restoreTargetId) return;
+            fetch(`${ROUTES.base}/${restoreTargetId}/restore`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+                .then(r => r.json().catch(() => ({})))
+                .then(res => {
+                    closeRestoreModal();
+                    performFilter();
+                    toastSafe(res.notify ?? { type: 'success', title: 'Berhasil', message: 'Penawaran berhasil dipulihkan' });
+                })
+                .catch(() => {
+                    closeRestoreModal();
+                    performFilter();
+                    toastSafe({ type: 'error', title: 'Error', message: 'Gagal memulihkan penawaran' });
+                });
+        });
+
+        /* ================== HARD DELETE (HAPUS PERMANEN) ================== */
+        const hardDeleteModal = document.getElementById('hardDeleteModal');
+        const btnCancelHardDelete = document.getElementById('btnCancelHardDelete');
+        const btnConfirmHardDelete = document.getElementById('btnConfirmHardDelete');
+        let hardDeleteTargetId = null;
+
+        function openHardDeleteModal(id) {
+            hardDeleteTargetId = id;
+            hardDeleteModal.classList.remove('hidden');
+            hardDeleteModal.classList.add('flex');
+        }
+        function closeHardDeleteModal() {
+            hardDeleteModal.classList.add('hidden');
+            hardDeleteModal.classList.remove('flex');
+            hardDeleteTargetId = null;
+        }
+        btnCancelHardDelete.addEventListener('click', closeHardDeleteModal);
+        hardDeleteModal.addEventListener('click', e => {
+            if (e.target === hardDeleteModal) closeHardDeleteModal();
+        });
+        btnConfirmHardDelete.addEventListener('click', () => {
+            if (!hardDeleteTargetId) return;
+            fetch(`${ROUTES.base}/${hardDeleteTargetId}/force-delete`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+                .then(r => r.json().catch(() => ({})))
+                .then(res => {
+                    closeHardDeleteModal();
+                    performFilter();
+                    toastSafe(res.notify ?? { type: 'success', title: 'Berhasil', message: 'Penawaran dihapus permanen' });
+                })
+                .catch(() => {
+                    closeHardDeleteModal();
+                    performFilter();
+                    toastSafe({ type: 'error', title: 'Error', message: 'Gagal menghapus permanen' });
+                });
+        });
+
+        /* ================== EVENT DELEGATION UNTUK EDIT / HAPUS / RESTORE / HARD DELETE ================== */
         document.addEventListener('click', e => {
             const editBtn = e.target.closest('.btn-edit');
             if (editBtn) {
@@ -705,6 +830,18 @@
             if (delBtn) {
                 e.preventDefault();
                 openConfirmDelete(delBtn.dataset.id);
+                return;
+            }
+            const restoreBtn = e.target.closest('.btn-restore');
+            if (restoreBtn) {
+                e.preventDefault();
+                openRestoreModal(restoreBtn.dataset.id);
+                return;
+            }
+            const hardDelBtn = e.target.closest('.btn-hard-delete');
+            if (hardDelBtn) {
+                e.preventDefault();
+                openHardDeleteModal(hardDelBtn.dataset.id);
             }
         });
 
