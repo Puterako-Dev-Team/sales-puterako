@@ -3,6 +3,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Department;
 use App\Models\Holiday;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -51,8 +52,8 @@ class AuthController extends Controller
             $user = Auth::user();
 
             $userRole = strtolower($user->role ?? '');
-            $userDepartemen = strtolower($user->departemen ?? '');
-            if ($userRole === 'staff' && $userDepartemen === 'sales') {
+            $isSalesDepartment = $user->departemen === Department::Sales;
+            if ($userRole === 'staff' && $isSalesDepartment) {
                 $now = now();
                 $today = $now->toDateString();
 

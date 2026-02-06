@@ -362,7 +362,35 @@ class PenawaranController extends Controller
             'pic_perusahaan' => 'nullable|string|max:255',
             'tipe' => 'nullable|in:soc,barang',
             'template_type' => 'nullable|in:template_puterako,template_boq',
+            'no_penawaran_edit' => 'nullable|string|max:255|regex:/^PIB\/SS-SBY\/JK\/\d+-\d+\/[IVX]+\/\d{4}$/',
         ]);
+
+        // Handle no_penawaran edit for administrator only
+        if (Auth::user()->role === 'administrator' && $request->filled('no_penawaran_edit')) {
+            $newNoPenawaran = $request->input('no_penawaran_edit');
+            
+            // Check if new no_penawaran is already used by another penawaran
+            $existingPenawaran = Penawaran::where('no_penawaran', $newNoPenawaran)
+                ->where('id_penawaran', '!=', $id)
+                ->withTrashed()
+                ->first();
+            
+            if ($existingPenawaran) {
+                return response()->json([
+                    'success' => false,
+                    'notify' => [
+                        'type' => 'error',
+                        'title' => 'Error',
+                        'message' => 'No Penawaran sudah digunakan oleh penawaran lain'
+                    ]
+                ], 422);
+            }
+            
+            $data['no_penawaran'] = $newNoPenawaran;
+        }
+        
+        // Remove the edit field from data since we've already processed it
+        unset($data['no_penawaran_edit']);
 
         // Handle template type
         if ($request->has('template_type')) {
