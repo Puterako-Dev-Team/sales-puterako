@@ -419,7 +419,7 @@
                         </div>
                         <div class="menu-label show ">
                             <h3 class="font-bold text-gray-900">
-                                Puterako Super App - Sales</h3>
+                                Puterako Super App - {{ auth()->user()->departemen?->value ?? 'General' }}</h3>
                             <p class="text-xs text-gray-500">Puterako ERP</p>
                         </div>
                     </div>

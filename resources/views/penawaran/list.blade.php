@@ -353,6 +353,17 @@
                             <input type="hidden" name="no_penawaran" id="f_no_penawaran">
                             <p class="text-xs text-gray-500 mt-1">Otomatis dibuat berdasarkan bulan dan tahun saat ini.</p>
                         </div>
+
+                        <!-- Edit-only field for Administrator to edit no_penawaran -->
+                        @if(Auth::user()->role === 'administrator')
+                        <div class="edit-only hidden" id="editNoPenawaranGroup">
+                            <label class="block mb-2 font-medium text-sm text-gray-700">No Penawaran</label>
+                            <input type="text" name="no_penawaran_edit" id="f_no_penawaran_edit"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono"
+                                placeholder="Contoh: PIB/SS-SBY/JK/1-032/II/2026">
+                            <p class="text-xs text-gray-500 mt-1">Edit nomor penawaran. Nomor urut akan berlanjut otomatis untuk penawaran berikutnya.</p>
+                        </div>
+                        @endif
                     </div>
                     <!-- Submit Button -->
                     <div class="mt-8 pt-6 border-t border-gray-100">
@@ -593,6 +604,12 @@
             boqFileGroup.classList.add('hidden');
             f_tipe.disabled = false;
             f_tipe.classList.remove('bg-gray-100', 'cursor-not-allowed');
+            
+            // Reset edit-only fields
+            const f_no_penawaran_edit = document.getElementById('f_no_penawaran_edit');
+            if (f_no_penawaran_edit) {
+                f_no_penawaran_edit.value = '';
+            }
         }
 
         function setupAdd() {
@@ -601,6 +618,13 @@
             grpNoPenawaran.classList.remove('hidden');
             penawaranForm.dataset.mode = 'add';
             penawaranForm.action = ROUTES.store;
+            
+            // Hide edit-only fields
+            const editNoPenawaranGroup = document.getElementById('editNoPenawaranGroup');
+            if (editNoPenawaranGroup) {
+                editNoPenawaranGroup.classList.add('hidden');
+            }
+            
             updateGeneratedNoPenawaran();
             openSlide();
         }
@@ -641,7 +665,17 @@
                     // Trigger change event untuk auto-fill lokasi jika ada match
                     f_nama_perusahaan.dispatchEvent(new Event('change'));
 
+                    // Hide add-only fields
                     grpNoPenawaran.classList.add('hidden');
+
+                    // Show edit-only fields for admin
+                    const editNoPenawaranGroup = document.getElementById('editNoPenawaranGroup');
+                    const f_no_penawaran_edit = document.getElementById('f_no_penawaran_edit');
+                    if (editNoPenawaranGroup && f_no_penawaran_edit) {
+                        editNoPenawaranGroup.classList.remove('hidden');
+                        f_no_penawaran_edit.value = d.no_penawaran ?? '';
+                    }
+
                     openSlide();
                 })
                 .catch(e => {
