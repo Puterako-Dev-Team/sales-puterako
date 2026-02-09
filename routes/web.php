@@ -141,6 +141,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{id}/items', [RekapController::class, 'getItems'])->name('rekap.getItems');
         Route::post('/{id}/import', [RekapController::class, 'import'])->name('rekap.import');
         Route::get('/for-penawaran/{penawaran_id}', [RekapController::class, 'forPenawaran'])->name('rekap.forPenawaran');
+        Route::get('/surveys-for-penawaran/{penawaran_id}', [RekapController::class, 'surveysForPenawaran'])->name('rekap.surveysForPenawaran');
         
         // Survey data routes (JSON storage)
         Route::get('/{id}/survey', [RekapController::class, 'getSurvey'])->name('rekap.getSurvey');

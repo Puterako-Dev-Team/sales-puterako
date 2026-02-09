@@ -3845,6 +3845,213 @@
                     };
                 }
 
+                /**
+                 * Render survey data from rekaps for Rincian Rekap tab
+                 * @param {Object} response - Response from surveysForPenawaran endpoint
+                 */
+                function renderRekapSurveys(response) {
+                    const container = document.getElementById('rekapSpreadsheet');
+                    const accumulationBody = document.getElementById('rekapAccumulationBody');
+                    if (!container || !accumulationBody) return;
+
+                    container.innerHTML = '';
+                    accumulationBody.innerHTML = '';
+
+                    if (!response || !response.success || !response.rekaps || response.rekaps.length === 0) {
+                        container.innerHTML = '<div class="text-gray-500">Belum ada data rekap.</div>';
+                        accumulationBody.innerHTML = '<div class="text-gray-500">Belum ada data rekap.</div>';
+                        return;
+                    }
+
+                    const allNumericTotals = {}; // For accumulation across all areas
+
+                    // Render each rekap
+                    response.rekaps.forEach((rekapData, rekapIdx) => {
+                        // Rekap header
+                        const rekapHeader = document.createElement('div');
+                        rekapHeader.className = 'mb-4 p-4 rounded bg-blue-50 border-l-4 border-blue-500';
+                        rekapHeader.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-lg font-bold text-blue-800">${escapeHtml(rekapData.rekap_nama)}</h2>
+                                <div class="text-sm text-blue-600">
+                                    ${rekapData.version !== null ? `<span class="bg-blue-100 px-2 py-1 rounded">Rev ${rekapData.version}</span>` : ''}
+                                    <span class="ml-2 ${rekapData.rekap_status === 'approved' ? 'text-green-600' : 'text-orange-600'}">${rekapData.rekap_status}</span>
+                                </div>
+                            </div>
+                            ${rekapData.version_notes ? `<p class="text-sm text-gray-600 mt-1">${escapeHtml(rekapData.version_notes)}</p>` : ''}
+                        `;
+                        container.appendChild(rekapHeader);
+
+                        // Render each survey (area) in this rekap
+                        rekapData.surveys.forEach((survey, surveyIdx) => {
+                            const areaName = survey.area_name || 'Default Area';
+                            const headers = survey.headers || [];
+                            const data = survey.data || [];
+                            const totals = survey.totals || {};
+
+                            // Area header
+                            const areaHeader = document.createElement('div');
+                            areaHeader.className = 'mb-2 p-3 rounded bg-green-50';
+                            areaHeader.innerHTML = `<h3 class="text-md font-bold text-green-700">${escapeHtml(areaName)}</h3>`;
+                            container.appendChild(areaHeader);
+
+                            // Table wrapper
+                            const tableWrapper = document.createElement('div');
+                            tableWrapper.className = 'mb-6 bg-white rounded shadow overflow-x-auto';
+
+                            const table = document.createElement('table');
+                            table.className = 'w-full text-sm border-collapse min-w-max';
+
+                            // Build table header from survey headers
+                            const thead = document.createElement('thead');
+                            
+                            // Group header row
+                            const groupRow = document.createElement('tr');
+                            headers.forEach(group => {
+                                const th = document.createElement('th');
+                                th.className = 'text-center bg-green-600 text-white font-semibold px-2 py-2 border';
+                                th.colSpan = (group.columns || []).length;
+                                th.textContent = group.group || '';
+                                groupRow.appendChild(th);
+                            });
+                            thead.appendChild(groupRow);
+
+                            // Column header row
+                            const colRow = document.createElement('tr');
+                            headers.forEach(group => {
+                                (group.columns || []).forEach(col => {
+                                    const th = document.createElement('th');
+                                    th.className = 'text-center bg-green-100 font-semibold px-2 py-2 border text-xs';
+                                    th.textContent = col.title || col.key || '';
+                                    th.style.minWidth = (col.width || 80) + 'px';
+                                    colRow.appendChild(th);
+                                });
+                            });
+                            thead.appendChild(colRow);
+                            table.appendChild(thead);
+
+                            // Build column keys array for data mapping
+                            const columnKeys = [];
+                            const numericKeys = [];
+                            headers.forEach(group => {
+                                (group.columns || []).forEach(col => {
+                                    columnKeys.push(col.key);
+                                    if (col.type === 'numeric') {
+                                        numericKeys.push(col.key);
+                                    }
+                                });
+                            });
+
+                            // Table body
+                            const tbody = document.createElement('tbody');
+                            data.forEach((row, rowIdx) => {
+                                const tr = document.createElement('tr');
+                                tr.className = 'hover:bg-gray-50';
+                                tr.dataset.rowIndex = rowIdx;
+
+                                columnKeys.forEach(key => {
+                                    const td = document.createElement('td');
+                                    td.className = 'py-1 px-2 border text-center';
+                                    const value = row[key];
+                                    if (value !== null && value !== undefined && value !== '') {
+                                        if (numericKeys.includes(key) && !isNaN(parseFloat(value))) {
+                                            td.textContent = parseFloat(value).toLocaleString('id-ID');
+                                        } else {
+                                            td.textContent = value;
+                                        }
+                                    } else {
+                                        td.textContent = '';
+                                    }
+                                    tr.appendChild(td);
+                                });
+
+                                tbody.appendChild(tr);
+                            });
+
+                            // Totals row
+                            if (Object.keys(totals).length > 0 && numericKeys.length > 0) {
+                                const totalsRow = document.createElement('tr');
+                                totalsRow.className = 'bg-yellow-50 font-bold';
+                                
+                                let isFirstTotal = true;
+                                columnKeys.forEach(key => {
+                                    const td = document.createElement('td');
+                                    td.className = 'py-2 px-2 border text-center';
+                                    
+                                    if (numericKeys.includes(key) && totals[key] !== undefined) {
+                                        td.textContent = parseFloat(totals[key]).toLocaleString('id-ID');
+                                        
+                                        // Accumulate for grand total
+                                        if (!allNumericTotals[key]) allNumericTotals[key] = { total: 0, title: '' };
+                                        allNumericTotals[key].total += parseFloat(totals[key]) || 0;
+                                        // Find title from headers
+                                        headers.forEach(group => {
+                                            (group.columns || []).forEach(col => {
+                                                if (col.key === key) allNumericTotals[key].title = col.title || key;
+                                            });
+                                        });
+                                    } else if (isFirstTotal) {
+                                        td.textContent = 'TOTAL';
+                                        isFirstTotal = false;
+                                    } else {
+                                        td.textContent = '';
+                                    }
+                                    totalsRow.appendChild(td);
+                                });
+                                tbody.appendChild(totalsRow);
+                            }
+
+                            table.appendChild(tbody);
+                            tableWrapper.appendChild(table);
+                            container.appendChild(tableWrapper);
+                        });
+                    });
+
+                    // Render accumulation (grand totals across all areas)
+                    if (Object.keys(allNumericTotals).length > 0) {
+                        const accTable = document.createElement('table');
+                        accTable.className = 'w-full text-sm border-collapse';
+
+                        const accThead = document.createElement('thead');
+                        const accHeadRow = document.createElement('tr');
+                        
+                        const th1 = document.createElement('th');
+                        th1.className = 'text-left font-semibold pb-2 bg-blue-100 px-3 py-2';
+                        th1.textContent = 'Item';
+                        accHeadRow.appendChild(th1);
+
+                        const th2 = document.createElement('th');
+                        th2.className = 'text-center font-semibold pb-2 bg-blue-100 px-3 py-2';
+                        th2.textContent = 'Grand Total';
+                        accHeadRow.appendChild(th2);
+
+                        accThead.appendChild(accHeadRow);
+                        accTable.appendChild(accThead);
+
+                        const accTbody = document.createElement('tbody');
+                        Object.entries(allNumericTotals).forEach(([key, data]) => {
+                            const tr = document.createElement('tr');
+
+                            const tdName = document.createElement('td');
+                            tdName.className = 'py-2 border-t px-3';
+                            tdName.textContent = data.title;
+                            tr.appendChild(tdName);
+
+                            const tdTotal = document.createElement('td');
+                            tdTotal.className = 'py-2 border-t text-center px-3 font-bold';
+                            tdTotal.textContent = data.total.toLocaleString('id-ID');
+                            tr.appendChild(tdTotal);
+
+                            accTbody.appendChild(tr);
+                        });
+                        accTable.appendChild(accTbody);
+                        accumulationBody.appendChild(accTable);
+                    } else {
+                        accumulationBody.innerHTML = '<div class="text-gray-500">Tidak ada data numerik untuk diakumulasi.</div>';
+                    }
+                }
+
+                // Legacy function for backward compatibility (items-based rendering)
                 function renderRekapTables(payload) {
                     const container = document.getElementById('rekapSpreadsheet');
                     const accumulationBody = document.getElementById('rekapAccumulationBody');
@@ -3905,6 +4112,15 @@
                         const tbody = document.createElement('tbody');
                         items.forEach(it => {
                             const tr = document.createElement('tr');
+                            tr.className = 'rekap-item-row hover:bg-gray-50 cursor-pointer';
+                            // Store item data for future feature (fetch per item to penawaran)
+                            tr.dataset.itemId = it.id;
+                            tr.dataset.namaItem = it.nama_item || '';
+                            tr.dataset.jumlah = it.jumlah || 0;
+                            tr.dataset.satuan = it.satuan || '';
+                            tr.dataset.kategoriId = it.kategori && it.kategori.id ? it.kategori.id : '';
+                            tr.dataset.kategoriNama = it.kategori && it.kategori.nama ? it.kategori.nama : '';
+                            tr.dataset.namaArea = it.nama_area || '';
 
                             const tdKategori = document.createElement('td');
                             tdKategori.className = 'py-2 border-t px-3';
@@ -4019,14 +4235,13 @@
                             return response.json();
                         })
                         .then(payload => {
-                            // payload is array of items
-                            renderRekapTables(payload);
-                            if (window.notyf) notyf.success('Rekap berhasil dimuat.');
+                            if (window.notyf) notyf.success('Rekap berhasil dimuat. Halaman akan di-refresh...');
                             modal.classList.add("hidden");
-                            // switch to Rekap tab if needed
-                            document.querySelectorAll('.tab-btn').forEach(btn => {
-                                if (btn.dataset.tab === 'rekap') btn.click();
-                            });
+                            
+                            // Refresh the page to show only the selected rekap
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 500);
                         })
                         .catch(err => {
                             console.error('Error loading rekap import:', err);
@@ -4035,20 +4250,37 @@
                     };
                 }
 
-                // Initial load for this penawaran: render if exists
-                fetch(`/rekap/for-penawaran/{{ $penawaran->id_penawaran }}`)
+                // Initial load for this penawaran: render surveys if exists
+                fetch(`/rekap/surveys-for-penawaran/{{ $penawaran->id_penawaran }}`)
                 .then(res => res.json())
-                .then(payload => {
-                    if (Array.isArray(payload) && payload.length > 0) {
-                        renderRekapTables(payload);
+                .then(response => {
+                    if (response && response.success && response.rekaps && response.rekaps.length > 0) {
+                        renderRekapSurveys(response);
                     } else {
-                        // show empty state
-                        const container = document.getElementById('rekapSpreadsheet');
-                        if (container) container.innerHTML = '<div class="text-gray-500">Belum ada data rekap.</div>';
+                        // Fallback to legacy items-based endpoint
+                        fetch(`/rekap/for-penawaran/{{ $penawaran->id_penawaran }}`)
+                        .then(res2 => res2.json())
+                        .then(payload => {
+                            if (Array.isArray(payload) && payload.length > 0) {
+                                renderRekapTables(payload);
+                            } else {
+                                // show empty state
+                                const container = document.getElementById('rekapSpreadsheet');
+                                const accBody = document.getElementById('rekapAccumulationBody');
+                                if (container) container.innerHTML = '<div class="text-gray-500">Belum ada data rekap.</div>';
+                                if (accBody) accBody.innerHTML = '<div class="text-gray-500">Belum ada data rekap.</div>';
+                            }
+                        })
+                        .catch(e2 => {
+                            console.error('Failed to load legacy rekap items:', e2);
+                        });
                     }
                 })
                 .catch(e => {
-                    console.error('Failed to load imported rekap for this penawaran:', e);
+                    console.error('Failed to load rekap surveys for this penawaran:', e);
+                    // show empty state
+                    const container = document.getElementById('rekapSpreadsheet');
+                    if (container) container.innerHTML = '<div class="text-gray-500">Gagal memuat data rekap.</div>';
                 });
                     
 
