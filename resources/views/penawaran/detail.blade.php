@@ -928,13 +928,13 @@
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-16">Qty</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-20">Satuan
                                                 </th>
-                                                <th class="border border-gray-300 px-3 py-2 text-center w-32" style="color: #000000; font-weight: bold;">Keterangan</th>
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-32">Harga
                                                     Satuan
                                                 </th>
                                                 <th class="border border-gray-300 px-3 py-2 text-right w-32">Harga
                                                     Total
                                                 </th>
+                                                <th class="border border-gray-300 px-3 py-2 text-center w-32" style="color: #000000; font-weight: bold;">Keterangan</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -970,7 +970,6 @@
                                                             <td class="border border-gray-300 px-3 py-2">
                                                                 {{ $row['satuan'] }}
                                                             </td>
-                                                            <td class="border border-gray-300 px-3 py-2 text-center" style="color: #000000;">{{ $row['delivery_time'] ?? '-' }}</td>
                                                             <td class="border border-gray-300 px-3 py-2 text-right">
                                                                 @if ((int) ($row['is_judul'] ?? 0) === 1)
                                                                     {{-- Kosong jika is_judul --}}
@@ -993,7 +992,7 @@
                                                                     {{ $row['harga_total'] > 0 ? 'Rp ' . number_format($row['harga_total'], 0, ',', '.') : '' }}
                                                                 @endif
                                                             </td>
-                                                            
+                                                            <td class="border border-gray-300 px-3 py-2 text-center" style="color: #000000;">{{ $row['delivery_time'] ?? '-' }}</td>
                                                         </tr>
                                                     @endforeach
                                                 @endforeach
@@ -1001,11 +1000,12 @@
                                         </tbody>
                                         <tfoot>
                                             <tr>
-                                                <td colspan="7" class="text-center font-bold bg-gray-50">Subtotal
+                                                <td colspan="6" class="text-center font-bold bg-gray-50">Subtotal
                                                 </td>
                                                 <td class="border border-gray-300 px-3 py-2 text-right font-bold">
                                                     Rp {{ number_format($subtotal, 0, ',', '.') }}
                                                 </td>
+                                                <td class="border border-gray-300 px-3 py-2"></td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -1110,11 +1110,58 @@
                                         </form>
                                     </div>
 
+                                    <!-- Diskon toggle + input -->
+                                    <div class="flex items-center gap-4 mt-3">
+                                        <form method="POST"
+                                            action="{{ route('penawaran.saveDiskon', ['id' => $penawaran->id_penawaran, 'version' => $activeVersion]) }}"
+                                            class="flex items-center ml-4">
+                                            @csrf
+                                            <input type="hidden" name="version" value="{{ $activeVersion }}">
+                                            <label class="flex items-center gap-2">
+                                                <input type="checkbox" name="is_diskon" id="isDiskon" value="1" {{ $isDiskon ?? false ? 'checked' : '' }} />
+                                                <span class="text-sm font-medium">Diskon</span>
+                                            </label>
+                                            <input type="text" name="diskon" id="diskonInput"
+                                                class="border rounded px-3 py-2 bg-white w-20 text-right ml-2" placeholder="0"
+                                                value="{{ $isDiskon ? $diskon : 0 }}">
+                                            <span class="ml-1 text-sm text-gray-600">%</span>
+                                            <button type="submit"
+                                                class="ml-4 bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 transition font-semibold shadow-md">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                    stroke-linecap="round" stroke-linejoin="round"
+                                                    class="lucide lucide-circle-check-big-icon lucide-circle-check-big">
+                                                    <path d="M21.801 10A10 10 0 1 1 17 3.335" />
+                                                    <path d="m9 11 3 3L22 4" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
+
                                     @if ($isBest)
                                         <tr>
                                             <td class="py-2 font-semibold">Best Price</td>
                                             <td class="py-2 text-right">Rp
                                                 {{ number_format($bestPrice, 0, ',', '.') }}
+                                            </td>
+                                        </tr>
+                                    @endif
+                                    @if ($isDiskon && $diskon > 0)
+                                        @php
+                                            $baseAmountBeforeDiskon = $isBest && $bestPrice > 0 ? $bestPrice : $totalKeseluruhan;
+                                            $diskonNominalCalc = ($baseAmountBeforeDiskon * $diskon) / 100;
+                                            $afterDiskon = $baseAmountBeforeDiskon - $diskonNominalCalc;
+                                        @endphp
+                                        <tr>
+                                            <td class="py-2 font-semibold text-red-600">Diskon {{ number_format($diskon, 0, ',', '.') }}%</td>
+                                            <td class="py-2 text-right text-red-600">- Rp
+                                                {{ number_format($diskonNominalCalc, 0, ',', '.') }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="py-2 font-semibold">After Diskon</td>
+                                            <td class="py-2 text-right">Rp
+                                                {{ number_format($afterDiskon, 0, ',', '.') }}
                                             </td>
                                         </tr>
                                     @endif
@@ -1124,6 +1171,11 @@
                                         <td class="py-2 text-right">Rp
                                             @php
                                                 $baseAmountForPPN = $isBest && $bestPrice > 0 ? $bestPrice : $totalKeseluruhan;
+                                                // Hitung diskon sebagai persen
+                                                if ($isDiskon && $diskon > 0) {
+                                                    $diskonNominalPPN = ($baseAmountForPPN * $diskon) / 100;
+                                                    $baseAmountForPPN = $baseAmountForPPN - $diskonNominalPPN;
+                                                }
                                                 $ppnNominal = ($baseAmountForPPN * $ppnPersen) / 100;
                                             @endphp
                                             {{ number_format($ppnNominal, 0, ',', '.') }}
@@ -3440,10 +3492,18 @@
                                 // Set flag bahwa Penawaran sudah berhasil disimpan
                                 penawaranSaved = true;
                                 
+                                // Stop autosave interval setelah berhasil save ke database
+                                if (typeof stopAutoSave === 'function') {
+                                    stopAutoSave();
+                                }
+                                
                                 // Clear draft dari localStorage setelah berhasil save ke database
                                 if (typeof clearAutoSaveData === 'function') {
                                     clearAutoSaveData();
                                 }
+                                
+                                // Reset unsaved changes flag
+                                hasUnsavedChanges = false;
                                 
                                 notyf.success(data.message || 'Penawaran berhasil disimpan');
                                 btn.innerHTML = "✅ Tersimpan!";
@@ -3504,10 +3564,11 @@
                                     harga_total: parseNumber(row[6]) || 0,
                                     hpp: parseNumber(row[7]) || 0,
                                     is_mitra: row[8] ? 1 : 0,
-                                    profit: parseNumber(row[9]) || 0,
-                                    color_code: row[10] || 1,
-                                    added_cost: parseNumber(row[11]) || 0,
-                                    delivery_time: row[12] || ''
+                                    is_judul: row[9] ? 1 : 0,
+                                    profit: parseNumber(row[10]) || 0,
+                                    color_code: row[11] || 1,
+                                    added_cost: parseNumber(row[12]) || 0,
+                                    delivery_time: row[13] || ''
                                 }))
                             };
                         });

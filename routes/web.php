@@ -50,6 +50,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/mark-activities-read', [PenawaranController::class, 'markActivitiesAsRead'])->name('penawaran.markActivitiesRead');
         Route::post('/{id}/save-notes', [PenawaranController::class, 'saveNotes'])->name('penawaran.saveNotes');
         Route::post('/{id}/save-best-price', [PenawaranController::class, 'saveBestPrice'])->name('penawaran.saveBestPrice');
+        Route::post('/{id}/save-diskon', [PenawaranController::class, 'saveDiskon'])->name('penawaran.saveDiskon');
         Route::post('/{id}/create-revision', [PenawaranController::class, 'createRevision'])->name('penawaran.createRevision');
         Route::post('/{id}/update-status', [PenawaranController::class, 'updateStatus'])->name('penawaran.updateStatus');
         Route::get('/filter', [PenawaranController::class, 'filter'])->name('penawaran.filter');
@@ -131,6 +132,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/all', [RekapController::class, 'all'])->name('rekap.all');
         Route::get('/{id}', [RekapController::class, 'show'])->name('rekap.show');
         Route::get('/{id}/edit', [RekapController::class, 'edit'])->name('rekap.edit');
+        Route::get('/{id}/export', [RekapController::class, 'export'])->name('rekap.export');
         Route::put('/{id}', [RekapController::class, 'update'])->name('rekap.update');
         Route::delete('/{id}', [RekapController::class, 'destroy'])->name('rekap.delete');
         Route::post('/{id}/approve', [RekapController::class, 'approve'])->name('rekap.approve');
@@ -139,6 +141,22 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{id}/items', [RekapController::class, 'getItems'])->name('rekap.getItems');
         Route::post('/{id}/import', [RekapController::class, 'import'])->name('rekap.import');
         Route::get('/for-penawaran/{penawaran_id}', [RekapController::class, 'forPenawaran'])->name('rekap.forPenawaran');
+        
+        // Survey data routes (JSON storage)
+        Route::get('/{id}/survey', [RekapController::class, 'getSurvey'])->name('rekap.getSurvey');
+        Route::post('/{id}/survey', [RekapController::class, 'saveSurvey'])->name('rekap.saveSurvey');
+        Route::put('/{id}/survey/headers', [RekapController::class, 'updateSurveyHeaders'])->name('rekap.updateSurveyHeaders');
+        Route::get('/{id}/export-survey', [RekapController::class, 'exportSurvey'])->name('rekap.exportSurvey');
+        
+        // Multi-area survey routes
+        Route::get('/{id}/surveys', [RekapController::class, 'getSurveys'])->name('rekap.getSurveys');
+        Route::post('/{id}/surveys', [RekapController::class, 'saveSurveys'])->name('rekap.saveSurveys');
+        
+        // Version/Revision routes
+        Route::get('/{id}/versions', [RekapController::class, 'getVersions'])->name('rekap.getVersions');
+        Route::post('/{id}/create-revision', [RekapController::class, 'createRevision'])->name('rekap.createRevision');
+        Route::put('/{id}/version/{version}/notes', [RekapController::class, 'updateVersionNotes'])->name('rekap.updateVersionNotes');
+        Route::put('/{id}/version/{version}/status', [RekapController::class, 'updateVersionStatus'])->name('rekap.updateVersionStatus');
     });
 
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');

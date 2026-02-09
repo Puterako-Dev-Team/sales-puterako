@@ -152,11 +152,17 @@
     <div class="container mx-auto p-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-xl font-bold">List Penawaran</h1>
-            <button id="btnTambah"
-                class="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2 text-sm hover:bg-green-700 transition">
-                <x-lucide-plus class="w-5 h-5 inline" />
-                Tambah
-            </button>
+            @if(Auth::user()->departemen && Auth::user()->departemen->value === 'Presales')
+                <div class="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded text-sm">
+                    <span class="font-semibold">Presales Department</span> - Pembuatan penawaran tidak tersedia
+                </div>
+            @else
+                <button id="btnTambah"
+                    class="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2 text-sm hover:bg-green-700 transition">
+                    <x-lucide-plus class="w-5 h-5 inline" />
+                    Tambah
+                </button>
+            @endif
         </div>
 
         <!-- Filter Section -->
@@ -341,6 +347,15 @@
                             <p class="text-xs text-gray-500 mt-1">Pilih tipe untuk menyesuaikan tab detail.</p>
                         </div>
 
+                        <div class="add-only" id="lokasiPengerjaanGroup">
+                            <label class="block mb-2 font-medium text-sm text-gray-700">Lokasi Pengerjaan</label>
+                            <select name="lokasi_pengerjaan" id="f_lokasi_pengerjaan" required
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                <option value="SBY">Surabaya</option>
+                                <option value="JKT">Jakarta</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Pilih lokasi pengerjaan, akan mempengaruhi format No Penawaran.</p>
+                        </div>
                         <div class="add-only" id="noPenawaranGroup">
                             <label class="block mb-2 font-medium text-sm text-gray-700">No Penawaran</label>
                             <div class="flex items-center space-x-2">
@@ -443,7 +458,7 @@
             filter: "{{ route('penawaran.filter') }}",
             base: "{{ url('penawaran') }}"
         };
-        const NO_PREFIX = "PIB/SS-SBY/JK/{{ Auth::id() }}-";
+        // NO_PREFIX tidak dipakai lagi, digenerate dinamis
 
         /* ================== ROMAN NUMERAL CONVERSION ================== */
         function monthToRoman(month) {
@@ -456,7 +471,9 @@
             const month = monthToRoman(now.getMonth() + 1);
             const year = now.getFullYear();
             const userId = {{ Auth::id() }};
-            
+            // Ambil lokasi pengerjaan dari dropdown
+            const lokasi = document.getElementById('f_lokasi_pengerjaan')?.value || 'SBY';
+            let lokasiKode = lokasi === 'JKT' ? 'JKT' : 'SBY';
             try {
                 // Fetch count of penawarans created this month
                 const response = await fetch(`{{ route('penawaran.count-this-month') }}`, {
@@ -467,12 +484,11 @@
                 });
                 const data = await response.json();
                 const sequenceNumber = (data.count + 1).toString().padStart(3, '0');
-                
-                return `PIB/SS-SBY/JK/${userId}-${sequenceNumber}/${month}/${year}`;
+                return `PIB/SS-${lokasiKode}/${userId}-${sequenceNumber}/${month}/${year}`;
             } catch (error) {
                 console.error('Error generating No Penawaran:', error);
                 // Fallback if API fails
-                return `PIB/SS-SBY/JK/${userId}-001/${month}/${year}`;
+                return `PIB/SS-${lokasiKode}/${userId}-001/${month}/${year}`;
             }
         }
 
@@ -480,6 +496,12 @@
             const generated = await generateNoPenawaran();
             document.getElementById('generatedNoPenawaran').textContent = generated;
             document.getElementById('f_no_penawaran').value = generated;
+        }
+
+        // Update no penawaran jika lokasi pengerjaan berubah
+        const f_lokasi_pengerjaan = document.getElementById('f_lokasi_pengerjaan');
+        if (f_lokasi_pengerjaan) {
+            f_lokasi_pengerjaan.addEventListener('change', updateGeneratedNoPenawaran);
         }
 
         /* ================== ELEMEN FORM / MODAL ================== */
@@ -618,13 +640,16 @@
             grpNoPenawaran.classList.remove('hidden');
             penawaranForm.dataset.mode = 'add';
             penawaranForm.action = ROUTES.store;
-            
             // Hide edit-only fields
             const editNoPenawaranGroup = document.getElementById('editNoPenawaranGroup');
             if (editNoPenawaranGroup) {
                 editNoPenawaranGroup.classList.add('hidden');
             }
-            
+            // Reset lokasi pengerjaan ke default (SBY)
+            const f_lokasi_pengerjaan = document.getElementById('f_lokasi_pengerjaan');
+            if (f_lokasi_pengerjaan) {
+                f_lokasi_pengerjaan.value = 'SBY';
+            }
             updateGeneratedNoPenawaran();
             openSlide();
         }
@@ -966,7 +991,9 @@
         }
 
         /* ================== OPEN / CLOSE FORM BUTTONS ================== */
-        btnTambah.addEventListener('click', setupAdd);
+        if (btnTambah) {
+            btnTambah.addEventListener('click', setupAdd);
+        }
         closeFormBtn.addEventListener('click', closeSlide);
         formSlide.addEventListener('click', e => {
             if (e.target === formSlide) closeSlide();
