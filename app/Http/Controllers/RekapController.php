@@ -464,27 +464,26 @@ class RekapController extends Controller
         $userId = \Illuminate\Support\Facades\Auth::id();
         $penawaranId = $request->get('penawaran_id');
 
-        $rekaps = Rekap::where('status', 'approved') 
-            ->where(function($q) use ($userId, $penawaranId) {
-                $q->whereNull('imported_into_penawaran_id')
-                ->where(function($q2) use ($userId) {
-                    $q2->whereNull('imported_by')
-                        ->orWhere('imported_by', $userId);
-                });
-
-                if ($penawaranId) {
-                    $q->orWhere('imported_into_penawaran_id', $penawaranId);
-                }
-            })
-            ->select('id', 'nama', 'imported_by', 'imported_into_penawaran_id')
+        // Debug: Return all approved rekaps without complex filtering
+        $rekaps = Rekap::where('status', 'approved')
+            ->select('id', 'nama', 'imported_by', 'imported_into_penawaran_id', 'penawaran_id')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return response()->json($rekaps);
+        // Also include rekaps created for this penawaran (even if not approved yet)
+        if ($penawaranId) {
+            $rekapForPenawaran = Rekap::where('penawaran_id', $penawaranId)
+                ->select('id', 'nama', 'imported_by', 'imported_into_penawaran_id', 'penawaran_id')
+                ->get();
+            
+            $rekaps = $rekaps->merge($rekapForPenawaran)->unique('id');
+        }
+
+        return response()->json($rekaps->values());
     }
-    public function getItems($id)
+    public function getItems(Request $request, $id)
     {
-        $rekap = Rekap::findOrFail($id);
+        $rekap = Rekap::with('versions')->findOrFail($id);
         $userId = \Illuminate\Support\Facades\Auth::id();
 
         if ($rekap->imported_by && $rekap->imported_by != $userId) {
@@ -499,10 +498,46 @@ class RekapController extends Controller
             $rekap->save();
         }
 
-        // ambil items beserta relasi tipe/kategori/satuan
-        $items = RekapItem::with(['tipe', 'kategori', 'satuan'])
-                    ->where('rekap_id', $id)
-                    ->get();
+        // Get version_id for filtering items
+        $versionNum = $request->query('version');
+        $versionId = null;
+        
+        if ($versionNum !== null) {
+            $versionRow = $rekap->versions()->where('version', $versionNum)->first();
+            if ($versionRow) {
+                $versionId = $versionRow->id;
+            }
+        } else {
+            // Default to latest version
+            $latestVersion = $rekap->versions()->orderByDesc('version')->first();
+            if ($latestVersion) {
+                $versionId = $latestVersion->id;
+            }
+        }
+
+        // Fetch items with version filtering
+        $itemsQuery = RekapItem::with(['tipe', 'kategori', 'satuan'])
+                    ->where('rekap_id', $id);
+        
+        if ($versionId) {
+            // First try to get items for the specific version
+            $items = (clone $itemsQuery)->where('version_id', $versionId)->get();
+            
+            // Fallback: if no items found for this version, try items without version_id (backward compat)
+            if ($items->isEmpty()) {
+                $items = (clone $itemsQuery)->whereNull('version_id')->get();
+            }
+        } else {
+            // No versions exist, get items without version_id
+            $items = $itemsQuery->whereNull('version_id')->get();
+            
+            // Fallback: if still empty, get all items regardless of version
+            if ($items->isEmpty()) {
+                $items = RekapItem::with(['tipe', 'kategori', 'satuan'])
+                            ->where('rekap_id', $id)
+                            ->get();
+            }
+        }
 
         // mapping: pastikan nama item diambil dari tipe.nama bila ada, fallback ke nama_item
         $payload = $items->map(function($it) {
@@ -522,15 +557,25 @@ class RekapController extends Controller
     public function import(Request $request, $id)
     {
         $request->validate([
-            'penawaran_id' => 'required|exists:penawarans,id_penawaran'
+            'penawaran_id' => 'required|exists:penawarans,id_penawaran',
+            'version' => 'nullable|integer'
         ]);
 
-        $rekap = Rekap::findOrFail($id);
+        $rekap = Rekap::with('versions')->findOrFail($id);
         $userId = Auth::id();
 
         if ($rekap->imported_by && $rekap->imported_by != $userId) {
             return response()->json(['message' => 'Rekap ini sudah diimport oleh user lain.'], 403);
         }
+
+        // Clear any previously imported rekaps for this penawaran (only one rekap per penawaran)
+        Rekap::where('imported_into_penawaran_id', $request->penawaran_id)
+            ->where('id', '!=', $id)
+            ->update([
+                'imported_into_penawaran_id' => null,
+                'imported_by' => null,
+                'imported_at' => null,
+            ]);
 
         if (is_null($rekap->imported_by)) {
             $rekap->imported_by = $userId;
@@ -541,9 +586,46 @@ class RekapController extends Controller
         $rekap->imported_into_penawaran_id = $request->penawaran_id;
         $rekap->save();
 
-        $items = RekapItem::with(['tipe', 'kategori', 'satuan'])
-                    ->where('rekap_id', $id)
-                    ->get();
+        // Get version_id for filtering items
+        $versionNum = $request->input('version');
+        $versionId = null;
+        
+        if ($versionNum !== null) {
+            $versionRow = $rekap->versions()->where('version', $versionNum)->first();
+            if ($versionRow) {
+                $versionId = $versionRow->id;
+            }
+        } else {
+            // Default to latest version
+            $latestVersion = $rekap->versions()->orderByDesc('version')->first();
+            if ($latestVersion) {
+                $versionId = $latestVersion->id;
+            }
+        }
+
+        // Fetch items with version filtering
+        $itemsQuery = RekapItem::with(['tipe', 'kategori', 'satuan'])
+                    ->where('rekap_id', $id);
+        
+        if ($versionId) {
+            // First try to get items for the specific version
+            $items = (clone $itemsQuery)->where('version_id', $versionId)->get();
+            
+            // Fallback: if no items found for this version, try items without version_id (backward compat)
+            if ($items->isEmpty()) {
+                $items = (clone $itemsQuery)->whereNull('version_id')->get();
+            }
+        } else {
+            // No versions exist, get items without version_id
+            $items = $itemsQuery->whereNull('version_id')->get();
+            
+            // Fallback: if still empty, get all items regardless of version
+            if ($items->isEmpty()) {
+                $items = RekapItem::with(['tipe', 'kategori', 'satuan'])
+                            ->where('rekap_id', $id)
+                            ->get();
+            }
+        }
 
         $payload = $items->map(function($it) {
             return [
@@ -558,17 +640,57 @@ class RekapController extends Controller
 
         return response()->json($payload);
     }
-    public function forPenawaran($penawaran_id)
+    public function forPenawaran(Request $request, $penawaran_id)
     {
         $userId = Auth::id();
 
-        $rekaps = Rekap::where('imported_into_penawaran_id', $penawaran_id)
-                    ->where('imported_by', $userId)
-                    ->with(['items.tipe', 'items.satuan', 'items.kategori'])
-                    ->get();
+        // Get rekaps that are:
+        // 1. Imported into this penawaran by current user, OR
+        // 2. Created for this penawaran (penawaran_id) and approved
+        $rekaps = Rekap::where(function($q) use ($penawaran_id, $userId) {
+            $q->where('imported_into_penawaran_id', $penawaran_id)
+              ->where('imported_by', $userId);
+        })
+        ->orWhere(function($q) use ($penawaran_id) {
+            $q->where('penawaran_id', $penawaran_id)
+              ->where('status', 'approved');
+        })
+        ->with(['versions', 'items.tipe', 'items.satuan', 'items.kategori'])
+        ->get();
 
         $payload = $rekaps->flatMap(function($rekap) {
-            return $rekap->items->map(function($it) {
+            // Get the latest version for this rekap
+            $latestVersion = $rekap->versions()->orderByDesc('version')->first();
+            $versionId = $latestVersion ? $latestVersion->id : null;
+            
+            // Filter items by version_id with fallback
+            $items = collect([]);
+            
+            if ($versionId) {
+                // First try items for the specific version
+                $items = $rekap->items->filter(function($item) use ($versionId) {
+                    return $item->version_id === $versionId;
+                });
+                
+                // Fallback: if no items found, try items without version_id
+                if ($items->isEmpty()) {
+                    $items = $rekap->items->filter(function($item) {
+                        return $item->version_id === null;
+                    });
+                }
+            } else {
+                // No versions exist, get items without version_id
+                $items = $rekap->items->filter(function($item) {
+                    return $item->version_id === null;
+                });
+                
+                // Fallback: if still empty, get all items
+                if ($items->isEmpty()) {
+                    $items = $rekap->items;
+                }
+            }
+            
+            return $items->map(function($it) {
                 return [
                     'id' => $it->id,
                     'nama_item' => optional($it->tipe)->nama ?? $it->nama_item ?? '',
@@ -581,6 +703,93 @@ class RekapController extends Controller
         })->values();
 
         return response()->json($payload);
+    }
+
+    /**
+     * Get all rekap surveys for a penawaran (for Rincian Rekap tab)
+     * Returns surveys from rekaps that are either:
+     * - Created for this penawaran (penawaran_id) and approved
+     * - Imported into this penawaran
+     */
+    public function surveysForPenawaran(Request $request, $penawaran_id)
+    {
+        // Get rekaps linked to this penawaran
+        $rekaps = Rekap::where(function($q) use ($penawaran_id) {
+            // Rekaps imported into this penawaran
+            $q->where('imported_into_penawaran_id', $penawaran_id);
+        })
+        ->orWhere(function($q) use ($penawaran_id) {
+            // Rekaps created for this penawaran and approved
+            $q->where('penawaran_id', $penawaran_id)
+              ->where('status', 'approved');
+        })
+        ->with(['versions', 'surveys'])
+        ->get();
+
+        if ($rekaps->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'rekaps' => []
+            ]);
+        }
+
+        $result = [];
+
+        foreach ($rekaps as $rekap) {
+            // Get the latest version for this rekap
+            $latestVersion = $rekap->versions()->orderByDesc('version')->first();
+            $versionId = $latestVersion ? $latestVersion->id : null;
+            
+            // Get surveys filtered by version
+            $surveys = collect([]);
+            
+            if ($versionId) {
+                $surveys = $rekap->surveys->filter(function($s) use ($versionId) {
+                    return $s->version_id === $versionId;
+                });
+                
+                // Fallback to surveys without version_id
+                if ($surveys->isEmpty()) {
+                    $surveys = $rekap->surveys->filter(function($s) {
+                        return $s->version_id === null;
+                    });
+                }
+            } else {
+                $surveys = $rekap->surveys->filter(function($s) {
+                    return $s->version_id === null;
+                });
+                
+                // Fallback to all surveys
+                if ($surveys->isEmpty()) {
+                    $surveys = $rekap->surveys;
+                }
+            }
+
+            if ($surveys->isNotEmpty()) {
+                $result[] = [
+                    'rekap_id' => $rekap->id,
+                    'rekap_nama' => $rekap->nama,
+                    'rekap_status' => $rekap->status,
+                    'version' => $latestVersion ? $latestVersion->version : null,
+                    'version_notes' => $latestVersion ? $latestVersion->notes : null,
+                    'surveys' => $surveys->map(function($survey) {
+                        return [
+                            'id' => $survey->id,
+                            'area_name' => $survey->area_name ?? 'Default Area',
+                            'headers' => $survey->headers,
+                            'data' => $survey->data,
+                            'totals' => $survey->totals,
+                            'comments' => $survey->comments,
+                        ];
+                    })->values()
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'rekaps' => $result
+        ]);
     }
 
     // Approve Rekap List Page
