@@ -399,9 +399,9 @@
     <div class="container">
         <!-- Info Penawaran -->
         <div class="info-section">
-            <p><strong>Surabaya,
-                    {{ \Carbon\Carbon::parse($penawaran->created_at ?? now())->locale('id')->translatedFormat('d F Y') }}</strong>
-            </p>
+                <p><strong>Surabaya,
+                    {{ \Carbon\Carbon::now()->locale('id')->translatedFormat('d F Y') }}</strong>
+                </p>
             <p style="margin-top: 20px;">Kepada Yth:</p>
             <p><strong>{{ $penawaran->nama_perusahaan }}</strong></p>
             <p>{{ $penawaran->lokasi }}</p>
