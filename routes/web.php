@@ -50,6 +50,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/mark-activities-read', [PenawaranController::class, 'markActivitiesAsRead'])->name('penawaran.markActivitiesRead');
         Route::post('/{id}/save-notes', [PenawaranController::class, 'saveNotes'])->name('penawaran.saveNotes');
         Route::post('/{id}/save-best-price', [PenawaranController::class, 'saveBestPrice'])->name('penawaran.saveBestPrice');
+        Route::post('/{id}/save-diskon', [PenawaranController::class, 'saveDiskon'])->name('penawaran.saveDiskon');
         Route::post('/{id}/create-revision', [PenawaranController::class, 'createRevision'])->name('penawaran.createRevision');
         Route::post('/{id}/update-status', [PenawaranController::class, 'updateStatus'])->name('penawaran.updateStatus');
         Route::get('/filter', [PenawaranController::class, 'filter'])->name('penawaran.filter');
