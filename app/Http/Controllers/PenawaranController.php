@@ -67,8 +67,8 @@ class PenawaranController extends Controller
 
         $query = \App\Models\Penawaran::with('user'); // Eager load user
 
-        // Staff role hanya bisa melihat penawaran mereka sendiri
-        if ($userRole === 'staff') {
+        // Staff dari departemen Sales hanya bisa melihat penawaran mereka sendiri
+        if ($userRole === 'staff' && (Auth::user()->departemen && Auth::user()->departemen->value === 'Sales')) {
             $query->where('user_id', Auth::id());
         }
 
@@ -266,7 +266,15 @@ class PenawaranController extends Controller
             return response()->json(['error' => 'Unauthorized. Departemen Presales tidak dapat membuat penawaran.'], 403);
         }
 
+
         $data = $request->all();
+
+        // Validasi lokasi pengerjaan
+        $lokasi = $request->input('lokasi_pengerjaan', 'SBY');
+        if (!in_array($lokasi, ['SBY', 'JKT'])) {
+            $lokasi = 'SBY';
+        }
+        $data['lokasi_pengerjaan'] = $lokasi;
 
         // Optional validation for tipe
         $tipe = $request->input('tipe');
@@ -307,25 +315,17 @@ class PenawaranController extends Controller
             }
         }
 
-        // TAMBAH: Auto-set user_id dari Auth user
+        // Auto-set user_id dari Auth user
         $data['user_id'] = Auth::id();
 
-        // Generate full no_penawaran dari suffix yang diinput user
-        if ($request->has('no_penawaran_suffix')) {
-            $userId = Auth::id();
-
-            // Ambil sequence terakhir untuk user (termasuk data yang di-soft delete)
-            $nextSequence = $this->getMaxSequenceForUser($userId) + 1;
-
-            // Format nomor dengan padding 0 di depan (minimal 3 digit)
-            $paddedSequence = str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
-
-            // Format: PIB/SS-SBY/JK/{user_id}-{padded_sequence}/{user_input}
-            $data['no_penawaran'] = "PIB/SS-SBY/JK/{$userId}-{$paddedSequence}/{$request->no_penawaran_suffix}";
-
-            // Hapus field suffix karena tidak ada di database
-            unset($data['no_penawaran_suffix']);
-        }
+        // Generate no_penawaran dari lokasi, user, urut, bulan, tahun
+        $userId = Auth::id();
+        $nextSequence = $this->getMaxSequenceForUser($userId) + 1;
+        $paddedSequence = str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
+        $bulanRomawi = [1=>'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+        $bulan = $bulanRomawi[intval(date('n'))];
+        $tahun = date('Y');
+        $data['no_penawaran'] = "PIB/SS-{$lokasi}/{$userId}-{$paddedSequence}/{$bulan}/{$tahun}";
 
         \App\Models\Penawaran::create($data);
 
@@ -1456,7 +1456,13 @@ class PenawaranController extends Controller
         $max = 0;
         foreach ($rows as $row) {
             $no = (string) ($row->no_penawaran ?? '');
-            if (preg_match('/PIB\/SS-SBY\/JK\/\d+-(\d+)\//', $no, $m)) {
+            // Support format lama dan baru
+            if (preg_match('/PIB\/SS-(SBY|JKT)\/\d+-(\d+)\//', $no, $m)) {
+                $seq = (int) $m[2];
+                if ($seq > $max) {
+                    $max = $seq;
+                }
+            } elseif (preg_match('/PIB\/SS-SBY\/JK\/\d+-(\d+)\//', $no, $m)) {
                 $seq = (int) $m[1];
                 if ($seq > $max) {
                     $max = $seq;

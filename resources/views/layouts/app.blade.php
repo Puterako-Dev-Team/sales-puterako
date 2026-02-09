@@ -489,7 +489,7 @@
                                         <span class="menu-label show text-sm text-gray-700">List Penawaran</span>
                                     </a>
                                     @endif
-                                    @if(in_array(Auth::user()->role, ['supervisor', 'manager', 'direktur']))
+                                    @if(in_array(Auth::user()->role, ['supervisor', 'manager', 'direktur']) && (Auth::user()->departemen && Auth::user()->departemen->value === 'Sales'))
                                     <a href="{{ route('penawaran.approve-list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
                                         <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
@@ -527,7 +527,7 @@
                                         <span class="menu-label show text-sm text-gray-700">Approve Rekap</span>
                                     </a>
                                     @endif
-                                    @if(Auth::user()->role === 'supervisor' || Auth::user()->role === 'administrator')
+                                    @if((Auth::user()->role === 'supervisor' || Auth::user()->role === 'administrator') && (Auth::user()->departemen && Auth::user()->departemen->value === 'Sales'))
                                         <a href="{{ route('followup.index') }}"
                                             class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
                                             <x-lucide-phone-outgoing class="w-3 h-3 mr-2 inline text-gray-700" />
