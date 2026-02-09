@@ -3440,10 +3440,18 @@
                                 // Set flag bahwa Penawaran sudah berhasil disimpan
                                 penawaranSaved = true;
                                 
+                                // Stop autosave interval setelah berhasil save ke database
+                                if (typeof stopAutoSave === 'function') {
+                                    stopAutoSave();
+                                }
+                                
                                 // Clear draft dari localStorage setelah berhasil save ke database
                                 if (typeof clearAutoSaveData === 'function') {
                                     clearAutoSaveData();
                                 }
+                                
+                                // Reset unsaved changes flag
+                                hasUnsavedChanges = false;
                                 
                                 notyf.success(data.message || 'Penawaran berhasil disimpan');
                                 btn.innerHTML = "✅ Tersimpan!";
@@ -3504,10 +3512,11 @@
                                     harga_total: parseNumber(row[6]) || 0,
                                     hpp: parseNumber(row[7]) || 0,
                                     is_mitra: row[8] ? 1 : 0,
-                                    profit: parseNumber(row[9]) || 0,
-                                    color_code: row[10] || 1,
-                                    added_cost: parseNumber(row[11]) || 0,
-                                    delivery_time: row[12] || ''
+                                    is_judul: row[9] ? 1 : 0,
+                                    profit: parseNumber(row[10]) || 0,
+                                    color_code: row[11] || 1,
+                                    added_cost: parseNumber(row[12]) || 0,
+                                    delivery_time: row[13] || ''
                                 }))
                             };
                         });

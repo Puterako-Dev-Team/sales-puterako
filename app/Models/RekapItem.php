@@ -11,6 +11,7 @@ class RekapItem extends Model
 
     protected $fillable = [
         'rekap_id',
+        'version_id',
         'rekap_kategori_id',
         'tipes_id',
         'nama_area',
@@ -40,5 +41,10 @@ class RekapItem extends Model
     public function satuan()
     {
         return $this->belongsTo(Satuan::class, 'satuan_id', 'id');
+    }
+
+    public function version()
+    {
+        return $this->belongsTo(RekapVersion::class, 'version_id', 'id');
     }
 }

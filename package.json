@@ -17,6 +17,8 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "jspreadsheet-ce": "^5.0.4",
+        "jsuites": "^6.1.2",
         "tabulator-tables": "^6.3.1"
     }
 }
