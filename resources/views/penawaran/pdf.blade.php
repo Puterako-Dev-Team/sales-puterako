@@ -424,10 +424,18 @@
             $ppnPersen = $versionRow->ppn_persen ?? 11;
             $isBest = $versionRow->is_best_price ?? false;
             $bestPrice = $versionRow->best_price ?? 0;
+            $isDiskon = $versionRow->is_diskon ?? false;
+            $diskon = $versionRow->diskon ?? 0;
             $totalPenawaran = $details->sum('harga_total');
             // Jika tipe penawaran "barang", jangan ikutkan jasa ke perhitungan
             $grandTotalJasa = ($tipe && $tipe === 'barang') ? 0 : ($jasa->grand_total ?? 0);
             $baseAmount = $isBest && $bestPrice > 0 ? $bestPrice : $totalPenawaran + $grandTotalJasa;
+            // Hitung diskon sebagai persen
+            $diskonNominal = 0;
+            if ($isDiskon && $diskon > 0) {
+                $diskonNominal = ($baseAmount * $diskon) / 100;
+                $baseAmount = $baseAmount - $diskonNominal;
+            }
             $ppnNominal = ($baseAmount * $ppnPersen) / 100;
             $grandTotal = $baseAmount + $ppnNominal;
         @endphp
@@ -475,9 +483,9 @@
                         <th>Deskripsi</th>
                         <th>Qty</th>
                         <th>Satuan</th>
-                        <th style="text-align: center;">Keterangan</th>
                         <th style="width: 15%; text-align: right;">Harga Satuan</th>
                         <th>Harga Total</th>
+                        <th style="text-align: center;">Keterangan</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -499,7 +507,6 @@
                                 <td>{{ $row->deskripsi }}</td>
                                 <td>{{ $row->qty }}</td>
                                 <td>{{ $row->satuan }}</td>
-                                <td style="color: #000000 ; text-align: center;">{{ $row->delivery_time ?? '-' }}</td>
                                 <td style="text-align: right;">
                                     @if (!empty($row->is_judul))
                                         {{-- Kosong jika is_judul --}}
@@ -520,14 +527,16 @@
                                         {{ $row->harga_total > 0 ? number_format($row->harga_total, 0, ',', '.') : '' }}
                                     @endif
                                 </td>
+                                <td style="color: #000000 ; text-align: center;">{{ $row->delivery_time ?? '-' }}</td>
                             </tr>
                         @endforeach
                     @endforeach
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="7">Subtotal</td>
+                        <td colspan="6">Subtotal</td>
                         <td>{{ number_format($subtotal, 0, ',', '.') }}</td>
+                        <td></td>
                     </tr>
                 </tfoot>
             </table>
@@ -543,11 +552,11 @@
                 <thead>
                     <tr>
                         <th style="width: 4%; text-align: center;">No</th>
-                        <th style="width: 46%;">Deskripsi</th>
-                        <th style="width: 10%; text-align: center;">Qty</th>
+                        <th style="width: 50%;">Deskripsi</th>
+                        <th style="width: 1%; text-align: center;">Qty</th>
                         <th style="width: 10%; text-align: center;">Satuan</th>
-                        <th style="width: 15%; text-align: right;">Harga Satuan</th>
-                        <th style="width: 15%; text-align: right;">Harga Total</th>
+                        <th style="width: 16%; text-align: right;">Harga Satuan</th>
+                        <th style="width: 16%; text-align: right;">Harga Total</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -583,6 +592,21 @@
                         <tr>
                             <td>Best Price</td>
                             <td>Rp {{ number_format($bestPrice, 0, ',', '.') }}</td>
+                        </tr>
+                    @endif
+                    @if ($isDiskon && $diskon > 0)
+                        @php
+                            $baseAmountPdf = $isBest && $bestPrice > 0 ? $bestPrice : $totalPenawaran + $grandTotalJasa;
+                            $diskonNominalPdf = ($baseAmountPdf * $diskon) / 100;
+                            $afterDiskonPdf = $baseAmountPdf - $diskonNominalPdf;
+                        @endphp
+                        <tr>
+                            <td style="color: #dc3545;">Diskon {{ number_format($diskon, 0, ',', '.') }}%</td>
+                            <td style="color: #dc3545;">- Rp {{ number_format($diskonNominalPdf, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td>After Diskon</td>
+                            <td>Rp {{ number_format($afterDiskonPdf, 0, ',', '.') }}</td>
                         </tr>
                     @endif
                     <tr>
