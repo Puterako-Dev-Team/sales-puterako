@@ -29,6 +29,44 @@
             @endif
         </div>
 
+        {{-- Version Selector --}}
+        @if(isset($rekap) && $rekap->exists)
+        @php
+            $activeVersion = request('version') ?? ($currentVersion ? $currentVersion->version : null);
+        @endphp
+        <div class="flex items-center justify-end gap-4 px-8 mb-4">
+            <form method="GET" action="{{ route('rekap.show', $rekap->id) }}" class="flex items-center gap-2">
+                <label class="font-semibold">Lihat Versi:</label>
+                <select name="version" onchange="this.form.submit()" class="border rounded px-3 py-2">
+                    @if(!isset($versions) || (is_array($versions) ? empty($versions) : $versions->isEmpty()))
+                        <option value="">Belum ada versi</option>
+                    @else
+                        @foreach ($versions as $v)
+                            <option value="{{ $v->version }}" {{ $v->version == $activeVersion ? 'selected' : '' }}>
+                                @if($v->version == 0)
+                                    Versi Awal (0)
+                                @else
+                                    Revisi {{ $v->version }}
+                                @endif
+                            </option>
+                        @endforeach
+                    @endif
+                </select>
+            </form>
+
+            @if(Auth::user()->role !== 'manager')
+            <!-- Form untuk button buat revisi -->
+            <form method="POST" action="{{ route('rekap.createRevision', ['id' => $rekap->id]) }}" id="createRevisionForm">
+                @csrf
+                <button type="submit" class="bg-[#02ADB8] text-white px-4 py-2 rounded hover:shadow-lg font-semibold flex items-center gap-2">
+                    <x-lucide-git-branch class="w-4 h-4" />
+                    + Tambah Revisi
+                </button>
+            </form>
+            @endif
+        </div>
+        @endif
+
         {{-- CSRF Token for AJAX requests --}}
         <input type="hidden" name="_token" value="{{ csrf_token() }}">
 
@@ -43,7 +81,7 @@
                     <button type="button" id="btnTambahArea" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition flex items-center gap-2 text-sm">
                         <x-lucide-plus-circle class="w-4 h-4" /> Tambah Area
                     </button>
-                    <a href="{{ url('rekap/' . $rekap->id . '/export-survey') }}" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600 transition flex items-center gap-2 text-sm">
+                    <a href="{{ url('rekap/' . $rekap->id . '/export-survey') }}{{ $currentVersion !== null ? '?version=' . $currentVersion->version : '' }}" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600 transition flex items-center gap-2 text-sm" id="exportExcelLink">
                         <x-lucide-download class="w-4 h-4" /> Export Excel
                     </a>
                     <button type="button" id="btnSimpanSurvey" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2">
@@ -86,11 +124,12 @@
             
             await waitForModule();
             
-            // Initialize spreadsheet
+            // Initialize spreadsheet with version
             const survey = new window.SurveySpreadsheet(containerId, {
                 rekapId: {{ $rekap->id }},
                 csrfToken: document.querySelector('input[name="_token"]').value,
-                baseUrl: '{{ url('') }}'
+                baseUrl: '{{ url('') }}',
+                version: {{ isset($activeVersion) && $activeVersion !== null ? $activeVersion : 'null' }}
             });
             
             await survey.init();
@@ -116,8 +155,8 @@
                     try {
                         const success = await survey.save();
                         if (success) {
-                            if (typeof toastr !== 'undefined') {
-                                toastr.success('Semua area survey berhasil disimpan!');
+                            if (typeof window.notyf !== 'undefined') {
+                                window.notyf.success('Semua area survey berhasil disimpan!');
                             } else {
                                 alert('Semua area survey berhasil disimpan!');
                             }
@@ -126,8 +165,8 @@
                         }
                     } catch (err) {
                         console.error('Error saving:', err);
-                        if (typeof toastr !== 'undefined') {
-                            toastr.error('Gagal menyimpan survey: ' + err.message);
+                        if (typeof window.notyf !== 'undefined') {
+                            window.notyf.error('Gagal menyimpan survey: ' + err.message);
                         } else {
                             alert('Gagal menyimpan survey: ' + err.message);
                         }

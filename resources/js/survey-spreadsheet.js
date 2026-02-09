@@ -21,6 +21,7 @@ class SurveySpreadsheet {
         this.rekapId = options.rekapId;
         this.csrfToken = options.csrfToken;
         this.baseUrl = options.baseUrl || '';
+        this.version = options.version !== undefined ? options.version : null;
         
         // Multi-area support - each area has its own spreadsheet
         this.areas = [];
@@ -77,7 +78,6 @@ class SurveySpreadsheet {
 
     // Set comment for a cell
     setComment(areaId, row, col, comment) {
-        console.log('setComment called:', { areaId, row, col, comment });
         if (!this.comments[areaId]) {
             this.comments[areaId] = {};
         }
@@ -87,7 +87,6 @@ class SurveySpreadsheet {
         } else {
             delete this.comments[areaId][key];
         }
-        console.log('Comments after set:', JSON.stringify(this.comments));
         this.updateCommentIndicators(areaId);
     }
 
@@ -404,7 +403,6 @@ class SurveySpreadsheet {
         
         // Load comments for this area
         if (comments) {
-            console.log('Loading comments for area', areaId, ':', comments);
             this.comments[areaId] = comments;
         }
         
@@ -842,7 +840,12 @@ class SurveySpreadsheet {
     // Load data from server - returns array of areas
     async loadData() {
         try {
-            const response = await fetch(`${this.baseUrl}/rekap/${this.rekapId}/surveys`);
+            // Include version parameter if set
+            let url = `${this.baseUrl}/rekap/${this.rekapId}/surveys`;
+            if (this.version !== null) {
+                url += `?version=${this.version}`;
+            }
+            const response = await fetch(url);
             const contentType = response.headers.get('content-type');
             
             if (!contentType || !contentType.includes('application/json')) {
@@ -850,7 +853,6 @@ class SurveySpreadsheet {
             }
             
             const result = await response.json();
-            console.log('Loaded surveys from server:', result);
             if (result.success && result.surveys) {
                 return result.surveys;
             }
@@ -862,7 +864,6 @@ class SurveySpreadsheet {
 
     // Save all areas to server
     async save() {
-        console.log('save() called, this.comments:', JSON.stringify(this.comments));
         const areasData = this.areas.map(area => {
             const areaNameInput = document.getElementById(`area-${area.id}-name`);
             const areaName = areaNameInput ? areaNameInput.value : '';
@@ -875,8 +876,6 @@ class SurveySpreadsheet {
                 return Object.values(row).some(v => v !== '' && v !== null && v !== undefined);
             });
             
-            console.log('Area', area.id, 'comments:', this.comments[area.id]);
-            
             return {
                 id: area.serverId,
                 area_name: areaName,
@@ -886,8 +885,6 @@ class SurveySpreadsheet {
             };
         });
         
-        console.log('areasData to send:', JSON.stringify(areasData, null, 2));
-        
         try {
             const response = await fetch(`${this.baseUrl}/rekap/${this.rekapId}/surveys`, {
                 method: 'POST',
@@ -895,7 +892,10 @@ class SurveySpreadsheet {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': this.csrfToken
                 },
-                body: JSON.stringify({ areas: areasData })
+                body: JSON.stringify({ 
+                    areas: areasData,
+                    version: this.version
+                })
             });
             
             const result = await response.json();

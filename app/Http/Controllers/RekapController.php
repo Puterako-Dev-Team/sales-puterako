@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Rekap;
+use App\Models\RekapVersion;
 use App\Models\Penawaran;
 use App\Models\RekapKategori;
 use App\Models\RekapItem;
@@ -58,17 +59,35 @@ class RekapController extends Controller
     }
 
     // Show detail rekap
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $rekap = Rekap::with(['items.kategori', 'items.tipe', 'items.satuan', 'user', 'penawaran'])->findOrFail($id);
+        $rekap = Rekap::with(['items.kategori', 'items.tipe', 'items.satuan', 'user', 'penawaran', 'versions'])->findOrFail($id);
         $penawarans = Penawaran::all();
         $kategoris = RekapKategori::all();
         $tipes = Tipe::all();
         $satuans = Satuan::all();
 
+        // Get version parameter (default to latest)
+        $version = $request->query('version');
+        $hasVersions = $rekap->versions()->exists();
+        
+        // Get current version row
+        $currentVersion = null;
+        $versions = [];
+        
+        if ($hasVersions) {
+            $versions = $rekap->versions()->orderByDesc('version')->get();
+            
+            if ($version !== null) {
+                $currentVersion = $rekap->versions()->where('version', $version)->first();
+            } else {
+                $currentVersion = $rekap->versions()->orderByDesc('version')->first();
+            }
+        }
+
         $isEdit = $rekap->exists;
 
-        return view('rekap.detail', compact('rekap', 'penawarans', 'kategoris', 'tipes', 'satuans', 'isEdit'));
+        return view('rekap.detail', compact('rekap', 'penawarans', 'kategoris', 'tipes', 'satuans', 'isEdit', 'versions', 'currentVersion', 'hasVersions'));
     }
 
     // Form tambah rekap
@@ -804,14 +823,33 @@ class RekapController extends Controller
     }
 
     // Export survey data to Excel using PhpSpreadsheet
-    public function exportSurvey($rekap_id)
+    public function exportSurvey(Request $request, $rekap_id)
     {
-        $rekap = Rekap::with(['survey', 'surveys', 'penawaran'])->findOrFail($rekap_id);
+        $rekap = Rekap::with(['survey', 'surveys', 'penawaran', 'versions'])->findOrFail($rekap_id);
         
-        $export = new \App\Exports\RekapSurveyExport($rekap);
+        // Get version parameter
+        $versionNum = $request->query('version');
+        $versionId = null;
+        
+        if ($versionNum !== null) {
+            $versionRow = $rekap->versions()->where('version', $versionNum)->first();
+            if ($versionRow) {
+                $versionId = $versionRow->id;
+            }
+        } else {
+            // Default to latest version
+            $latestVersion = $rekap->versions()->orderByDesc('version')->first();
+            if ($latestVersion) {
+                $versionId = $latestVersion->id;
+                $versionNum = $latestVersion->version;
+            }
+        }
+        
+        $export = new \App\Exports\RekapSurveyExport($rekap, $versionId, $versionNum);
         $spreadsheet = $export->export();
         
-        $filename = 'Survey_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $rekap->nama) . '_' . now()->format('Ymd_His') . '.xlsx';
+        $versionSuffix = $versionNum !== null ? '_Rev' . $versionNum : '';
+        $filename = 'Survey_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $rekap->nama) . $versionSuffix . '_' . now()->format('Ymd_His') . '.xlsx';
         
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         
@@ -829,18 +867,47 @@ class RekapController extends Controller
     }
 
     // Get all surveys for a rekap (multi-area support)
-    public function getSurveys($rekap_id)
+    public function getSurveys(Request $request, $rekap_id)
     {
-        $rekap = Rekap::with('surveys')->findOrFail($rekap_id);
+        $rekap = Rekap::with('surveys', 'versions')->findOrFail($rekap_id);
         
-        if ($rekap->surveys->isEmpty()) {
+        // Get version parameter
+        $versionNum = $request->query('version');
+        $versionId = null;
+        
+        // Find the version_id for the requested version number
+        if ($versionNum !== null) {
+            $versionRow = $rekap->versions()->where('version', $versionNum)->first();
+            if ($versionRow) {
+                $versionId = $versionRow->id;
+            }
+        } else {
+            // Default to latest version
+            $latestVersion = $rekap->versions()->orderByDesc('version')->first();
+            if ($latestVersion) {
+                $versionId = $latestVersion->id;
+            }
+        }
+        
+        // Get surveys filtered by version
+        $surveysQuery = $rekap->surveys();
+        if ($versionId) {
+            $surveysQuery->where('version_id', $versionId);
+        } else {
+            // For backward compatibility - get surveys without version_id
+            $surveysQuery->whereNull('version_id');
+        }
+        
+        $surveys = $surveysQuery->get();
+        
+        if ($surveys->isEmpty()) {
             return response()->json([
                 'success' => true,
                 'surveys' => []
             ]);
         }
 
-        $surveys = $rekap->surveys->map(function ($survey) {
+        $surveys = $surveys->map(function ($survey) {
             // Ensure comments is always an object, not array
             $comments = $survey->comments;
             if (empty($comments) || (is_array($comments) && array_keys($comments) === range(0, count($comments) - 1))) {
@@ -876,12 +943,36 @@ class RekapController extends Controller
             'areas.*.area_name' => 'nullable|string|max:255',
             'areas.*.headers' => 'required|array',
             'areas.*.data' => 'required|array',
+            'version' => 'nullable|integer',
         ]);
 
         $rekap = Rekap::findOrFail($rekap_id);
         
-        // Get existing survey IDs
-        $existingSurveyIds = $rekap->surveys->pluck('id')->toArray();
+        // Get version_id from version number
+        $versionNum = $request->input('version');
+        $versionId = null;
+        
+        if ($versionNum !== null) {
+            $versionRow = $rekap->versions()->where('version', $versionNum)->first();
+            if ($versionRow) {
+                $versionId = $versionRow->id;
+            }
+        } else {
+            // Default to latest version
+            $latestVersion = $rekap->versions()->orderByDesc('version')->first();
+            if ($latestVersion) {
+                $versionId = $latestVersion->id;
+            }
+        }
+        
+        // Get existing survey IDs for this version
+        $existingQuery = $rekap->surveys();
+        if ($versionId) {
+            $existingQuery->where('version_id', $versionId);
+        } else {
+            $existingQuery->whereNull('version_id');
+        }
+        $existingSurveyIds = $existingQuery->pluck('id')->toArray();
         $processedIds = [];
         $areaIds = [];
 
@@ -892,6 +983,7 @@ class RekapController extends Controller
             } else {
                 // Create new survey
                 $survey = new \App\Models\RekapSurvey(['rekap_id' => $rekap_id]);
+                $survey->version_id = $versionId;
             }
             
             $survey->area_name = $areaData['area_name'] ?? '';
@@ -907,8 +999,6 @@ class RekapController extends Controller
                 $survey->comments = new \stdClass();
             }
             
-            \Log::info('Saving survey comments', ['area' => $areaData['area_name'], 'comments' => $comments]);
-            
             $survey->totals = $survey->calculateTotals();
             $survey->save();
             
@@ -916,7 +1006,7 @@ class RekapController extends Controller
             $areaIds[] = $survey->id;
         }
         
-        // Delete surveys that were removed
+        // Delete surveys that were removed (only for this version)
         $toDelete = array_diff($existingSurveyIds, $processedIds);
         if (!empty($toDelete)) {
             \App\Models\RekapSurvey::whereIn('id', $toDelete)->delete();
@@ -926,6 +1016,171 @@ class RekapController extends Controller
             'success' => true,
             'message' => 'Semua area survey berhasil disimpan',
             'area_ids' => $areaIds
+        ]);
+    }
+
+    // Get all versions for a rekap
+    public function getVersions($rekap_id)
+    {
+        $rekap = Rekap::findOrFail($rekap_id);
+        $versions = $rekap->versions()->orderByDesc('version')->get();
+        
+        return response()->json([
+            'success' => true,
+            'versions' => $versions->map(function ($v) {
+                return [
+                    'id' => $v->id,
+                    'version' => $v->version,
+                    'notes' => $v->notes,
+                    'status' => $v->status,
+                    'created_at' => $v->created_at->format('d M Y H:i'),
+                ];
+            })
+        ]);
+    }
+
+    // Create a new version (revision)
+    public function createRevision($rekap_id)
+    {
+        // Manager role tidak bisa membuat revisi
+        if (Auth::user()->role === 'manager') {
+            return redirect()->back()->with('error', 'Unauthorized. Manager tidak dapat membuat revisi.');
+        }
+
+        $rekap = Rekap::findOrFail($rekap_id);
+
+        // Get last version number
+        $lastVersion = $rekap->versions()->max('version');
+        
+        // If no versions exist, set to -1 so new version becomes 0
+        if ($lastVersion === null) {
+            $lastVersion = -1;
+        }
+
+        $newVersionNum = $lastVersion + 1;
+
+        // Get previous version if exists
+        $oldVersion = null;
+        if ($lastVersion >= 0) {
+            $oldVersion = $rekap->versions()->where('version', $lastVersion)->first();
+        }
+
+        // Create new version
+        $newVersion = RekapVersion::create([
+            'rekap_id' => $rekap_id,
+            'version' => $newVersionNum,
+            'notes' => $oldVersion ? ($oldVersion->notes ?? null) : null,
+            'status' => 'draft',
+        ]);
+
+        // Copy items and surveys from previous version or legacy data
+        if ($oldVersion) {
+            // Copy from previous version
+            $oldItems = RekapItem::where('version_id', $oldVersion->id)->get();
+            foreach ($oldItems as $item) {
+                RekapItem::create([
+                    'rekap_id' => $rekap_id,
+                    'version_id' => $newVersion->id,
+                    'rekap_kategori_id' => $item->rekap_kategori_id,
+                    'tipes_id' => $item->tipes_id,
+                    'nama_area' => $item->nama_area,
+                    'jumlah' => $item->jumlah,
+                    'satuan_id' => $item->satuan_id,
+                ]);
+            }
+
+            // Copy surveys from previous version
+            $oldSurveys = \App\Models\RekapSurvey::where('version_id', $oldVersion->id)->get();
+            foreach ($oldSurveys as $survey) {
+                \App\Models\RekapSurvey::create([
+                    'rekap_id' => $rekap_id,
+                    'version_id' => $newVersion->id,
+                    'area_name' => $survey->area_name,
+                    'headers' => $survey->headers,
+                    'data' => $survey->data,
+                    'totals' => $survey->totals,
+                    'comments' => $survey->comments,
+                ]);
+            }
+        } else {
+            // First revision - copy from legacy data (surveys without version_id)
+            $legacyItems = RekapItem::where('rekap_id', $rekap_id)->whereNull('version_id')->get();
+            foreach ($legacyItems as $item) {
+                RekapItem::create([
+                    'rekap_id' => $rekap_id,
+                    'version_id' => $newVersion->id,
+                    'rekap_kategori_id' => $item->rekap_kategori_id,
+                    'tipes_id' => $item->tipes_id,
+                    'nama_area' => $item->nama_area,
+                    'jumlah' => $item->jumlah,
+                    'satuan_id' => $item->satuan_id,
+                ]);
+            }
+
+            $legacySurveys = \App\Models\RekapSurvey::where('rekap_id', $rekap_id)->whereNull('version_id')->get();
+            foreach ($legacySurveys as $survey) {
+                \App\Models\RekapSurvey::create([
+                    'rekap_id' => $rekap_id,
+                    'version_id' => $newVersion->id,
+                    'area_name' => $survey->area_name,
+                    'headers' => $survey->headers,
+                    'data' => $survey->data,
+                    'totals' => $survey->totals,
+                    'comments' => $survey->comments,
+                ]);
+            }
+        }
+
+        // Redirect to the same page with new version
+        return redirect()->route('rekap.show', ['id' => $rekap_id, 'version' => $newVersionNum])
+            ->with('success', 'Revisi ' . $newVersionNum . ' berhasil dibuat');
+    }
+
+    // Update version notes
+    public function updateVersionNotes(Request $request, $rekap_id, $version)
+    {
+        // Manager role tidak bisa update notes
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat mengubah notes.'], 403);
+        }
+
+        $request->validate([
+            'notes' => 'nullable|string',
+        ]);
+
+        $rekap = Rekap::findOrFail($rekap_id);
+        $versionRow = $rekap->versions()->where('version', $version)->firstOrFail();
+        
+        $versionRow->notes = $request->input('notes');
+        $versionRow->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notes berhasil disimpan'
+        ]);
+    }
+
+    // Update version status
+    public function updateVersionStatus(Request $request, $rekap_id, $version)
+    {
+        // Manager role tidak bisa update status
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat mengubah status.'], 403);
+        }
+
+        $request->validate([
+            'status' => 'required|in:draft,done,loss',
+        ]);
+
+        $rekap = Rekap::findOrFail($rekap_id);
+        $versionRow = $rekap->versions()->where('version', $version)->firstOrFail();
+        
+        $versionRow->status = $request->input('status');
+        $versionRow->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status berhasil diubah'
         ]);
     }
 }

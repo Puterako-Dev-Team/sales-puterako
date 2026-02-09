@@ -15,14 +15,25 @@ class RekapSurveyExport
 {
     protected $rekap;
     protected $surveys;
+    protected $versionId;
+    protected $versionNum;
 
-    public function __construct(Rekap $rekap)
+    public function __construct(Rekap $rekap, $versionId = null, $versionNum = null)
     {
         $this->rekap = $rekap;
-        // Support both single and multiple surveys
-        $this->surveys = $rekap->surveys->count() > 0 
-            ? $rekap->surveys 
-            : ($rekap->survey ? collect([$rekap->survey]) : collect([]));
+        $this->versionId = $versionId;
+        $this->versionNum = $versionNum;
+        
+        // Filter surveys by version if provided
+        if ($versionId) {
+            $this->surveys = $rekap->surveys()->where('version_id', $versionId)->get();
+        } else {
+            // Support both single and multiple surveys (legacy - no version)
+            $this->surveys = $rekap->surveys()->whereNull('version_id')->get();
+            if ($this->surveys->isEmpty() && $rekap->survey) {
+                $this->surveys = collect([$rekap->survey]);
+            }
+        }
     }
 
     public function export()
@@ -68,7 +79,8 @@ class RekapSurveyExport
         $currentRow = $startRow;
 
         // Area title row
-        $titleText = strtoupper($areaName) ?: "AREA {$areaNumber}";
+        $versionSuffix = $this->versionNum !== null ? " (Rev {$this->versionNum})" : '';
+        $titleText = strtoupper($areaName) . $versionSuffix ?: "AREA {$areaNumber}";
         $sheet->setCellValue("A{$currentRow}", $titleText);
         $sheet->mergeCells("A{$currentRow}:{$lastCol}{$currentRow}");
         

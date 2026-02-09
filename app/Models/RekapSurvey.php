@@ -9,6 +9,7 @@ class RekapSurvey extends Model
 {
     protected $fillable = [
         'rekap_id',
+        'version_id',
         'area_name',
         'headers',
         'data',
@@ -30,6 +31,14 @@ class RekapSurvey extends Model
     public function rekap(): BelongsTo
     {
         return $this->belongsTo(Rekap::class);
+    }
+
+    /**
+     * Get the version that owns this survey.
+     */
+    public function rekapVersion(): BelongsTo
+    {
+        return $this->belongsTo(RekapVersion::class, 'version_id');
     }
 
     /**

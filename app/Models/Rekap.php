@@ -62,4 +62,25 @@ class Rekap extends Model
     {
         return $this->hasMany(RekapSurvey::class, 'rekap_id', 'id');
     }
+
+    public function versions()
+    {
+        return $this->hasMany(RekapVersion::class, 'rekap_id', 'id');
+    }
+
+    /**
+     * Get the latest version number.
+     */
+    public function getLatestVersionNumber(): int
+    {
+        return $this->versions()->max('version') ?? -1;
+    }
+
+    /**
+     * Get the latest version.
+     */
+    public function latestVersion()
+    {
+        return $this->versions()->orderByDesc('version')->first();
+    }
 }

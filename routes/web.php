@@ -150,6 +150,12 @@ Route::middleware(['auth'])->group(function () {
         // Multi-area survey routes
         Route::get('/{id}/surveys', [RekapController::class, 'getSurveys'])->name('rekap.getSurveys');
         Route::post('/{id}/surveys', [RekapController::class, 'saveSurveys'])->name('rekap.saveSurveys');
+        
+        // Version/Revision routes
+        Route::get('/{id}/versions', [RekapController::class, 'getVersions'])->name('rekap.getVersions');
+        Route::post('/{id}/create-revision', [RekapController::class, 'createRevision'])->name('rekap.createRevision');
+        Route::put('/{id}/version/{version}/notes', [RekapController::class, 'updateVersionNotes'])->name('rekap.updateVersionNotes');
+        Route::put('/{id}/version/{version}/status', [RekapController::class, 'updateVersionStatus'])->name('rekap.updateVersionStatus');
     });
 
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
