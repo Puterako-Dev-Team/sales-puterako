@@ -52,4 +52,14 @@ class Rekap extends Model
     {
         return $this->hasMany(RekapItem::class, 'rekap_id', 'id');
     }
+
+    public function survey()
+    {
+        return $this->hasOne(RekapSurvey::class, 'rekap_id', 'id');
+    }
+
+    public function surveys()
+    {
+        return $this->hasMany(RekapSurvey::class, 'rekap_id', 'id');
+    }
 }

@@ -152,11 +152,17 @@
     <div class="container mx-auto p-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-xl font-bold">List Penawaran</h1>
-            <button id="btnTambah"
-                class="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2 text-sm hover:bg-green-700 transition">
-                <x-lucide-plus class="w-5 h-5 inline" />
-                Tambah
-            </button>
+            @if(Auth::user()->departemen && Auth::user()->departemen->value === 'Presales')
+                <div class="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded text-sm">
+                    <span class="font-semibold">Presales Department</span> - Pembuatan penawaran tidak tersedia
+                </div>
+            @else
+                <button id="btnTambah"
+                    class="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2 text-sm hover:bg-green-700 transition">
+                    <x-lucide-plus class="w-5 h-5 inline" />
+                    Tambah
+                </button>
+            @endif
         </div>
 
         <!-- Filter Section -->
@@ -966,7 +972,9 @@
         }
 
         /* ================== OPEN / CLOSE FORM BUTTONS ================== */
-        btnTambah.addEventListener('click', setupAdd);
+        if (btnTambah) {
+            btnTambah.addEventListener('click', setupAdd);
+        }
         closeFormBtn.addEventListener('click', closeSlide);
         formSlide.addEventListener('click', e => {
             if (e.target === formSlide) closeSlide();

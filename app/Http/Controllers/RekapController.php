@@ -641,6 +641,28 @@ class RekapController extends Controller
         return redirect()->route('rekap.approve-list')->with('success', 'Rekap berhasil diapprove');
     }
 
+    // Export Rekap to Excel using maatwebsite/excel
+    public function export($id)
+    {
+        try {
+            $rekap = Rekap::with(['items.kategori', 'items.tipe', 'items.satuan', 'user', 'penawaran'])->findOrFail($id);
+            
+            $exporter = new \App\Exports\RekapDetailExport($rekap);
+            return $exporter->export();
+        } catch (\Exception $e) {
+            \Log::error('Error exporting rekap: ' . $e->getMessage());
+            
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mengexport rekap: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()->with('error', 'Gagal mengexport rekap');
+        }
+    }
+
     // Search tipes for autocomplete
     public function searchTipes(Request $request)
     {
@@ -689,4 +711,202 @@ class RekapController extends Controller
                 'message' => 'Gagal membuat tipe: ' . $e->getMessage()
             ], 400);
         }
-    }}
+    }
+
+    // Save survey data as JSON
+    public function saveSurvey(Request $request, $rekap_id)
+    {
+        // Manager role tidak bisa menyimpan survey
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menyimpan survey.'], 403);
+        }
+
+        $request->validate([
+            'headers' => 'required|array',
+            'data' => 'required|array',
+            'area_name' => 'nullable|string|max:255',
+        ]);
+
+        $rekap = Rekap::findOrFail($rekap_id);
+        
+        $survey = $rekap->survey ?? new \App\Models\RekapSurvey(['rekap_id' => $rekap_id]);
+        $survey->area_name = $request->area_name;
+        $survey->headers = $request->headers;
+        $survey->data = $request->data;
+        $survey->totals = $survey->calculateTotals();
+        $survey->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Survey berhasil disimpan',
+            'survey_id' => $survey->id,
+            'totals' => $survey->totals
+        ]);
+    }
+
+    // Get survey data (for Sales department)
+    public function getSurvey($rekap_id)
+    {
+        $rekap = Rekap::with('survey')->findOrFail($rekap_id);
+        
+        if (!$rekap->survey) {
+            return response()->json([
+                'success' => true,
+                'has_survey' => false,
+                'headers' => \App\Models\RekapSurvey::getDefaultHeaders(),
+                'data' => [],
+                'totals' => [],
+                'area_name' => ''
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'has_survey' => true,
+            'survey_id' => $rekap->survey->id,
+            'area_name' => $rekap->survey->area_name ?? '',
+            'headers' => $rekap->survey->headers,
+            'data' => $rekap->survey->data,
+            'totals' => $rekap->survey->totals,
+            'updated_at' => $rekap->survey->updated_at->toISOString()
+        ]);
+    }
+
+    // Update survey headers structure
+    public function updateSurveyHeaders(Request $request, $rekap_id)
+    {
+        // Manager role tidak bisa mengupdate headers
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat mengupdate headers.'], 403);
+        }
+
+        $request->validate([
+            'headers' => 'required|array',
+        ]);
+
+        $rekap = Rekap::findOrFail($rekap_id);
+        
+        $survey = $rekap->survey ?? new \App\Models\RekapSurvey(['rekap_id' => $rekap_id]);
+        $survey->headers = $request->headers;
+        
+        // Recalculate totals if data exists
+        if ($survey->data) {
+            $survey->totals = $survey->calculateTotals();
+        }
+        
+        $survey->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Headers berhasil diupdate',
+            'headers' => $survey->headers
+        ]);
+    }
+
+    // Export survey data to Excel using PhpSpreadsheet
+    public function exportSurvey($rekap_id)
+    {
+        $rekap = Rekap::with(['survey', 'surveys', 'penawaran'])->findOrFail($rekap_id);
+        
+        $export = new \App\Exports\RekapSurveyExport($rekap);
+        $spreadsheet = $export->export();
+        
+        $filename = 'Survey_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $rekap->nama) . '_' . now()->format('Ymd_His') . '.xlsx';
+        
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        
+        return response()->stream(
+            function() use ($writer) {
+                $writer->save('php://output');
+            },
+            200,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'max-age=0',
+            ]
+        );
+    }
+
+    // Get all surveys for a rekap (multi-area support)
+    public function getSurveys($rekap_id)
+    {
+        $rekap = Rekap::with('surveys')->findOrFail($rekap_id);
+        
+        if ($rekap->surveys->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'surveys' => []
+            ]);
+        }
+
+        $surveys = $rekap->surveys->map(function ($survey) {
+            return [
+                'id' => $survey->id,
+                'area_name' => $survey->area_name ?? '',
+                'headers' => $survey->headers,
+                'data' => $survey->data,
+                'totals' => $survey->totals,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'surveys' => $surveys
+        ]);
+    }
+
+    // Save multiple surveys (multi-area support)
+    public function saveSurveys(Request $request, $rekap_id)
+    {
+        // Manager role tidak bisa menyimpan survey
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menyimpan survey.'], 403);
+        }
+
+        $request->validate([
+            'areas' => 'required|array',
+            'areas.*.area_name' => 'nullable|string|max:255',
+            'areas.*.headers' => 'required|array',
+            'areas.*.data' => 'required|array',
+        ]);
+
+        $rekap = Rekap::findOrFail($rekap_id);
+        
+        // Get existing survey IDs
+        $existingSurveyIds = $rekap->surveys->pluck('id')->toArray();
+        $processedIds = [];
+        $areaIds = [];
+
+        foreach ($request->areas as $areaData) {
+            if (!empty($areaData['id']) && in_array($areaData['id'], $existingSurveyIds)) {
+                // Update existing survey
+                $survey = \App\Models\RekapSurvey::find($areaData['id']);
+            } else {
+                // Create new survey
+                $survey = new \App\Models\RekapSurvey(['rekap_id' => $rekap_id]);
+            }
+            
+            $survey->area_name = $areaData['area_name'] ?? '';
+            $survey->headers = $areaData['headers'];
+            $survey->data = $areaData['data'];
+            $survey->totals = $survey->calculateTotals();
+            $survey->save();
+            
+            $processedIds[] = $survey->id;
+            $areaIds[] = $survey->id;
+        }
+        
+        // Delete surveys that were removed
+        $toDelete = array_diff($existingSurveyIds, $processedIds);
+        if (!empty($toDelete)) {
+            \App\Models\RekapSurvey::whereIn('id', $toDelete)->delete();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Semua area survey berhasil disimpan',
+            'area_ids' => $areaIds
+        ]);
+    }
+}

@@ -18,365 +18,127 @@
             @endif
             <span class="mx-2">/</span>
             <span class="font-semibold">Detail Rekap</span>
-        </div>
-
-        {{-- DIV ATAS: Preview Items Table --}}
-        <div class="overflow-auto bg-white p-6 rounded shadow">
-            @if($rekap->items->count() == 0)
-                <div class="flex flex-col items-center justify-center py-12 text-gray-400">
-                    <x-lucide-grid-2x2-x class="w-16 h-16 mb-4" />
-                    <div class="text-lg font-semibold mb-2">Belum ada data rekap</div>
-                    <div class="text-sm">Silakan tambahkan rekap item terlebih dahulu.</div>
-                </div>
-            @else
-                <div>
-                    @php
-                        // Group by area and preserve insertion order
-                        $groupedByArea = $rekap->items->sortBy('id')->groupBy('nama_area');
-                        // Get unique areas in order of first item ID
-                        $areaOrder = [];
-                        foreach ($rekap->items->sortBy('id') as $item) {
-                            if (!in_array($item->nama_area, $areaOrder)) {
-                                $areaOrder[] = $item->nama_area;
-                            }
-                        }
-                    @endphp
-                    @foreach($areaOrder as $area)
-                        @if(isset($groupedByArea[$area]))
-                        @php $items = $groupedByArea[$area]; @endphp
-                        <div class="mb-6">
-                            <h4 class="text-lg font-bold text-green-700 mb-3 p-3 bg-green-50 rounded">{{ $area }}</h4>
-                            <table class="min-w-full bg-white text-sm border border-gray-300 rounded table-fixed">
-                                <thead>
-                                    <tr class="bg-green-100">
-                                        <th class="px-3 py-2 border border-gray-300 font-semibold text-left w-1/4">Kategori</th>
-                                        <th class="px-3 py-2 border border-gray-300 font-semibold text-left w-2/5">Nama Item</th>
-                                        <th class="px-3 py-2 border border-gray-300 font-semibold text-center w-1/6">Jumlah</th>
-                                        <th class="px-3 py-2 border border-gray-300 font-semibold text-left w-1/6">Satuan</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @php
-                                        $groupedByKategori = $items->groupBy('rekap_kategori_id');
-                                    @endphp
-                                    @foreach($groupedByKategori as $kategoriId => $kategoriItems)
-                                        @foreach($kategoriItems as $index => $item)
-                                            <tr>
-                                                @if($index === 0)
-                                                    <td class="px-3 py-2 border font-bold border-gray-300 align-top truncate" rowspan="{{ $kategoriItems->count() }}" title="{{ $item->kategori->nama ?? '-' }}">{{ $item->kategori->nama ?? '-' }}</td>
-                                                @endif
-                                                <td class="px-3 py-2 border border-gray-300 truncate" title="{{ $item->tipe->nama ?? '-' }}">{{ $item->tipe->nama ?? '-' }}</td>
-                                                <td class="px-3 py-2 border border-gray-300 text-center">{{ $item->jumlah }}</td>
-                                                <td class="px-3 py-2 border border-gray-300 truncate" title="{{ $item->satuan->nama ?? '-' }}">{{ $item->satuan->nama ?? '-' }}</td>
-                                            </tr>
-                                        @endforeach
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        @endif
-                    @endforeach
-
-                    {{-- Akumulasi / Subtotal --}}
-                    @php
-                        // Group items by nama_item (tipe) and satuan for accumulation
-                        $accumulation = [];
-                        foreach ($rekap->items as $item) {
-                            $key = ($item->tipe->nama ?? '-') . '|' . ($item->satuan->nama ?? '-');
-                            if (!isset($accumulation[$key])) {
-                                $accumulation[$key] = [
-                                    'nama_item' => $item->tipe->nama ?? '-',
-                                    'satuan' => $item->satuan->nama ?? '-',
-                                    'jumlah' => 0
-                                ];
-                            }
-                            $accumulation[$key]['jumlah'] += $item->jumlah;
-                        }
-                    @endphp
-
-                    @if(count($accumulation) > 0)
-                        <div class="mb-6 mt-8">
-                            <h4 class="text-lg font-bold text-blue-700 mb-3 p-3 bg-blue-50 rounded">Akumulasi (Subtotal Semua Area)</h4>
-                            <table class="min-w-full bg-white text-sm border border-gray-300 rounded table-fixed">
-                                <thead>
-                                    <tr class="bg-blue-100">
-                                        <th class="px-3 py-2 border border-gray-300 font-semibold text-left w-3/5">Nama Item</th>
-                                        <th class="px-3 py-2 border border-gray-300 font-semibold text-center w-1/5">Total Jumlah</th>
-                                        <th class="px-3 py-2 border border-gray-300 font-semibold text-left w-1/5">Satuan</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($accumulation as $acc)
-                                        <tr>
-                                            <td class="px-3 py-2 border border-gray-300 font-medium truncate" title="{{ $acc['nama_item'] }}">{{ $acc['nama_item'] }}</td>
-                                            <td class="px-3 py-2 border border-gray-300 text-center font-semibold">{{ $acc['jumlah'] }}</td>
-                                            <td class="px-3 py-2 border border-gray-300 truncate" title="{{ $acc['satuan'] }}">{{ $acc['satuan'] }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
+            @if($rekap && $rekap->exists && $rekap->items->count() > 0)
+                <div class="ml-auto">
+                    <a href="{{ route('rekap.export', $rekap->id) }}" 
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition flex items-center gap-2">
+                        <x-lucide-download class="w-5 h-5" />
+                        Export to Excel
+                    </a>
                 </div>
             @endif
         </div>
 
-        {{-- DIV BAWAH: Form Input --}}
-        <div class="bg-white p-6 rounded shadow mt-8">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-green-700">
-                    {{ $rekap->items->count() > 0 ? 'Data Item Rekap' : 'Tambah Item Rekap' }}
+        {{-- CSRF Token for AJAX requests --}}
+        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+
+        {{-- Survey Spreadsheet Section (Excel-like interface using jspreadsheet) --}}
+        <div class="bg-white p-6 rounded shadow mt-8" id="survey-spreadsheet-section">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">
+                    <x-lucide-table-2 class="inline w-6 h-6 mr-2 text-green-600" />
+                    Data Survey
                 </h3>
                 <div class="flex gap-2">
-                    @if($rekap->items->count() > 0 && $rekap->status !== 'approved')
-                        <button type="button" id="btnEditItem"
-                            class="bg-yellow-500 text-white px-4 py-2 rounded font-semibold hover:bg-yellow-600">
-                            Edit Item
-                        </button>
-                        <button type="button" id="btnCancelEdit"
-                            class="bg-gray-400 text-white px-4 py-2 rounded font-semibold hover:bg-gray-600 hidden">
-                            Batal Edit
-                        </button>
-                    @endif
-                    @if($rekap->status !== 'approved')
-                        <button type="submit" form="itemForm" id="btnSimpan"
-                            class="bg-green-600 text-white px-4 py-2 rounded font-semibold hover:bg-green-700 {{ $rekap->items->count() > 0 ? 'hidden' : '' }}">
-                            Simpan Semua Item
-                        </button>
-                    @endif
+                    <button type="button" id="btnTambahArea" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition flex items-center gap-2 text-sm">
+                        <x-lucide-plus-circle class="w-4 h-4" /> Tambah Area
+                    </button>
+                    <a href="{{ url('rekap/' . $rekap->id . '/export-survey') }}" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600 transition flex items-center gap-2 text-sm">
+                        <x-lucide-download class="w-4 h-4" /> Export Excel
+                    </a>
+                    <button type="button" id="btnSimpanSurvey" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2">
+                        <x-lucide-save class="w-5 h-5" /> Simpan Semua
+                    </button>
                 </div>
             </div>
-
-            @if($errors->any())
-                <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded">
-                    <ul class="text-red-700 text-sm">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-                <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const errors = @json($errors->all());
-                        if (errors.length > 0) {
-                            errors.forEach(error => {
-                                // Convert technical error messages to user-friendly ones
-                                let message = error;
-                                
-                                // Map specific field errors to user-friendly messages
-                                if (error.includes('nama_area') || error.includes('Nama Area')) {
-                                    message = 'Nama Area harus diisi';
-                                } 
-                                // Handle items.X.rekap_kategori_id
-                                else if (error.includes('rekap_kategori_id') || error.includes('Kategori')) {
-                                    const match = error.match(/items\.(\d+)/);
-                                    const itemNum = match ? parseInt(match[1]) + 1 : '';
-                                    message = itemNum ? `Item ${itemNum}: Kategori harus dipilih` : 'Kategori harus dipilih untuk setiap item';
-                                } 
-                                // Handle items.X.tipes_id
-                                else if (error.includes('tipes_id') || error.includes('Item tidak valid')) {
-                                    const match = error.match(/items\.(\d+)/);
-                                    const itemNum = match ? parseInt(match[1]) + 1 : '';
-                                    message = itemNum ? `Item ${itemNum}: Nama Item harus dipilih dari daftar atau buat yang baru` : 'Nama Item harus dipilih dari daftar atau buat yang baru';
-                                } 
-                                // Handle items.X.nama_item
-                                else if (error.includes('nama_item') || error.includes('Nama Item')) {
-                                    const match = error.match(/items\.(\d+)/);
-                                    const itemNum = match ? parseInt(match[1]) + 1 : '';
-                                    message = itemNum ? `Item ${itemNum}: Nama Item harus diisi` : 'Nama Item harus diisi';
-                                } 
-                                // Handle items.X.jumlah
-                                else if (error.includes('jumlah') || error.includes('Jumlah')) {
-                                    const match = error.match(/items\.(\d+)/);
-                                    const itemNum = match ? parseInt(match[1]) + 1 : '';
-                                    message = itemNum ? `Item ${itemNum}: Jumlah harus diisi dengan angka lebih dari 0` : 'Jumlah harus diisi dengan angka lebih dari 0';
-                                } 
-                                // Handle items.X.satuan_id
-                                else if (error.includes('satuan_id') || error.includes('Satuan')) {
-                                    const match = error.match(/items\.(\d+)/);
-                                    const itemNum = match ? parseInt(match[1]) + 1 : '';
-                                    message = itemNum ? `Item ${itemNum}: Satuan harus dipilih` : 'Satuan harus dipilih untuk setiap item';
-                                } 
-                                else if (error.includes('sudah ada di rekap ini')) {
-                                    message = error;
-                                } 
-                                else if (error.includes('tidak boleh duplikat')) {
-                                    message = error;
-                                }
-                                
-                                // Show toaster if available
-                                if (typeof toastr !== 'undefined') {
-                                    toastr.error(message, 'Error');
-                                }
-                            });
-                        }
-                    });
-                </script>
-            @endif
-
-            <form method="POST"
-                action="{{ $isEdit ? route('rekap.updateItems', $rekap->id) : route('rekap.addItem', $rekap->id) }}"
-                id="itemForm" novalidate>
-                @csrf
-                
-                <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                    @if($rekap->items->count() > 0)
-                        {{-- Readonly mode --}}
-                        <div id="item-list">
-                            @php
-                                $groupedByAreaReadonly = $rekap->items->sortBy('id')->groupBy('nama_area');
-                                // Preserve insertion order
-                                $areaOrderReadonly = [];
-                                foreach ($rekap->items->sortBy('id') as $item) {
-                                    if (!in_array($item->nama_area, $areaOrderReadonly)) {
-                                        $areaOrderReadonly[] = $item->nama_area;
-                                    }
-                                }
-                                $globalIdx = 0;
-                            @endphp
-                            @foreach($areaOrderReadonly as $area)
-                                @if(isset($groupedByAreaReadonly[$area]))
-                                @php $areaItems = $groupedByAreaReadonly[$area]; @endphp
-                                <div class="mb-6">
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-medium mb-2 text-gray-700">Nama Area <span class="text-red-500">*</span></label>
-                                        <div class="border rounded-lg px-3 py-2 w-full bg-gray-100 text-gray-700">{{ $area }}</div>
-                                    </div>
-                                    @foreach($areaItems as $item)
-                                        <div class="item-row mb-4 p-4 bg-white rounded-lg border border-gray-300">
-                                            <div class="flex gap-4 items-end">
-                                                <div class="flex-1">
-                                                    <label class="block text-sm font-medium mb-2 text-gray-700">Kategori</label>
-                                                    <select name="items[{{ $globalIdx }}][rekap_kategori_id]"
-                                                        class="border rounded-lg px-3 py-2 w-full bg-gray-100 cursor-not-allowed"
-                                                        disabled>
-                                                        @foreach ($kategoris as $kategori)
-                                                            <option value="{{ $kategori->id }}"
-                                                                {{ $kategori->id == $item->rekap_kategori_id ? 'selected' : '' }}>
-                                                                {{ $kategori->nama }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
-                                            </div>
-                                            <div class="flex-1">
-                                                <label class="block text-sm font-medium mb-2 text-gray-700">Nama Item</label>
-                                                <input type="text" name="items[{{ $globalIdx }}][nama_item]"
-                                                    class="border rounded-lg px-3 py-2 w-full bg-gray-100 cursor-not-allowed"
-                                                    value="{{ $item->tipe->nama ?? '-' }}" readonly>
-                                            </div>
-                                            <div class="flex-1">
-                                                <label class="block text-sm font-medium mb-2 text-gray-700">Jumlah</label>
-                                                <input type="number" name="items[{{ $globalIdx }}][jumlah]"
-                                                    class="border rounded-lg px-3 py-2 w-full bg-gray-100 cursor-not-allowed"
-                                                    value="{{ $item->jumlah }}" readonly min="0.01" step="any">
-                                            </div>
-                                            <div class="flex-1">
-                                                <label class="block text-sm font-medium mb-2 text-gray-700">Satuan</label>
-                                                <select name="items[{{ $globalIdx }}][satuan_id]"
-                                                    class="border rounded-lg px-3 py-2 w-full bg-gray-100 cursor-not-allowed"
-                                                    disabled>
-                                                    @foreach ($satuans as $satuan)
-                                                        <option value="{{ $satuan->id }}"
-                                                            {{ $satuan->id == $item->satuan_id ? 'selected' : '' }}>
-                                                            {{ $satuan->nama }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <input type="hidden" name="items[{{ $globalIdx }}][tipes_id]" value="{{ $item->tipes_id }}">
-                                    </div>
-                                    @php $globalIdx++; @endphp
-                                @endforeach
-                                </div>
-                                @endif
-                            @endforeach
-                        </div>
-
-                        <div class="flex justify-between mt-6">
-                            <button type="button" class="btn-add-area bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition flex items-center gap-2 font-semibold hidden">
-                                <x-lucide-layout-grid class="w-5 h-5" /> Tambah Area
-                            </button>
-                            <button type="button" class="btn-add-item bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition flex items-center gap-2 font-semibold hidden">
-                                <x-lucide-plus class="w-5 h-5" /> Tambah Item
-                            </button>
-                        </div>
-                    @else
-                        {{-- Form mode untuk input baru --}}
-                        <div id="area-container">
-                            {{-- Default first area --}}
-                            <div class="area-section mb-6 p-4 bg-white rounded-lg border-2 border-blue-200">
-                                <div class="flex justify-between items-center mb-4">
-                                    <div class="flex-1">
-                                        <label class="block text-sm font-medium mb-2 text-gray-700">Nama Area <span class="text-red-500">*</span></label>
-                                        <input type="text" class="area-name-input border rounded-lg px-3 py-2 w-full focus:ring focus:ring-blue-200"
-                                            placeholder="Masukkan nama area (misal: Kantor, Halaman, dll)" required>
-                                    </div>
-                                    <button type="button" class="btn-remove-area bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 transition flex items-center gap-2 ml-4 mt-6">
-                                        <x-lucide-trash-2 class="w-4 h-4" /> Hapus Area
-                                    </button>
-                                </div>
-                                <div class="area-items-container">
-                                    <div class="item-row mb-4 p-3 bg-gray-50 rounded-lg border border-gray-300">
-                                        <div class="flex gap-4 items-end">
-                                            <div class="flex-1">
-                                                <label class="block text-sm font-medium mb-2 text-gray-700">Kategori <span class="text-red-500">*</span></label>
-                                                <select name="items[0][rekap_kategori_id]"
-                                                    class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" required>
-                                                    <option value="">Pilih Kategori</option>
-                                                    @foreach ($kategoris as $kategori)
-                                                        <option value="{{ $kategori->id }}">{{ $kategori->nama }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <div class="flex-1">
-                                                <label class="block text-sm font-medium mb-2 text-gray-700">Nama Item <span class="text-red-500">*</span></label>
-                                                <input type="hidden" name="items[0][tipes_id]" class="tipes-id-input" value="">
-                                                <input type="hidden" name="items[0][nama_area]" class="item-area-name" value="">
-                                                <input type="text" name="items[0][nama_item]"
-                                                    class="nama-item-input border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200"
-                                                    placeholder="Cari atau ketik nama item..." required data-index="0">
-                                            </div>
-                                            <div class="flex-1">
-                                                <label class="block text-sm font-medium mb-2 text-gray-700">Jumlah <span class="text-red-500">*</span></label>
-                                                <input type="number" name="items[0][jumlah]"
-                                                    class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200"
-                                                    placeholder="0.00" min="0.01" step="any" required>
-                                            </div>
-                                            <div class="flex-1">
-                                                <label class="block text-sm font-medium mb-2 text-gray-700">Satuan <span class="text-red-500">*</span></label>
-                                                <select name="items[0][satuan_id]"
-                                                    class="border rounded-lg px-3 py-2 w-full focus:ring focus:ring-green-200" required>
-                                                    <option value="">Pilih Satuan</option>
-                                                    @foreach ($satuans as $satuan)
-                                                        <option value="{{ $satuan->id }}">{{ $satuan->nama }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <button type="button" class="btn-remove-item bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 transition h-10 flex items-center justify-center">
-                                                <x-lucide-minus class="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex justify-end mt-4">
-                                    <button type="button" class="btn-add-item-in-area bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition flex items-center gap-2">
-                                        <x-lucide-plus class="w-4 h-4" /> Tambah Item
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-between mt-6">
-                            <button type="button" class="btn-add-area bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition flex items-center gap-2 font-semibold">
-                                <x-lucide-layout-grid class="w-5 h-5" /> Tambah Area
-                            </button>
-                        </div>
-                    @endif
-                </div>
-            </form>
+            
+            <div class="text-sm text-gray-500 mb-4">
+                <p><strong>Tips:</strong> Setiap area memiliki spreadsheet sendiri. Tambah area baru dengan tombol "Tambah Area". Edit langsung seperti Excel. Klik kanan untuk menu tambah/hapus baris.</p>
+            </div>
+            
+            {{-- jspreadsheet container for multiple areas --}}
+            <div id="survey-spreadsheet" class="space-y-4"></div>
+            
+            {{-- Loading state --}}
+            <div id="survey-loading" class="p-4 text-gray-500 text-center">
+                Memuat spreadsheet...
+            </div>
         </div>
     </div>
+
+    {{-- Include jspreadsheet module from Vite --}}
+    @vite(['resources/js/survey-spreadsheet.js'])
+
+    <script>
+        // Initialize jspreadsheet-based survey on DOM ready
+        document.addEventListener('DOMContentLoaded', async function() {
+            const containerId = 'survey-spreadsheet';
+            const loadingEl = document.getElementById('survey-loading');
+            
+            // Wait for SurveySpreadsheet class to be available
+            const waitForModule = () => new Promise((resolve) => {
+                if (window.SurveySpreadsheet) {
+                    resolve();
+                } else {
+                    setTimeout(() => waitForModule().then(resolve), 100);
+                }
+            });
+            
+            await waitForModule();
+            
+            // Initialize spreadsheet
+            const survey = new window.SurveySpreadsheet(containerId, {
+                rekapId: {{ $rekap->id }},
+                csrfToken: document.querySelector('input[name="_token"]').value,
+                baseUrl: '{{ url('') }}'
+            });
+            
+            await survey.init();
+            
+            // Hide loading
+            if (loadingEl) loadingEl.style.display = 'none';
+            
+            // Button handlers
+            const btnTambahArea = document.getElementById('btnTambahArea');
+            const btnSimpanSurvey = document.getElementById('btnSimpanSurvey');
+            
+            if (btnTambahArea) {
+                btnTambahArea.addEventListener('click', () => {
+                    survey.addArea();
+                });
+            }
+            
+            if (btnSimpanSurvey) {
+                btnSimpanSurvey.addEventListener('click', async () => {
+                    btnSimpanSurvey.disabled = true;
+                    btnSimpanSurvey.textContent = 'Menyimpan...';
+                    
+                    try {
+                        const success = await survey.save();
+                        if (success) {
+                            if (typeof toastr !== 'undefined') {
+                                toastr.success('Semua area survey berhasil disimpan!');
+                            } else {
+                                alert('Semua area survey berhasil disimpan!');
+                            }
+                        } else {
+                            throw new Error('Gagal menyimpan');
+                        }
+                    } catch (err) {
+                        console.error('Error saving:', err);
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error('Gagal menyimpan survey: ' + err.message);
+                        } else {
+                            alert('Gagal menyimpan survey: ' + err.message);
+                        }
+                    } finally {
+                        btnSimpanSurvey.disabled = false;
+                        btnSimpanSurvey.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 inline mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Simpan Semua';
+                    }
+                });
+            }
+        });
+    </script>
 
     {{-- Tom Select CSS --}}
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">

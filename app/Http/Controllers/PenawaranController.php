@@ -260,6 +260,12 @@ class PenawaranController extends Controller
             return response()->json(['error' => 'Unauthorized. Manager tidak dapat membuat penawaran baru.'], 403);
         }
 
+        // Presales department tidak bisa membuat penawaran baru
+        $user = Auth::user();
+        if ($user->departemen && $user->departemen->value === 'Presales') {
+            return response()->json(['error' => 'Unauthorized. Departemen Presales tidak dapat membuat penawaran.'], 403);
+        }
+
         $data = $request->all();
 
         // Optional validation for tipe
