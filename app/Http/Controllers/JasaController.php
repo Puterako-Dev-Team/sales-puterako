@@ -43,6 +43,8 @@ class JasaController extends Controller
         $ppnPercent = floatval($versionRow->ppn_persen ?? 11);
         $isBestPrice = boolval($versionRow->is_best_price ?? false);
         $bestPrice = floatval($versionRow->best_price ?? 0);
+        $isDiskon = boolval($versionRow->is_diskon ?? false);
+        $diskon = floatval($versionRow->diskon ?? 0);
         
         // Hitung base amount (gunakan best price jika ada, sebaliknya gunakan penawaran total)
         $baseAmount = $isBestPrice && $bestPrice > 0 ? $bestPrice : $totalPenawaran;
@@ -50,7 +52,14 @@ class JasaController extends Controller
         // Hitung subtotal (penawaran/best price + jasa)
         $subtotal = $baseAmount + $totalJasa;
         
-        // Hitung PPN dari subtotal
+        // Hitung diskon sebagai persen dari subtotal
+        $diskonNominal = 0;
+        if ($isDiskon && $diskon > 0) {
+            $diskonNominal = ($subtotal * $diskon) / 100;
+            $subtotal = $subtotal - $diskonNominal;
+        }
+        
+        // Hitung PPN dari subtotal (setelah diskon)
         $ppnNominal = ($subtotal * $ppnPercent) / 100;
         
         // Grand Total = subtotal + PPN

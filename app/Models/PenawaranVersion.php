@@ -23,7 +23,13 @@ class PenawaranVersion extends Model
         'jasa_bpjsk_value',
         'jasa_grand_total',
         'jasa_use_bpjs',
-        'jasa_ringkasan'
+        'jasa_ringkasan',
+        'is_best_price',
+        'best_price',
+        'is_diskon',
+        'diskon',
+        'ppn_persen',
+        'ppn_nominal',
 
     ];
     public function details()

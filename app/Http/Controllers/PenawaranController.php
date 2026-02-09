@@ -36,6 +36,8 @@ class PenawaranController extends Controller
         $ppnPercent = floatval($versionRow->ppn_persen ?? 11);
         $isBestPrice = boolval($versionRow->is_best_price ?? false);
         $bestPrice = floatval($versionRow->best_price ?? 0);
+        $isDiskon = boolval($versionRow->is_diskon ?? false);
+        $diskon = floatval($versionRow->diskon ?? 0);
         
         // Hitung base amount (gunakan best price jika ada, sebaliknya gunakan penawaran total)
         $baseAmount = $isBestPrice ? $bestPrice : $totalPenawaran;
@@ -43,7 +45,14 @@ class PenawaranController extends Controller
         // Hitung subtotal (penawaran/best price + jasa)
         $subtotal = $baseAmount + $totalJasa;
         
-        // Hitung PPN dari subtotal
+        // Hitung diskon sebagai persen dari subtotal
+        $diskonNominal = 0;
+        if ($isDiskon && $diskon > 0) {
+            $diskonNominal = ($subtotal * $diskon) / 100;
+            $subtotal = $subtotal - $diskonNominal;
+        }
+        
+        // Hitung PPN dari subtotal (setelah diskon)
         $ppnNominal = ($subtotal * $ppnPercent) / 100;
         
         // Grand Total = subtotal + PPN
@@ -667,7 +676,16 @@ class PenawaranController extends Controller
         $ppnPersen = $versionRow->ppn_persen ?? 11;
         $isBest = $versionRow->is_best_price ?? false;
         $bestPrice = $versionRow->best_price ?? 0;
+        $isDiskon = $versionRow->is_diskon ?? false;
+        $diskon = $versionRow->diskon ?? 0;
         $baseAmount = ($isBest && $bestPrice > 0) ? $bestPrice : ($totalPenawaran + $grandTotalJasa);
+        
+        // Hitung diskon sebagai persen dari baseAmount
+        $diskonNominal = 0;
+        if ($isDiskon && $diskon > 0) {
+            $diskonNominal = ($baseAmount * $diskon) / 100;
+            $baseAmount = $baseAmount - $diskonNominal;
+        }
 
         $ppnNominal = ($baseAmount * $ppnPersen) / 100;
         $grandTotalWithPpn = $baseAmount + $ppnNominal;
@@ -723,6 +741,9 @@ class PenawaranController extends Controller
             'grandTotalWithPpn',
             'isBest',
             'bestPrice',
+            'isDiskon',
+            'diskon',
+            'diskonNominal',
             'satuans',
             'approval'
         ));
@@ -1177,6 +1198,41 @@ class PenawaranController extends Controller
         return redirect()->back()->with('error', 'Data versi penawaran tidak ditemukan.');
     }
 
+    public function saveDiskon(Request $request, $id)
+    {
+        // Manager role tidak bisa save diskon
+        if (Auth::user()->role === 'manager') {
+            return response()->json(['error' => 'Unauthorized. Manager tidak dapat menyimpan diskon.'], 403);
+        }
+
+        $version = $request->input('version', 1);
+        $isDiskon = $request->has('is_diskon') ? 1 : 0;
+        $diskon = $request->input('diskon', 0);
+        
+        // Jika diskon 0, maka set is_diskon ke 0 juga
+        if (floatval($diskon) == 0) {
+            $isDiskon = 0;
+        }
+
+        // Cari versi aktif
+        $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $id)
+            ->where('version', $version)
+            ->first();
+
+        if ($versionRow) {
+            $versionRow->is_diskon = $isDiskon;
+            $versionRow->diskon = $diskon;
+            $versionRow->save();
+            
+            // Recalculate grand total setelah update diskon
+            $this->recalculateGrandTotal($id, $version);
+            
+            return redirect()->back()->with('success', 'Diskon berhasil disimpan.');
+        }
+
+        return redirect()->back()->with('error', 'Data versi penawaran tidak ditemukan.');
+    }
+
     public function createRevision($id)
     {
         // Manager role tidak bisa membuat revisi
@@ -1218,6 +1274,11 @@ class PenawaranController extends Controller
             'jasa_bpjsk_percent' => $oldVersion ? ($oldVersion->jasa_bpjsk_percent ?? 0) : 0,
             'jasa_bpjsk_value' => $oldVersion ? ($oldVersion->jasa_bpjsk_value ?? 0) : 0,
             'jasa_grand_total' => $oldVersion ? ($oldVersion->jasa_grand_total ?? 0) : 0,
+            'is_best_price' => $oldVersion ? ($oldVersion->is_best_price ?? 0) : 0,
+            'best_price' => $oldVersion ? ($oldVersion->best_price ?? 0) : 0,
+            'is_diskon' => $oldVersion ? ($oldVersion->is_diskon ?? 0) : 0,
+            'diskon' => $oldVersion ? ($oldVersion->diskon ?? 0) : 0,
+            'ppn_persen' => $oldVersion ? ($oldVersion->ppn_persen ?? 11) : 11,
         ]);
 
         // Copy penawaran_detail hanya jika ada versi sebelumnya
