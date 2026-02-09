@@ -841,12 +841,19 @@ class RekapController extends Controller
         }
 
         $surveys = $rekap->surveys->map(function ($survey) {
+            // Ensure comments is always an object, not array
+            $comments = $survey->comments;
+            if (empty($comments) || (is_array($comments) && array_keys($comments) === range(0, count($comments) - 1))) {
+                $comments = new \stdClass();
+            }
+            
             return [
                 'id' => $survey->id,
                 'area_name' => $survey->area_name ?? '',
                 'headers' => $survey->headers,
                 'data' => $survey->data,
                 'totals' => $survey->totals,
+                'comments' => $comments,
             ];
         });
 
@@ -890,6 +897,18 @@ class RekapController extends Controller
             $survey->area_name = $areaData['area_name'] ?? '';
             $survey->headers = $areaData['headers'];
             $survey->data = $areaData['data'];
+            
+            // Ensure comments is saved as object (associative array) not sequential array
+            $comments = $areaData['comments'] ?? [];
+            if (is_array($comments) && !empty($comments)) {
+                // Convert to object to preserve as associative
+                $survey->comments = (object) $comments;
+            } else {
+                $survey->comments = new \stdClass();
+            }
+            
+            \Log::info('Saving survey comments', ['area' => $areaData['area_name'], 'comments' => $comments]);
+            
             $survey->totals = $survey->calculateTotals();
             $survey->save();
             

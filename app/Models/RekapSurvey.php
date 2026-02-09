@@ -13,6 +13,7 @@ class RekapSurvey extends Model
         'headers',
         'data',
         'totals',
+        'comments',
         'version',
     ];
 
@@ -20,6 +21,7 @@ class RekapSurvey extends Model
         'headers' => 'array',
         'data' => 'array',
         'totals' => 'array',
+        'comments' => 'object',
     ];
 
     /**

@@ -26,6 +26,9 @@ class SurveySpreadsheet {
         this.areas = [];
         this.areaCounter = 0;
         
+        // Comments storage: { areaId: { 'row,col': 'comment text' } }
+        this.comments = {};
+        
         // Colors for header groups
         this.groupColors = {
             'lokasi': '#3b82f6',
@@ -39,6 +42,139 @@ class SurveySpreadsheet {
         
         // Inject styles
         this.injectStyles();
+        
+        // Create comment tooltip element
+        this.createCommentTooltip();
+    }
+
+    // Create floating tooltip for showing comments
+    createCommentTooltip() {
+        const tooltip = document.createElement('div');
+        tooltip.id = 'survey-comment-tooltip';
+        tooltip.style.cssText = `
+            position: fixed;
+            background: #fffde7;
+            border: 1px solid #fbc02d;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 12px;
+            max-width: 250px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 10000;
+            display: none;
+            pointer-events: none;
+            word-wrap: break-word;
+        `;
+        document.body.appendChild(tooltip);
+        this.commentTooltip = tooltip;
+    }
+
+    // Get comment for a cell
+    getComment(areaId, row, col) {
+        const key = `${row},${col}`;
+        return this.comments[areaId]?.[key] || null;
+    }
+
+    // Set comment for a cell
+    setComment(areaId, row, col, comment) {
+        console.log('setComment called:', { areaId, row, col, comment });
+        if (!this.comments[areaId]) {
+            this.comments[areaId] = {};
+        }
+        const key = `${row},${col}`;
+        if (comment && comment.trim()) {
+            this.comments[areaId][key] = comment.trim();
+        } else {
+            delete this.comments[areaId][key];
+        }
+        console.log('Comments after set:', JSON.stringify(this.comments));
+        this.updateCommentIndicators(areaId);
+    }
+
+    // Delete comment for a cell
+    deleteComment(areaId, row, col) {
+        const key = `${row},${col}`;
+        if (this.comments[areaId]) {
+            delete this.comments[areaId][key];
+        }
+        this.updateCommentIndicators(areaId);
+    }
+
+    // Update visual indicators for cells with comments
+    updateCommentIndicators(areaId) {
+        const area = this.areas.find(a => a.id === areaId);
+        if (!area || !area.container) return;
+        
+        const cells = area.container.querySelectorAll('tbody td');
+        cells.forEach(cell => {
+            // Remove existing indicator
+            const existingIndicator = cell.querySelector('.comment-indicator');
+            if (existingIndicator) existingIndicator.remove();
+            
+            // Get cell row/col
+            const row = cell.dataset.y;
+            const col = cell.dataset.x;
+            if (row === undefined || col === undefined) return;
+            
+            const comment = this.getComment(areaId, parseInt(row), parseInt(col));
+            if (comment) {
+                // Add red triangle indicator
+                const indicator = document.createElement('div');
+                indicator.className = 'comment-indicator';
+                indicator.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    right: 0;
+                    width: 0;
+                    height: 0;
+                    border-left: 8px solid transparent;
+                    border-top: 8px solid #dc2626;
+                    pointer-events: none;
+                `;
+                cell.style.position = 'relative';
+                cell.appendChild(indicator);
+            }
+        });
+    }
+
+    // Bind comment events to area cells (hover tooltip only, context menu is handled by jspreadsheet)
+    bindCommentEvents(area) {
+        const self = this;
+        
+        setTimeout(() => {
+            const cells = area.container.querySelectorAll('tbody td');
+            
+            cells.forEach(cell => {
+                // Show tooltip on hover
+                cell.addEventListener('mouseenter', function(e) {
+                    const row = this.dataset.y;
+                    const col = this.dataset.x;
+                    if (row === undefined || col === undefined) return;
+                    
+                    const comment = self.getComment(area.id, parseInt(row), parseInt(col));
+                    if (comment) {
+                        self.commentTooltip.textContent = comment;
+                        self.commentTooltip.style.display = 'block';
+                        self.commentTooltip.style.left = (e.clientX + 10) + 'px';
+                        self.commentTooltip.style.top = (e.clientY + 10) + 'px';
+                    }
+                });
+                
+                cell.addEventListener('mousemove', function(e) {
+                    if (self.commentTooltip.style.display === 'block') {
+                        self.commentTooltip.style.left = (e.clientX + 10) + 'px';
+                        self.commentTooltip.style.top = (e.clientY + 10) + 'px';
+                    }
+                });
+                
+                cell.addEventListener('mouseleave', function() {
+                    self.commentTooltip.style.display = 'none';
+                });
+            });
+            
+            // Update indicators
+            self.updateCommentIndicators(area.id);
+        }, 200);
     }
 
     // Default headers template
@@ -218,7 +354,7 @@ class SurveySpreadsheet {
         
         // First column (row number column) - label
         const firstWidth = columnWidths[colIdx] || 50;
-        html += `<td style="font-weight: bold; background: #fef3c7; padding: 4px 8px; border: 1px solid #ccc; text-align: center; white-space: nowrap; width: ${firstWidth}px;">TOTAL KEBUTUHAN</td>`;
+        html += `<td style="font-weight: bold; background: #fef3c7; padding: 4px 8px; border: 1px solid #ccc; text-align: center; white-space: nowrap; width: ${firstWidth}px;">TOTAL</td>`;
         colIdx++;
         
         // Each column matches the header column above
@@ -256,15 +392,21 @@ class SurveySpreadsheet {
         } else {
             // Create areas from saved data
             savedAreas.forEach(areaData => {
-                this.addArea(areaData.area_name, areaData.headers, areaData.data, areaData.id);
+                this.addArea(areaData.area_name, areaData.headers, areaData.data, areaData.id, areaData.comments);
             });
         }
     }
 
     // Add a new area
-    addArea(areaName = '', headers = null, data = null, serverId = null) {
+    addArea(areaName = '', headers = null, data = null, serverId = null, comments = null) {
         const areaId = ++this.areaCounter;
         const areaHeaders = headers || this.getDefaultHeaders();
+        
+        // Load comments for this area
+        if (comments) {
+            console.log('Loading comments for area', areaId, ':', comments);
+            this.comments[areaId] = comments;
+        }
         
         const area = {
             id: areaId,
@@ -381,10 +523,60 @@ class SurveySpreadsheet {
                     allowInsertColumn: false,
                     allowDeleteRow: true,
                     allowDeleteColumn: false,
+                    allowComments: false,
                     columnResize: true,
                     tableOverflow: false,
-                    defaultColWidth: 100,
+                    defaultColWidth: 100
                 }],
+                contextMenu: function(obj, x, y, e, items) {
+                    // Filter out comments and add our custom comment option
+                    const filteredItems = [];
+                    
+                    // Add our custom comment option first
+                    const existingComment = self.getComment(area.id, y, x);
+                    if (existingComment) {
+                        filteredItems.push({
+                            title: '✏️ Edit Comment',
+                            onclick: function() {
+                                const newComment = prompt('Edit comment:', existingComment);
+                                if (newComment !== null) {
+                                    self.setComment(area.id, y, x, newComment);
+                                }
+                            }
+                        });
+                        filteredItems.push({
+                            title: '🗑️ Delete Comment',
+                            onclick: function() {
+                                if (confirm('Delete this comment?')) {
+                                    self.deleteComment(area.id, y, x);
+                                }
+                            }
+                        });
+                    } else {
+                        filteredItems.push({
+                            title: '💬 Add Comment',
+                            onclick: function() {
+                                const comment = prompt('Enter comment:');
+                                if (comment) {
+                                    self.setComment(area.id, y, x, comment);
+                                }
+                            }
+                        });
+                    }
+                    
+                    // Add separator
+                    filteredItems.push({ type: 'line' });
+                    
+                    // Add standard items except comments
+                    items.forEach(item => {
+                        if (item && item.title && item.title.toLowerCase().includes('comment')) {
+                            return;
+                        }
+                        filteredItems.push(item);
+                    });
+                    
+                    return filteredItems;
+                },
                 onchange: function() {
                     self.updateTotalsDisplay(area);
                 },
@@ -414,6 +606,8 @@ class SurveySpreadsheet {
         this.styleAreaHeaders(area);
         // Delay initial totals display to ensure DOM is rendered
         setTimeout(() => this.updateTotalsDisplay(area), 50);
+        // Bind comment events after DOM is ready
+        this.bindCommentEvents(area);
     }
 
     // Style headers for an area
@@ -656,6 +850,7 @@ class SurveySpreadsheet {
             }
             
             const result = await response.json();
+            console.log('Loaded surveys from server:', result);
             if (result.success && result.surveys) {
                 return result.surveys;
             }
@@ -667,6 +862,7 @@ class SurveySpreadsheet {
 
     // Save all areas to server
     async save() {
+        console.log('save() called, this.comments:', JSON.stringify(this.comments));
         const areasData = this.areas.map(area => {
             const areaNameInput = document.getElementById(`area-${area.id}-name`);
             const areaName = areaNameInput ? areaNameInput.value : '';
@@ -679,13 +875,18 @@ class SurveySpreadsheet {
                 return Object.values(row).some(v => v !== '' && v !== null && v !== undefined);
             });
             
+            console.log('Area', area.id, 'comments:', this.comments[area.id]);
+            
             return {
                 id: area.serverId,
                 area_name: areaName,
                 headers: area.headers,
-                data: filteredData.length > 0 ? filteredData : []
+                data: filteredData.length > 0 ? filteredData : [],
+                comments: this.comments[area.id] || {}
             };
         });
+        
+        console.log('areasData to send:', JSON.stringify(areasData, null, 2));
         
         try {
             const response = await fetch(`${this.baseUrl}/rekap/${this.rekapId}/surveys`, {
