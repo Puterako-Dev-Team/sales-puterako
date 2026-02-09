@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Department;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -82,7 +83,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,NULL,id,deleted_at,NULL',
             'password' => 'required|string|min:6|confirmed',
             'role' => 'required|in:administrator,direktur,manager,supervisor,staff',
-            'departemen' => 'required|string|max:100',
+            'departemen' => ['required', Rule::enum(Department::class)],
             'kantor' => 'required|string|max:100',
             'nohp' => 'nullable|string|max:20',
         ]);
@@ -135,7 +136,7 @@ class UserController extends Controller
             'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)->whereNull('deleted_at')],
             'password' => 'nullable|string|min:6|confirmed',
             'role' => 'required|in:administrator,direktur,manager,supervisor,staff',
-            'departemen' => 'required|string|max:100',
+            'departemen' => ['required', Rule::enum(Department::class)],
             'kantor' => 'required|string|max:100',
             'nohp' => 'nullable|string|max:20',
         ]);

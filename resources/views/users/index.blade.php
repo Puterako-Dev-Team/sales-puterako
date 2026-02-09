@@ -236,7 +236,12 @@
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Departemen</label>
-                            <input type="text" id="f_departemen" name="departemen" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            <select id="f_departemen" name="departemen" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                <option value="">Pilih Departemen</option>
+                                @foreach(\App\Enums\Department::cases() as $dept)
+                                    <option value="{{ $dept->value }}">{{ $dept->value }}</option>
+                                @endforeach
+                            </select>
                         </div>
 
                         <div>
