@@ -504,7 +504,7 @@
                                         @endif
                                     </a>
                                     @endif
-                                    @if(Auth::user()->role !== 'manager')
+                                    @if(Auth::user()->role !== 'manager' && Auth::user()->role !== 'direktur')
                                     <a href="{{ route('rekap.list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
                                         <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
@@ -516,7 +516,7 @@
                                         <span class="menu-label show text-sm text-gray-700">Rekap Survey</span>
                                     </a>
                                     @endif
-                                    @if(in_array(Auth::user()->role, ['manager', 'direktur']))
+                                    @if(Auth::user()->role === 'manager')
                                     <a href="{{ route('rekap.approve-list') }}"
                                         class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
                                         <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
