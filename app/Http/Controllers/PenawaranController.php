@@ -359,6 +359,16 @@ class PenawaranController extends Controller
         }
 
         $penawaran = Penawaran::findOrFail($id);
+        
+        // Jika lokasi_pengerjaan kosong, ekstrak dari no_penawaran
+        if (empty($penawaran->lokasi_pengerjaan) && $penawaran->no_penawaran) {
+            if (preg_match('/PIB\/SS-(SBY|JKT)/', $penawaran->no_penawaran, $m)) {
+                $penawaran->lokasi_pengerjaan = $m[1];
+            } else {
+                $penawaran->lokasi_pengerjaan = 'SBY'; // Default
+            }
+        }
+        
         return response()->json($penawaran);
     }
 
@@ -377,7 +387,8 @@ class PenawaranController extends Controller
             'pic_perusahaan' => 'nullable|string|max:255',
             'tipe' => 'nullable|in:soc,barang',
             'template_type' => 'nullable|in:template_puterako,template_boq',
-            'no_penawaran_edit' => 'nullable|string|max:255|regex:/^PIB\/SS-SBY\/JK\/\d+-\d+\/[IVX]+\/\d{4}$/',
+            'lokasi_pengerjaan' => 'nullable|in:SBY,JKT',
+            'no_penawaran_edit' => ['nullable', 'string', 'max:255', 'regex:#^PIB/SS-(SBY|JKT)(/JK)?/\d+-\d+/[IVX]+/\d{4}$#'],
         ]);
 
         // Handle no_penawaran edit for administrator only
@@ -1517,14 +1528,13 @@ class PenawaranController extends Controller
         $max = 0;
         foreach ($rows as $row) {
             $no = (string) ($row->no_penawaran ?? '');
-            // Support format lama dan baru
-            if (preg_match('/PIB\/SS-(SBY|JKT)\/\d+-(\d+)\//', $no, $m)) {
+            // Support semua format:
+            // 1. PIB/SS-SBY/3-026/II/2026 (format baru tanpa /JK/)
+            // 2. PIB/SS-JKT/3-026/II/2026 (format baru tanpa /JK/)
+            // 3. PIB/SS-SBY/JK/3-026/II/2026 (format lama dengan /JK/)
+            // 4. PIB/SS-JKT/JK/3-026/II/2026 (format lama dengan /JK/)
+            if (preg_match('/PIB\/SS-(SBY|JKT)(?:\/JK)?\/\d+-(\d+)\//', $no, $m)) {
                 $seq = (int) $m[2];
-                if ($seq > $max) {
-                    $max = $seq;
-                }
-            } elseif (preg_match('/PIB\/SS-SBY\/JK\/\d+-(\d+)\//', $no, $m)) {
-                $seq = (int) $m[1];
                 if ($seq > $max) {
                     $max = $seq;
                 }
