@@ -42,6 +42,7 @@ class JasaDetailController extends Controller
                         'orang' => $d->orang,
                         'unit' => $d->unit,
                         'total' => $d->total,
+                        'comments' => $d->comments,
                     ];
                 })->toArray()
             ];

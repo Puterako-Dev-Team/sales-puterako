@@ -414,7 +414,7 @@
             @endif
             </p>
             <p class="greeting" style="margin-top: 20px;"><strong>Dengan Hormat,</strong></p>
-            <p>Bersama ini kami PT. Puterako Inti Buana memberitahukan Penawaran Harga {{ $penawaran->perihal }} dengan
+            <p>Bersama ini kami PT. Puterako Inti Buana memberitahukan {{ $penawaran->perihal }} dengan
                 perincian sebagai berikut:</p>
         </div>
 

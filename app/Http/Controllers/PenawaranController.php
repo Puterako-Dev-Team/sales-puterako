@@ -713,6 +713,7 @@ class PenawaranController extends Controller
                         'added_cost' => $d->added_cost,
                         'delivery_time' => $d->delivery_time,
                         'profit' => $d->profit,
+                        'comments' => $d->comments,
                     ];
                 })->toArray()
             ];
@@ -814,6 +815,7 @@ class PenawaranController extends Controller
                         'color_code' => isset($row['color_code']) ? (int) $row['color_code'] : 1,
                         'added_cost' => $row['added_cost'] ?? 0,
                         'delivery_time' => $row['delivery_time'] ?? null,
+                        'comments' => isset($row['comments']) ? $row['comments'] : null,
                         'version_id' => $version_id, // pastikan selalu isi version_id
                     ];
 
