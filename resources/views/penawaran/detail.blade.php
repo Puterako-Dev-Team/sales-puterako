@@ -1384,6 +1384,18 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Comment Modal -->
+            <div id="commentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
+                    <h2 id="commentModalTitle" class="text-lg font-bold mb-4">Insert Comment</h2>
+                    <textarea id="commentModalTextarea" class="w-full border rounded p-3 mb-4 resize-y" rows="6" placeholder="Masukkan komentar..."></textarea>
+                    <div class="flex justify-end gap-2">
+                        <button id="commentModalCancel" class="btn btn-secondary py-2 px-4 bg-gray-500 hover:bg-gray-600 text-white rounded">Batal</button>
+                        <button id="commentModalOk" class="btn btn-primary py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded">OK</button>
+                    </div>
+                </div>
+            </div>
 @endsection
 
         <script>
@@ -1706,6 +1718,89 @@
                         word-wrap: break-word;
                     `;
                     document.body.appendChild(commentTooltip);
+                    
+                    // Comment Modal Helper Functions
+                    let commentModalCallback = null;
+                    
+                    function openCommentModal(title, initialValue, callback) {
+                        const modal = document.getElementById('commentModal');
+                        const titleEl = document.getElementById('commentModalTitle');
+                        const textarea = document.getElementById('commentModalTextarea');
+                        
+                        titleEl.textContent = title || 'Insert Comment';
+                        textarea.value = initialValue || '';
+                        commentModalCallback = callback;
+                        
+                        modal.classList.remove('hidden');
+                        textarea.focus();
+                    }
+                    
+                    function closeCommentModal() {
+                        const modal = document.getElementById('commentModal');
+                        modal.classList.add('hidden');
+                        commentModalCallback = null;
+                    }
+                    
+                    // Comment Modal Event Listeners
+                    document.getElementById('commentModalCancel').addEventListener('click', closeCommentModal);
+                    document.getElementById('commentModalOk').addEventListener('click', function() {
+                        const textarea = document.getElementById('commentModalTextarea');
+                        const value = textarea.value;
+                        if (commentModalCallback) {
+                            commentModalCallback(value);
+                        }
+                        closeCommentModal();
+                    });
+                    document.getElementById('commentModal').addEventListener('click', function(e) {
+                        if (e.target === this) {
+                            closeCommentModal();
+                        }
+                    });
+                    document.getElementById('commentModalTextarea').addEventListener('keydown', function(e) {
+                        // Allow Ctrl+Enter to submit
+                        if (e.ctrlKey && e.key === 'Enter') {
+                            document.getElementById('commentModalOk').click();
+                        }
+                        // Allow Escape to cancel
+                        if (e.key === 'Escape') {
+                            closeCommentModal();
+                        }
+                    });
+                    
+                    function viewCommentModal(comment) {
+                        const modal = document.getElementById('commentModal');
+                        const titleEl = document.getElementById('commentModalTitle');
+                        const textarea = document.getElementById('commentModalTextarea');
+                        const okBtn = document.getElementById('commentModalOk');
+                        const cancelBtn = document.getElementById('commentModalCancel');
+                        
+                        titleEl.textContent = 'View Comment';
+                        textarea.value = comment || '';
+                        textarea.readOnly = true;
+                        textarea.style.backgroundColor = '#f5f5f5';
+                        okBtn.style.display = 'none';
+                        cancelBtn.textContent = 'Tutup';
+                        commentModalCallback = null;
+                        
+                        modal.classList.remove('hidden');
+                        
+                        // Reset on close
+                        const resetViewMode = function() {
+                            textarea.readOnly = false;
+                            textarea.style.backgroundColor = '';
+                            okBtn.style.display = '';
+                            cancelBtn.textContent = 'Batal';
+                        };
+                        
+                        const originalCloseHandler = closeCommentModal;
+                        closeCommentModal = function() {
+                            resetViewMode();
+                            const modalEl = document.getElementById('commentModal');
+                            modalEl.classList.add('hidden');
+                            commentModalCallback = null;
+                            closeCommentModal = originalCloseHandler;
+                        };
+                    }
                     
                     // Comment helper functions
                     function getComment(sectionId, row, col) {
@@ -2699,16 +2794,23 @@
                                 
                                 if (existingComment) {
                                     newItems.push({
-                                        title: 'Edit Komentar',
+                                        title: 'View Comment',
                                         onclick: function() {
-                                            const newComment = prompt('Edit komentar:', existingComment);
-                                            if (newComment !== null) {
-                                                setJasaComment(sectionId, y, x, newComment);
-                                            }
+                                            viewCommentModal(existingComment);
                                         }
                                     });
                                     newItems.push({
-                                        title: 'Hapus Komentar',
+                                        title: 'Edit Comment',
+                                        onclick: function() {
+                                            openCommentModal('Edit Comment', existingComment, function(newComment) {
+                                                if (newComment !== null) {
+                                                    setJasaComment(sectionId, y, x, newComment);
+                                                }
+                                            });
+                                        }
+                                    });
+                                    newItems.push({
+                                        title: 'Delete Comment',
                                         onclick: function() {
                                             if (confirm('Hapus komentar ini?')) {
                                                 deleteJasaComment(sectionId, y, x);
@@ -2717,12 +2819,13 @@
                                     });
                                 } else {
                                     newItems.push({
-                                        title: 'Tambah Komentar',
+                                        title: 'Insert Comment',
                                         onclick: function() {
-                                            const comment = prompt('Masukkan komentar:');
-                                            if (comment) {
-                                                setJasaComment(sectionId, y, x, comment);
-                                            }
+                                            openCommentModal('Insert Comment', '', function(comment) {
+                                                if (comment) {
+                                                    setJasaComment(sectionId, y, x, comment);
+                                                }
+                                            });
                                         }
                                     });
                                 }
@@ -3455,7 +3558,6 @@
 
                                 // colIndex: 3=QTY, 7=HPP, 8=Mitra, 9=Judul, 10=Profit, 12=Added Cost
                                 if (colIndex == 3 || colIndex == 7 || colIndex == 8 || colIndex == 9 || colIndex == 10 || colIndex == 12) {
-                                    console.log('✨ Triggering recalculateRow with new value:', value);
                                     recalculateRow(spreadsheet, rowIndex, colIndex, value);
                                 } else {
                                     console.log('⏭️ Skip calculation (column not QTY/HPP/Mitra/Judul/Profit/Added Cost)');
@@ -3473,16 +3575,23 @@
                                 
                                 if (existingComment) {
                                     newItems.push({
-                                        title: 'Edit Komentar',
+                                        title: 'View Comment',
                                         onclick: function() {
-                                            const newComment = prompt('Edit komentar:', existingComment);
-                                            if (newComment !== null) {
-                                                setComment(sectionId, y, x, newComment);
-                                            }
+                                            viewCommentModal(existingComment);
                                         }
                                     });
                                     newItems.push({
-                                        title: 'Hapus Komentar',
+                                        title: 'Edit Comment',
+                                        onclick: function() {
+                                            openCommentModal('Edit Comment', existingComment, function(newComment) {
+                                                if (newComment !== null) {
+                                                    setComment(sectionId, y, x, newComment);
+                                                }
+                                            });
+                                        }
+                                    });
+                                    newItems.push({
+                                        title: 'Delete Comment',
                                         onclick: function() {
                                             if (confirm('Hapus komentar ini?')) {
                                                 deleteComment(sectionId, y, x);
@@ -3491,12 +3600,13 @@
                                     });
                                 } else {
                                     newItems.push({
-                                        title: 'Tambah Komentar',
+                                        title: 'Insert Comment',
                                         onclick: function() {
-                                            const comment = prompt('Masukkan komentar:');
-                                            if (comment) {
-                                                setComment(sectionId, y, x, comment);
-                                            }
+                                            openCommentModal('Insert Comment', '', function(comment) {
+                                                if (comment) {
+                                                    setComment(sectionId, y, x, comment);
+                                                }
+                                            });
                                         }
                                     });
                                 }
