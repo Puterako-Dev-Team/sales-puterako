@@ -80,7 +80,6 @@ class JasaController extends Controller
         $profitPercent = floatval($data['profit'] ?? 0);
         $pphPercent = floatval($data['pph'] ?? 0);
         $useBpjs = boolval($data['use_bpjs'] ?? false);
-        $ringkasan = $data['ringkasan'] ?? null;
         $version = $data['version'] ?? 1;
 
         $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $penawaranId)
@@ -93,6 +92,9 @@ class JasaController extends Controller
             ]);
         }
         $version_id = $versionRow->id;
+
+        // Only update ringkasan if explicitly provided in the request
+        $ringkasan = array_key_exists('ringkasan', $data) ? $data['ringkasan'] : $versionRow->jasa_ringkasan;
 
         if (!$penawaranId) {
             return response()->json(['error' => 'penawaran_id required'], 400);
