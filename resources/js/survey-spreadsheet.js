@@ -12,6 +12,11 @@ import 'jsuites/dist/jsuites.css';
  *   - Header Groups (Lokasi, Dimensi, Kabel, etc.) with sub-columns
  *   - Data rows
  *   - Total Kebutuhan (auto-calculated totals row)
+ * 
+ * Formula Support:
+ * - Dynamic formulas loaded from server
+ * - Auto-calculation when dependent columns change
+ * - Formula columns are highlighted and auto-calculated
  */
 
 class SurveySpreadsheet {
@@ -29,6 +34,11 @@ class SurveySpreadsheet {
         
         // Comments storage: { areaId: { 'row,col': 'comment text' } }
         this.comments = {};
+        
+        // Formula support
+        this.formulas = []; // Array of formula configurations from server
+        this.formulasByColumn = {}; // Formulas indexed by target column_key
+        this.columnKeyToIndex = {}; // Maps column_key to column index for each area
         
         // Colors for header groups
         this.groupColors = {
@@ -136,6 +146,204 @@ class SurveySpreadsheet {
         });
     }
 
+    // =====================================================
+    // FORMULA SUPPORT METHODS
+    // =====================================================
+
+    // Load formulas from the server API
+    async loadFormulas() {
+        try {
+            const response = await fetch(`${this.baseUrl}/survey-formulas/api`);
+            const result = await response.json();
+            if (result.success && result.formulas) {
+                this.formulas = result.formulas;
+                // Index formulas by column_key for quick lookup
+                this.formulasByColumn = {};
+                this.formulas.forEach(f => {
+                    this.formulasByColumn[f.column_key] = f;
+                });
+                console.log('Loaded formulas:', this.formulas);
+            }
+        } catch (err) {
+            console.warn('Could not load formulas:', err);
+            this.formulas = [];
+            this.formulasByColumn = {};
+        }
+    }
+
+    // Build column key to index mapping for an area
+    buildColumnKeyMap(area) {
+        const map = {};
+        let colIdx = 0;
+        area.headers.forEach(group => {
+            group.columns.forEach(col => {
+                map[col.key] = colIdx;
+                colIdx++;
+            });
+        });
+        return map;
+    }
+
+    // Get column key from index for an area
+    getColumnKeyFromIndex(area, colIndex) {
+        let idx = 0;
+        for (const group of area.headers) {
+            for (const col of group.columns) {
+                if (idx === colIndex) {
+                    return col.key;
+                }
+                idx++;
+            }
+        }
+        return null;
+    }
+
+    // Check if a column has a formula
+    hasFormula(columnKey) {
+        return !!this.formulasByColumn[columnKey];
+    }
+
+    // Get formulas that depend on a given column
+    getDependentFormulas(columnKey) {
+        return this.formulas.filter(f => 
+            f.dependencies && f.dependencies.includes(columnKey)
+        );
+    }
+
+    // Evaluate a formula expression with given row values
+    evaluateFormula(formula, rowValues) {
+        try {
+            let expression = formula.formula;
+            
+            // Replace column keys with their values
+            for (const [key, value] of Object.entries(rowValues)) {
+                const numValue = parseFloat(value) || 0;
+                // Use word boundary to prevent partial replacements
+                expression = expression.replace(new RegExp('\\b' + key + '\\b', 'g'), numValue);
+            }
+            
+            // Safety check - only allow numbers, operators, and parentheses
+            if (!/^[\d\s\+\-\*\/\(\)\.]+$/.test(expression)) {
+                console.warn('Formula contains invalid characters after substitution:', expression);
+                return 0;
+            }
+            
+            // Evaluate the expression
+            const result = Function('"use strict"; return (' + expression + ')')();
+            return isNaN(result) || !isFinite(result) ? 0 : result;
+        } catch (err) {
+            console.error('Error evaluating formula:', err, formula);
+            return 0;
+        }
+    }
+
+    // Apply all formulas to a specific row in an area
+    applyFormulasToRow(area, rowIndex) {
+        const keyMap = this.buildColumnKeyMap(area);
+        const arrayData = this.getAreaData(area);
+        if (!arrayData || !arrayData[rowIndex]) return;
+        
+        const row = arrayData[rowIndex];
+        
+        // Build row values object from current data
+        const rowValues = {};
+        Object.entries(keyMap).forEach(([key, idx]) => {
+            rowValues[key] = row[idx] || 0;
+        });
+        
+        // Apply formulas in order
+        let changed = false;
+        for (const formula of this.formulas) {
+            if (keyMap[formula.column_key] !== undefined) {
+                const targetIdx = keyMap[formula.column_key];
+                const newValue = this.evaluateFormula(formula, rowValues);
+                const roundedValue = Math.round(newValue * 100) / 100; // Round to 2 decimal places
+                
+                // Update the value if it changed
+                if (parseFloat(row[targetIdx]) !== roundedValue) {
+                    // Update in spreadsheet
+                    if (area.worksheet && typeof area.worksheet.setValueFromCoords === 'function') {
+                        area.worksheet.setValueFromCoords(targetIdx, rowIndex, roundedValue, true);
+                    } else if (area.spreadsheetInstance && area.spreadsheetInstance[0]) {
+                        area.spreadsheetInstance[0].setValueFromCoords(targetIdx, rowIndex, roundedValue, true);
+                    }
+                    // Update row values for cascading formulas
+                    rowValues[formula.column_key] = roundedValue;
+                    changed = true;
+                }
+            }
+        }
+        
+        return changed;
+    }
+
+    // Apply formulas to all rows in an area
+    applyFormulasToAllRows(area) {
+        const arrayData = this.getAreaData(area);
+        if (!arrayData) return;
+        
+        for (let i = 0; i < arrayData.length; i++) {
+            this.applyFormulasToRow(area, i);
+        }
+    }
+
+    // Handle cell change and apply dependent formulas
+    handleCellChange(area, x, y, value) {
+        const columnKey = this.getColumnKeyFromIndex(area, x);
+        if (!columnKey) return;
+        
+        // Get formulas that depend on this column
+        const dependentFormulas = this.getDependentFormulas(columnKey);
+        
+        if (dependentFormulas.length > 0) {
+            // Apply formulas to this row
+            // Use setTimeout to ensure the value is committed first
+            setTimeout(() => {
+                this.applyFormulasToRow(area, y);
+            }, 10);
+        }
+    }
+
+    // Style formula columns with a distinct background
+    styleFormulaColumns(area) {
+        if (this.formulas.length === 0) return;
+        
+        const keyMap = this.buildColumnKeyMap(area);
+        const formulaColumns = new Set();
+        
+        // Find column indices that have formulas
+        for (const formula of this.formulas) {
+            if (keyMap[formula.column_key] !== undefined) {
+                formulaColumns.add(keyMap[formula.column_key]);
+            }
+        }
+        
+        // Apply styling to formula column cells
+        setTimeout(() => {
+            const cells = area.container.querySelectorAll('tbody td');
+            cells.forEach(cell => {
+                const col = parseInt(cell.dataset.x);
+                if (formulaColumns.has(col)) {
+                    cell.style.backgroundColor = '#f0fdf4'; // Light green
+                    cell.style.fontStyle = 'italic';
+                }
+            });
+            
+            // Style header cells too
+            const headerCells = area.container.querySelectorAll('thead tr:last-child td');
+            headerCells.forEach((cell, idx) => {
+                // idx 0 is usually the row number column
+                if (formulaColumns.has(idx - 1)) {
+                    cell.title = 'Formula column (auto-calculated)';
+                }
+            });
+        }, 100);
+    }
+
+    // =====================================================
+    // END FORMULA SUPPORT METHODS
+    // =====================================================
+
     // Bind comment events to area cells (hover tooltip only, context menu is handled by jspreadsheet)
     bindCommentEvents(area) {
         const self = this;
@@ -176,6 +384,13 @@ class SurveySpreadsheet {
         }, 200);
     }
 
+    // Helper to generate consistent column key from title
+    // Rules: lowercase, remove decimal point (.), other non-alphanumeric become underscore
+    // Example: "UP 0.8" → "up_08", "NYY 3 X 1,5" → "nyy_3_x_1_5"
+    generateColumnKey(title) {
+        return title.toLowerCase().replace(/\./g, '').replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    }
+
     // Default headers template
     getDefaultHeaders() {
         return [
@@ -203,11 +418,11 @@ class SurveySpreadsheet {
                 color: 'kabel',
                 columns: [
                     { key: 'utp', title: 'UTP', type: 'numeric', width: 80 },
-                    { key: 'face_plate', title: 'Face Plate 1 hole', type: 'numeric', width: 100 },
+                    { key: 'face_plate_1_hole', title: 'Face Plate 1 hole', type: 'numeric', width: 100 },
                     { key: 'modular_jack', title: 'modular jack', type: 'numeric', width: 100 },
                     { key: 'outbow', title: 'Outbow', type: 'numeric', width: 80 },
-                    { key: 'patchcord', title: 'Patchcord UTP 1 meter', type: 'numeric', width: 120 },
-                    { key: 'wiring_mgmt', title: 'wiring management', type: 'numeric', width: 120 },
+                    { key: 'patchcord_utp_1_meter', title: 'Patchcord UTP 1 meter', type: 'numeric', width: 120 },
+                    { key: 'wiring_management', title: 'wiring management', type: 'numeric', width: 120 },
                     { key: 'ap', title: 'AP', type: 'numeric', width: 80 }
                 ]
             }
@@ -382,6 +597,9 @@ class SurveySpreadsheet {
         // Clear container
         this.container.innerHTML = '';
         
+        // Load formulas first
+        await this.loadFormulas();
+        
         // Load saved areas
         const savedAreas = await this.loadData();
         
@@ -394,6 +612,12 @@ class SurveySpreadsheet {
                 this.addArea(areaData.area_name, areaData.headers, areaData.data, areaData.id, areaData.comments);
             });
         }
+        
+        // Apply formulas to all areas after initial load
+        this.areas.forEach(area => {
+            this.applyFormulasToAllRows(area);
+            this.styleFormulaColumns(area);
+        });
     }
 
     // Add a new area
@@ -575,14 +799,36 @@ class SurveySpreadsheet {
                     
                     return filteredItems;
                 },
-                onchange: function() {
+                onchange: function(instance, cell, x, y, value) {
                     self.updateTotalsDisplay(area);
+                    // Apply formulas when a cell changes
+                    self.handleCellChange(area, parseInt(x), parseInt(y), value);
                 },
-                onafterchanges: function() {
+                onafterchanges: function(instance, records) {
                     self.updateTotalsDisplay(area);
+                    // Apply formulas for all changed rows
+                    if (records && records.length > 0) {
+                        const affectedRows = new Set();
+                        records.forEach(record => {
+                            if (record.y !== undefined) {
+                                affectedRows.add(parseInt(record.y));
+                            }
+                        });
+                        affectedRows.forEach(rowIdx => {
+                            self.applyFormulasToRow(area, rowIdx);
+                        });
+                    }
+                    // Re-style formula columns
+                    self.styleFormulaColumns(area);
                 },
-                oninsertrow: function() {
+                oninsertrow: function(instance, rowNumber, numOfRows, insertBefore) {
                     self.updateTotalsDisplay(area);
+                    // Apply formulas to new rows
+                    for (let i = 0; i < numOfRows; i++) {
+                        const rowIdx = insertBefore ? rowNumber + i : rowNumber + 1 + i;
+                        self.applyFormulasToRow(area, rowIdx);
+                    }
+                    self.styleFormulaColumns(area);
                 },
                 ondeleterow: function() {
                     self.updateTotalsDisplay(area);
@@ -732,7 +978,7 @@ class SurveySpreadsheet {
 
     // Add column group to area
     addColumnGroup(area, groupName, columnName, isNumeric = true) {
-        const key = columnName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        const key = this.generateColumnKey(columnName);
         const colorKeys = Object.keys(this.groupColors);
         const colorIdx = area.headers.length % colorKeys.length;
         const color = colorKeys[colorIdx];
@@ -755,7 +1001,7 @@ class SurveySpreadsheet {
     addColumnToGroup(area, groupIndex, columnName, isNumeric = true) {
         if (groupIndex < 0 || groupIndex >= area.headers.length) return;
         
-        const key = columnName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        const key = this.generateColumnKey(columnName);
         area.headers[groupIndex].columns.push({
             key: key,
             title: columnName,
@@ -791,6 +1037,12 @@ class SurveySpreadsheet {
         
         // Rebuild
         this.initAreaSpreadsheet(area, currentObjData);
+        
+        // Re-apply formulas after reinitialize
+        setTimeout(() => {
+            this.applyFormulasToAllRows(area);
+            this.styleFormulaColumns(area);
+        }, 100);
     }
 
     // Fallback table if jspreadsheet fails
@@ -1016,6 +1268,31 @@ class SurveySpreadsheet {
             .btn-add-group:hover { background: #7c3aed !important; }
             .btn-add-col:hover { background: #4f46e5 !important; }
             .btn-remove-group:hover { background: #ea580c !important; }
+            
+            /* Formula column styling */
+            .formula-cell {
+                background-color: #f0fdf4 !important;
+                font-style: italic !important;
+            }
+            
+            .formula-cell:hover {
+                background-color: #dcfce7 !important;
+            }
+            
+            /* Formula column header indicator */
+            .formula-header {
+                position: relative;
+            }
+            
+            .formula-header::after {
+                content: 'ƒ';
+                position: absolute;
+                top: 2px;
+                right: 4px;
+                font-size: 10px;
+                color: #16a34a;
+                font-weight: bold;
+            }
         `;
         document.head.appendChild(style);
     }

@@ -42,6 +42,21 @@ class RekapSurvey extends Model
     }
 
     /**
+     * Generate consistent column key from title.
+     * Rules: lowercase, remove decimal point (.), other non-alphanumeric become underscore
+     * Example: "UP 0.8" → "up_08", "NYY 3 X 1,5" → "nyy_3_x_1_5"
+     */
+    public static function generateColumnKey(string $title): string
+    {
+        $key = strtolower($title);
+        $key = str_replace('.', '', $key); // Remove decimal points
+        $key = preg_replace('/[^a-z0-9]/', '_', $key); // Other non-alphanumeric to underscore
+        $key = preg_replace('/_+/', '_', $key); // Collapse multiple underscores
+        $key = trim($key, '_');
+        return $key;
+    }
+
+    /**
      * Get default headers structure for new survey.
      */
     public static function getDefaultHeaders(): array
@@ -69,7 +84,7 @@ class RekapSurvey extends Model
                 'columns' => [
                     ['key' => 'utp', 'title' => 'UTP', 'type' => 'numeric', 'width' => 80],
                     ['key' => 'awg_22', 'title' => 'AWG 22', 'type' => 'numeric', 'width' => 80],
-                    ['key' => 'nyy_3x15', 'title' => 'NYY 3 X 1,5', 'type' => 'numeric', 'width' => 80],
+                    ['key' => 'nyy_3_x_1_5', 'title' => 'NYY 3 X 1,5', 'type' => 'numeric', 'width' => 80],
                     ['key' => 'fo', 'title' => 'FO', 'type' => 'numeric', 'width' => 80],
                 ]
             ],
