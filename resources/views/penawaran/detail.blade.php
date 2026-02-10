@@ -3006,24 +3006,37 @@
                         
                         const overallGrandEl = document.getElementById('jasaOverallGrand');
                         if (overallGrandEl) overallGrandEl.textContent = totalGrand.toLocaleString('id-ID');
-                        
+
                         // Hitung BPJS dan Grand Total
                         const jasaUseBpjsEl = document.getElementById('jasaUseBpjs');
                         const useBpjs = jasaUseBpjsEl ? jasaUseBpjsEl.checked : false;
-                        const bpjsPercent = {{ $versionRow->jasa_bpjsk_percent ?? 0 }};
-                        
+
+                        // Ambil nilai BPJS dari database (sudah dihitung dengan benar di backend)
+                        const bpjsValueFromDb = {{ $versionRow->jasa_bpjsk_value ?? 0 }};
+                        const bpjsPercentFromDb = {{ $versionRow->jasa_bpjsk_percent ?? 0 }};
+                        const totalPenawaran = {{ $versionRow->penawaran_total_awal ?? 0 }};
+
                         let bpjsValue = 0;
                         let grandTotal = totalGrand;
-                        
-                        if (useBpjs && bpjsPercent > 0) {
-                            bpjsValue = (totalGrand * bpjsPercent) / 100;
+
+                        if (useBpjs) {
+                            // Gunakan nilai dari database jika ada, atau hitung ulang dengan formula yang benar
+                            if (bpjsValueFromDb > 0) {
+                                bpjsValue = bpjsValueFromDb;
+                            } else if (bpjsPercentFromDb > 0) {
+                                // Hitung dengan formula yang benar: (totalPenawaran + totalJasa) * percent
+                                bpjsValue = ((totalPenawaran + totalGrand) * bpjsPercentFromDb) / 100;
+                            }
                             grandTotal = totalGrand + bpjsValue;
                         }
-                        
+
                         // Update UI
+                        const bpjsPercentEl = document.getElementById('jasaBpjsPercent');
+                        if (bpjsPercentEl) bpjsPercentEl.textContent = bpjsPercentFromDb;
+
                         const bpjsValueEl = document.getElementById('jasaBpjsValue');
                         if (bpjsValueEl) bpjsValueEl.textContent = Math.round(bpjsValue).toLocaleString('id-ID');
-                        
+
                         const grandTotalEl = document.getElementById('jasaGrandTotal');
                         if (grandTotalEl) grandTotalEl.textContent = Math.round(grandTotal).toLocaleString('id-ID');
                     }
