@@ -10,6 +10,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Comment;
 
 class RekapSurveyExport
 {
@@ -68,6 +69,12 @@ class RekapSurveyExport
         $headers = $survey->headers ?? RekapSurvey::getDefaultHeaders();
         $data = $survey->data ?? [];
         $areaName = $survey->area_name ?? "Area {$areaNumber}";
+        $comments = $survey->comments ?? [];
+        
+        // Convert stdClass to array if needed
+        if ($comments instanceof \stdClass) {
+            $comments = (array) $comments;
+        }
 
         // Get total columns count
         $totalColumns = 1; // Starting from column B (A is for row number)
@@ -188,15 +195,20 @@ class RekapSurveyExport
         // Data rows
         $dataStartRow = $currentRow;
         $rowCount = 1;
-        foreach ($data as $row) {
+        foreach ($data as $rowIndex => $row) {
             $colIndex = 1;
             $sheet->setCellValue($this->getColumnLetter($colIndex) . $currentRow, $rowCount);
             $colIndex++;
 
+            // Build column mapping for this row
+            $columnIndexMap = []; // maps jspreadsheet col index to Excel column letter
+            $jsColIndex = 0;
+            
             foreach ($headers as $group) {
                 foreach ($group['columns'] ?? [] as $col) {
                     $value = $row[$col['key']] ?? '';
                     $cellRef = $this->getColumnLetter($colIndex) . $currentRow;
+                    $columnIndexMap[$jsColIndex] = $this->getColumnLetter($colIndex);
                     
                     if ($col['type'] === 'numeric' && is_numeric($value)) {
                         $sheet->setCellValue($cellRef, (float)$value);
@@ -206,8 +218,12 @@ class RekapSurveyExport
                     }
                     
                     $colIndex++;
+                    $jsColIndex++;
                 }
             }
+            
+            // Add comments for this row
+            $this->addRowComments($sheet, $currentRow, $rowIndex, $comments, $columnIndexMap);
             
             $currentRow++;
             $rowCount++;
@@ -311,5 +327,38 @@ class RekapSurveyExport
         ];
 
         return $colors[$colorName] ?? $colors['default'];
+    }
+
+    /**
+     * Add comments to a row based on stored comments
+     */
+    protected function addRowComments($sheet, $excelRow, $dataRowIndex, $comments, $columnIndexMap)
+    {
+        if (empty($comments)) return;
+        
+        foreach ($comments as $key => $commentText) {
+            if (empty($commentText)) continue;
+            
+            // Parse the key "row,col"
+            $parts = explode(',', $key);
+            if (count($parts) !== 2) continue;
+            
+            $commentRow = (int) $parts[0];
+            $commentCol = (int) $parts[1];
+            
+            // Check if this comment belongs to current row
+            if ($commentRow !== $dataRowIndex) continue;
+            
+            // Get the Excel column for this jspreadsheet column
+            $excelCol = $columnIndexMap[$commentCol] ?? null;
+            if (!$excelCol) continue;
+            
+            // Add comment to cell
+            $cellRef = $excelCol . $excelRow;
+            $comment = $sheet->getComment($cellRef);
+            $comment->getText()->createTextRun($commentText);
+            $comment->setWidth('200pt');
+            $comment->setHeight('100pt');
+        }
     }
 }
