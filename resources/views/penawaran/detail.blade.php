@@ -533,6 +533,22 @@
                                             <span id="jasaGrandTotal">0</span>
                                         </div>
                                     </div>
+                                    <div class="flex justify-between items-center mt-2 mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <input type="checkbox" id="jasaUsePembulatan" {{ $versionRow->jasa_use_pembulatan ?? false ? 'checked' : '' }} class="rounded">
+                                            <label for="jasaUsePembulatan" class="font-semibold text-md cursor-pointer">Pembulatan</label>
+                                        </div>
+                                        <input type="text" id="jasaPembulatanInput" 
+                                            value="{{ number_format($versionRow->jasa_pembulatan_final ?? 0, 0, ',', '.') }}"
+                                            class="border rounded px-2 py-1 w-32 text-right font-semibold text-purple-700"
+                                            placeholder="0" {{ ($versionRow->jasa_use_pembulatan ?? false) ? '' : 'disabled' }}>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="font-bold text-md">Total Jasa Final</div>
+                                        <div class="font-bold text-purple-600 text-md">Rp
+                                            <span id="jasaFinalTotal">0</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1015,6 +1031,15 @@
 
                         <!-- Tabel Jasa Detail (hanya sekali di bawah semua section) -->
                         @if($showJasa)
+                        @php
+                            // Hitung jasa final value - gunakan pembulatan jika diaktifkan
+                            $jasaFinalValue = 0;
+                            if (($versionRow->jasa_use_pembulatan ?? false) && ($versionRow->jasa_pembulatan_final ?? 0) > 0) {
+                                $jasaFinalValue = $versionRow->jasa_pembulatan_final;
+                            } else {
+                                $jasaFinalValue = $versionRow->jasa_grand_total ?? 0;
+                            }
+                        @endphp
                         <div class="mb-8 break-inside-avoid">
                             <h3 class="font-bold text-lg mb-3">
                                 {{ convertToRoman($sectionNumber + 1) }}. Biaya Quotation Jasa
@@ -1040,16 +1065,16 @@
                                         <td class="border border-gray-300 px-3 py-2 text-center">1</td>
                                         <td class="border border-gray-300 px-3 py-2 text-center">Lot</td>
                                         <td class="border border-gray-300 px-3 py-2 text-right">
-                                            Rp {{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
+                                            Rp {{ number_format($jasaFinalValue, 0, ',', '.') }}</td>
                                         <td class="border border-gray-300 px-3 py-2 text-right">
-                                            Rp {{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
+                                            Rp {{ number_format($jasaFinalValue, 0, ',', '.') }}</td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
                                     <tr>
                                         <td colspan="5" class="text-center font-bold bg-gray-50">Subtotal</td>
                                         <td class="border border-gray-300 px-3 py-2 text-right font-bold">
-                                            Rp {{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}
+                                            Rp {{ number_format($jasaFinalValue, 0, ',', '.') }}
                                         </td>
                                     </tr>
                                 </tfoot>
@@ -1074,7 +1099,14 @@
                                                 }
 
                                                 // Tambahkan jasa hanya jika tab jasa ditampilkan
-                                                $jasaTotal = ($showJasa ?? false) ? ($versionRow->jasa_grand_total ?? 0) : 0;
+                                                // Gunakan nilai pembulatan final jika diaktifkan
+                                                $jasaTotalForSummary = 0;
+                                                if (($versionRow->jasa_use_pembulatan ?? false) && ($versionRow->jasa_pembulatan_final ?? 0) > 0) {
+                                                    $jasaTotalForSummary = $versionRow->jasa_pembulatan_final;
+                                                } else {
+                                                    $jasaTotalForSummary = $versionRow->jasa_grand_total ?? 0;
+                                                }
+                                                $jasaTotal = ($showJasa ?? false) ? $jasaTotalForSummary : 0;
                                                 // Total keseluruhan = total penawaran + jasa grand total (opsional)
                                                 $totalKeseluruhan = $totalPenawaran + $jasaTotal;
                                             @endphp
@@ -1224,7 +1256,14 @@
                                 @php
                                     // Calculate grand total from backend data for form - MUST match preview calculation
                                     $totalPenawaran = collect($sections)->sum(fn($s) => collect($s['data'])->sum('harga_total'));
-                                    $totalKeseluruhan = $totalPenawaran + ($versionRow->jasa_grand_total ?? 0);
+                                    // Gunakan nilai pembulatan final jika diaktifkan
+                                    $jasaTotalForNotes = 0;
+                                    if (($versionRow->jasa_use_pembulatan ?? false) && ($versionRow->jasa_pembulatan_final ?? 0) > 0) {
+                                        $jasaTotalForNotes = $versionRow->jasa_pembulatan_final;
+                                    } else {
+                                        $jasaTotalForNotes = $versionRow->jasa_grand_total ?? 0;
+                                    }
+                                    $totalKeseluruhan = $totalPenawaran + $jasaTotalForNotes;
                                     $ppnPersen = $versionRow->ppn_persen ?? 11;
                                     $isBest = $versionRow->is_best_price ?? false;
                                     $bestPrice = $versionRow->best_price ?? 0;
@@ -3030,7 +3069,7 @@
                             grandTotal = totalGrand + bpjsValue;
                         }
 
-                        // Update UI
+                        // Update UI BPJS
                         const bpjsPercentEl = document.getElementById('jasaBpjsPercent');
                         if (bpjsPercentEl) bpjsPercentEl.textContent = bpjsPercentFromDb;
 
@@ -3039,6 +3078,25 @@
 
                         const grandTotalEl = document.getElementById('jasaGrandTotal');
                         if (grandTotalEl) grandTotalEl.textContent = Math.round(grandTotal).toLocaleString('id-ID');
+
+                        // Hitung Pembulatan Final
+                        const jasaUsePembulatanEl = document.getElementById('jasaUsePembulatan');
+                        const usePembulatan = jasaUsePembulatanEl ? jasaUsePembulatanEl.checked : false;
+                        const jasaPembulatanInput = document.getElementById('jasaPembulatanInput');
+                        
+                        let finalTotal = grandTotal;
+                        
+                        if (usePembulatan && jasaPembulatanInput) {
+                            // Parse input value (remove dot separators)
+                            const pembulatanValue = parseNumber(jasaPembulatanInput.value) || 0;
+                            if (pembulatanValue > 0) {
+                                finalTotal = pembulatanValue;
+                            }
+                        }
+
+                        // Update UI Final Total
+                        const finalTotalEl = document.getElementById('jasaFinalTotal');
+                        if (finalTotalEl) finalTotalEl.textContent = Math.round(finalTotal).toLocaleString('id-ID');
                     }
 
                     function renumberJasaSections() {
@@ -3070,6 +3128,32 @@
                     const jasaUseBpjsSwitch = document.getElementById('jasaUseBpjs');
                     if (jasaUseBpjsSwitch) {
                         jasaUseBpjsSwitch.addEventListener('change', function () {
+                            updateJasaOverallSummary();
+                        });
+                    }
+
+                    // Switch untuk Pembulatan Final
+                    const jasaUsePembulatanSwitch = document.getElementById('jasaUsePembulatan');
+                    const jasaPembulatanInputEl = document.getElementById('jasaPembulatanInput');
+                    if (jasaUsePembulatanSwitch) {
+                        jasaUsePembulatanSwitch.addEventListener('change', function () {
+                            // Enable/disable input berdasarkan checkbox
+                            if (jasaPembulatanInputEl) {
+                                jasaPembulatanInputEl.disabled = !this.checked;
+                                if (!this.checked) {
+                                    jasaPembulatanInputEl.value = '0';
+                                }
+                            }
+                            updateJasaOverallSummary();
+                        });
+                    }
+                    if (jasaPembulatanInputEl) {
+                        jasaPembulatanInputEl.addEventListener('input', function () {
+                            // Format input dengan titik sebagai separator ribuan
+                            let val = this.value.replace(/\D/g, '');
+                            if (val) {
+                                this.value = parseInt(val).toLocaleString('id-ID');
+                            }
                             updateJasaOverallSummary();
                         });
                     }
@@ -3229,6 +3313,8 @@
                             profit: parseNumber((document.getElementById('jasaProfitInput') || {}).value),
                             pph: parseNumber((document.getElementById('jasaPphInput') || {}).value),
                             use_bpjs: (document.getElementById('jasaUseBpjs') || {checked:false}).checked,
+                            use_pembulatan: (document.getElementById('jasaUsePembulatan') || {checked:false}).checked,
+                            pembulatan_final: parseNumber((document.getElementById('jasaPembulatanInput') || {}).value),
                             sections: allSectionsData
                         });
 
@@ -3243,6 +3329,8 @@
                                 profit: parseNumber(((document.getElementById('jasaProfitInput') || {})).value) || 0,
                                 pph: parseNumber(((document.getElementById('jasaPphInput') || {})).value) || 0,
                                 use_bpjs: ((document.getElementById('jasaUseBpjs') || {checked:false}).checked) ? 1 : 0,
+                                use_pembulatan: ((document.getElementById('jasaUsePembulatan') || {checked:false}).checked) ? 1 : 0,
+                                pembulatan_final: parseNumber(((document.getElementById('jasaPembulatanInput') || {})).value) || 0,
                                 sections: allSectionsData,
                                 version: {{ $activeVersion ?? 0 }}
                             })
