@@ -27,7 +27,12 @@ class PenawaranDetail extends Model
         'color_code',
         'added_cost',
         'delivery_time',
+        'comments',
         'version_id',
+    ];
+
+    protected $casts = [
+        'comments' => 'array',
     ];
 
     public function penawaran()

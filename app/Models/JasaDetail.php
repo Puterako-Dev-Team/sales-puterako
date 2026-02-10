@@ -22,6 +22,11 @@ class JasaDetail extends Model
         'pph',
         'pembulatan',
         'version_id',
+        'comments',
+    ];
+
+    protected $casts = [
+        'comments' => 'array',
     ];
 
     public function penawaran()
