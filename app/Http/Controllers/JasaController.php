@@ -187,6 +187,7 @@ class JasaController extends Controller
                         'profit'        => $profitPercent,
                         'pph'           => $pphPercent,
                         'pembulatan'    => $pembulatan,
+                        'comments'      => $row['comments'] ?? null,
                     ];
                     if ($idJasaDetail) {
                         $detail = JasaDetail::find($idJasaDetail);

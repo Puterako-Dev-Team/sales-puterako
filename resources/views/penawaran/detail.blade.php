@@ -870,7 +870,7 @@
                             
                             <p class="mb-4"><strong>Dengan Hormat,</strong></p>
                             <p class="mb-6">
-                                Bersama ini kami PT. Puterako Inti Buana memberitahukan Penawaran Harga
+                                Bersama ini kami PT. Puterako Inti Buana memberitahukan
                                 {{ $penawaran->perihal }}
                                 dengan perincian sebagai berikut:
                             </p>
@@ -1684,6 +1684,165 @@
                     let sections = [];
                     let sectionCounter = 0;
                     let isEditMode = !hasExistingData;
+                    
+                    // Comments storage: { sectionId: { 'row,col': 'comment text' } }
+                    let sectionComments = {};
+                    
+                    // Create comment tooltip element
+                    const commentTooltip = document.createElement('div');
+                    commentTooltip.id = 'penawaran-comment-tooltip';
+                    commentTooltip.style.cssText = `
+                        position: fixed;
+                        background: #fffde7;
+                        border: 1px solid #fbc02d;
+                        border-radius: 4px;
+                        padding: 8px 12px;
+                        font-size: 12px;
+                        max-width: 250px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                        z-index: 10000;
+                        display: none;
+                        pointer-events: none;
+                        word-wrap: break-word;
+                    `;
+                    document.body.appendChild(commentTooltip);
+                    
+                    // Comment helper functions
+                    function getComment(sectionId, row, col) {
+                        const key = `${row},${col}`;
+                        return sectionComments[sectionId]?.[key] || null;
+                    }
+                    
+                    function setComment(sectionId, row, col, comment) {
+                        console.log('📝 setComment called:', { sectionId, row, col, comment });
+                        if (!sectionComments[sectionId]) {
+                            sectionComments[sectionId] = {};
+                        }
+                        const key = `${row},${col}`;
+                        if (comment && comment.trim()) {
+                            sectionComments[sectionId][key] = comment.trim();
+                            console.log('✅ Comment stored:', { key, value: comment.trim(), allComments: JSON.stringify(sectionComments) });
+                        } else {
+                            delete sectionComments[sectionId][key];
+                        }
+                        updateCommentIndicators(sectionId);
+                        if (typeof markAsUnsaved === 'function') {
+                            markAsUnsaved();
+                        }
+                    }
+                    
+                    function deleteComment(sectionId, row, col) {
+                        const key = `${row},${col}`;
+                        if (sectionComments[sectionId]) {
+                            delete sectionComments[sectionId][key];
+                        }
+                        updateCommentIndicators(sectionId);
+                        if (typeof markAsUnsaved === 'function') {
+                            markAsUnsaved();
+                        }
+                    }
+                    
+                    function updateCommentIndicators(sectionId) {
+                        const sectionElement = document.getElementById(sectionId);
+                        if (!sectionElement) return;
+                        
+                        const cells = sectionElement.querySelectorAll('tbody td');
+                        cells.forEach(cell => {
+                            // Remove existing indicator
+                            const existingIndicator = cell.querySelector('.comment-indicator');
+                            if (existingIndicator) existingIndicator.remove();
+                            
+                            // Get cell row/col
+                            const row = cell.dataset.y;
+                            const col = cell.dataset.x;
+                            if (row === undefined || col === undefined) return;
+                            
+                            const comment = getComment(sectionId, parseInt(row), parseInt(col));
+                            if (comment) {
+                                // Add red triangle indicator
+                                const indicator = document.createElement('div');
+                                indicator.className = 'comment-indicator';
+                                indicator.style.cssText = `
+                                    position: absolute;
+                                    top: 0;
+                                    right: 0;
+                                    width: 0;
+                                    height: 0;
+                                    border-left: 8px solid transparent;
+                                    border-top: 8px solid #dc2626;
+                                    pointer-events: none;
+                                `;
+                                cell.style.position = 'relative';
+                                cell.appendChild(indicator);
+                            }
+                        });
+                    }
+                    
+                    function bindCommentHoverEvents(sectionId) {
+                        const sectionElement = document.getElementById(sectionId);
+                        if (!sectionElement) return;
+                        
+                        setTimeout(() => {
+                            const cells = sectionElement.querySelectorAll('tbody td');
+                            cells.forEach(cell => {
+                                cell.addEventListener('mouseenter', function(e) {
+                                    const row = this.dataset.y;
+                                    const col = this.dataset.x;
+                                    if (row === undefined || col === undefined) return;
+                                    
+                                    const comment = getComment(sectionId, parseInt(row), parseInt(col));
+                                    if (comment) {
+                                        commentTooltip.textContent = comment;
+                                        commentTooltip.style.display = 'block';
+                                        commentTooltip.style.left = (e.clientX + 10) + 'px';
+                                        commentTooltip.style.top = (e.clientY + 10) + 'px';
+                                    }
+                                });
+                                
+                                cell.addEventListener('mousemove', function(e) {
+                                    if (commentTooltip.style.display === 'block') {
+                                        commentTooltip.style.left = (e.clientX + 10) + 'px';
+                                        commentTooltip.style.top = (e.clientY + 10) + 'px';
+                                    }
+                                });
+                                
+                                cell.addEventListener('mouseleave', function() {
+                                    commentTooltip.style.display = 'none';
+                                });
+                            });
+                            
+                            updateCommentIndicators(sectionId);
+                        }, 200);
+                    }
+                    
+                    // Load comments from row data
+                    function loadCommentsFromSectionData(sectionId, sectionData) {
+                        if (!sectionData || !sectionData.data) return;
+                        sectionComments[sectionId] = {};
+                        sectionData.data.forEach((row, rowIndex) => {
+                            if (row.comments && typeof row.comments === 'object') {
+                                Object.keys(row.comments).forEach(col => {
+                                    const key = `${rowIndex},${col}`;
+                                    sectionComments[sectionId][key] = row.comments[col];
+                                });
+                            }
+                        });
+                    }
+                    
+                    // Convert sectionComments to per-row format for saving
+                    function getCommentsForRow(sectionId, rowIndex) {
+                        const comments = {};
+                        if (!sectionComments[sectionId]) return null;
+                        
+                        Object.keys(sectionComments[sectionId]).forEach(key => {
+                            const [row, col] = key.split(',').map(Number);
+                            if (row === rowIndex) {
+                                comments[col] = sectionComments[sectionId][key];
+                            }
+                        });
+                        
+                        return Object.keys(comments).length > 0 ? comments : null;
+                    }
 
                     // Variabel Jasa
                     let jasaSections = [];
@@ -1692,6 +1851,141 @@
                     let jasaProfit = 0;
                     let jasaPph = 0;
                     let jasaIsEditMode = false;
+                    
+                    // Jasa Comments storage: { sectionId: { 'row,col': 'comment text' } }
+                    let jasaComments = {};
+                    
+                    // Jasa Comment helper functions
+                    function getJasaComment(sectionId, row, col) {
+                        const key = `${row},${col}`;
+                        return jasaComments[sectionId]?.[key] || null;
+                    }
+                    
+                    function setJasaComment(sectionId, row, col, comment) {
+                        console.log('📝 setJasaComment called:', { sectionId, row, col, comment });
+                        if (!jasaComments[sectionId]) {
+                            jasaComments[sectionId] = {};
+                        }
+                        const key = `${row},${col}`;
+                        if (comment && comment.trim()) {
+                            jasaComments[sectionId][key] = comment.trim();
+                            console.log('✅ Jasa Comment stored:', { key, value: comment.trim() });
+                        } else {
+                            delete jasaComments[sectionId][key];
+                        }
+                        updateJasaCommentIndicators(sectionId);
+                        if (typeof markAsUnsaved === 'function') {
+                            markAsUnsaved();
+                        }
+                    }
+                    
+                    function deleteJasaComment(sectionId, row, col) {
+                        const key = `${row},${col}`;
+                        if (jasaComments[sectionId]) {
+                            delete jasaComments[sectionId][key];
+                        }
+                        updateJasaCommentIndicators(sectionId);
+                        if (typeof markAsUnsaved === 'function') {
+                            markAsUnsaved();
+                        }
+                    }
+                    
+                    function updateJasaCommentIndicators(sectionId) {
+                        const sectionElement = document.getElementById(sectionId);
+                        if (!sectionElement) return;
+                        
+                        const cells = sectionElement.querySelectorAll('tbody td');
+                        cells.forEach(cell => {
+                            const existingIndicator = cell.querySelector('.comment-indicator');
+                            if (existingIndicator) existingIndicator.remove();
+                            
+                            const row = cell.dataset.y;
+                            const col = cell.dataset.x;
+                            if (row === undefined || col === undefined) return;
+                            
+                            const comment = getJasaComment(sectionId, parseInt(row), parseInt(col));
+                            if (comment) {
+                                const indicator = document.createElement('div');
+                                indicator.className = 'comment-indicator';
+                                indicator.style.cssText = `
+                                    position: absolute;
+                                    top: 0;
+                                    right: 0;
+                                    width: 0;
+                                    height: 0;
+                                    border-left: 8px solid transparent;
+                                    border-top: 8px solid #dc2626;
+                                    pointer-events: none;
+                                `;
+                                cell.style.position = 'relative';
+                                cell.appendChild(indicator);
+                            }
+                        });
+                    }
+                    
+                    function bindJasaCommentHoverEvents(sectionId) {
+                        const sectionElement = document.getElementById(sectionId);
+                        if (!sectionElement) return;
+                        
+                        setTimeout(() => {
+                            const cells = sectionElement.querySelectorAll('tbody td');
+                            cells.forEach(cell => {
+                                cell.addEventListener('mouseenter', function(e) {
+                                    const row = this.dataset.y;
+                                    const col = this.dataset.x;
+                                    if (row === undefined || col === undefined) return;
+                                    
+                                    const comment = getJasaComment(sectionId, parseInt(row), parseInt(col));
+                                    if (comment) {
+                                        commentTooltip.textContent = comment;
+                                        commentTooltip.style.display = 'block';
+                                        commentTooltip.style.left = (e.clientX + 10) + 'px';
+                                        commentTooltip.style.top = (e.clientY + 10) + 'px';
+                                    }
+                                });
+                                
+                                cell.addEventListener('mousemove', function(e) {
+                                    if (commentTooltip.style.display === 'block') {
+                                        commentTooltip.style.left = (e.clientX + 10) + 'px';
+                                        commentTooltip.style.top = (e.clientY + 10) + 'px';
+                                    }
+                                });
+                                
+                                cell.addEventListener('mouseleave', function() {
+                                    commentTooltip.style.display = 'none';
+                                });
+                            });
+                            
+                            updateJasaCommentIndicators(sectionId);
+                        }, 200);
+                    }
+                    
+                    function loadJasaCommentsFromSectionData(sectionId, sectionData) {
+                        if (!sectionData || !sectionData.data) return;
+                        jasaComments[sectionId] = {};
+                        sectionData.data.forEach((row, rowIndex) => {
+                            if (row.comments && typeof row.comments === 'object') {
+                                Object.keys(row.comments).forEach(col => {
+                                    const key = `${rowIndex},${col}`;
+                                    jasaComments[sectionId][key] = row.comments[col];
+                                });
+                            }
+                        });
+                    }
+                    
+                    function getJasaCommentsForRow(sectionId, rowIndex) {
+                        const comments = {};
+                        if (!jasaComments[sectionId]) return null;
+                        
+                        Object.keys(jasaComments[sectionId]).forEach(key => {
+                            const [row, col] = key.split(',').map(Number);
+                            if (row === rowIndex) {
+                                comments[col] = jasaComments[sectionId][key];
+                            }
+                        });
+                        
+                        return Object.keys(comments).length > 0 ? comments : null;
+                    }
                     
                     // Flags untuk tracking status validasi tab
                     let penawaranSaved = hasExistingData; // Penawaran sudah valid jika ada existing data
@@ -2395,8 +2689,97 @@
                             },
                             onselection: function (instance, x1, y1, x2, y2, origin) {
                                 scrollToSelectedCell(instance, x2, y2);
+                            },
+                            contextMenu: function(obj, x, y, e, items) {
+                                // Get existing comment for current cell
+                                const existingComment = getJasaComment(sectionId, y, x);
+                                
+                                // Build new items array with comment options first
+                                let newItems = [];
+                                
+                                if (existingComment) {
+                                    newItems.push({
+                                        title: 'Edit Komentar',
+                                        onclick: function() {
+                                            const newComment = prompt('Edit komentar:', existingComment);
+                                            if (newComment !== null) {
+                                                setJasaComment(sectionId, y, x, newComment);
+                                            }
+                                        }
+                                    });
+                                    newItems.push({
+                                        title: 'Hapus Komentar',
+                                        onclick: function() {
+                                            if (confirm('Hapus komentar ini?')) {
+                                                deleteJasaComment(sectionId, y, x);
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    newItems.push({
+                                        title: 'Tambah Komentar',
+                                        onclick: function() {
+                                            const comment = prompt('Masukkan komentar:');
+                                            if (comment) {
+                                                setJasaComment(sectionId, y, x, comment);
+                                            }
+                                        }
+                                    });
+                                }
+                                
+                                // Add separator
+                                newItems.push({ type: 'line' });
+                                
+                                // Build default jspreadsheet menu items manually
+                                newItems.push({
+                                    title: 'Insert a new row before',
+                                    onclick: function() {
+                                        obj.insertRow(1, y, 1);
+                                    }
+                                });
+                                newItems.push({
+                                    title: 'Insert a new row after',
+                                    onclick: function() {
+                                        obj.insertRow(1, y);
+                                    }
+                                });
+                                newItems.push({
+                                    title: 'Delete selected rows',
+                                    onclick: function() {
+                                        obj.deleteRow(obj.getSelectedRows().length ? undefined : y);
+                                    }
+                                });
+                                newItems.push({ type: 'line' });
+                                newItems.push({
+                                    title: 'Copy',
+                                    shortcut: 'Ctrl + C',
+                                    onclick: function() {
+                                        obj.copy(true);
+                                    }
+                                });
+                                newItems.push({
+                                    title: 'Paste',
+                                    shortcut: 'Ctrl + V',
+                                    onclick: function() {
+                                        if (obj.selectedCell) {
+                                            navigator.clipboard.readText().then(function(text) {
+                                                obj.paste(obj.selectedCell[0], obj.selectedCell[1], text);
+                                            });
+                                        }
+                                    }
+                                });
+                                
+                                return newItems;
                             }
                         });
+                        
+                        // Bind comment hover events for jasa
+                        bindJasaCommentHoverEvents(sectionId);
+                        
+                        // Load comments if section has data
+                        if (sectionData) {
+                            loadJasaCommentsFromSectionData(sectionId, sectionData);
+                        }
 
                         const sectionElement = document.getElementById(sectionId);
 
@@ -2701,7 +3084,7 @@
                             const pembulatanInput = sectionElement.querySelector('.pembulatan-input');
                             const rawData = section.spreadsheet.getData();
 
-                            const data = rawData.map(row => ({
+                            const data = rawData.map((row, rowIndex) => ({
                                 no: row[0],
                                 deskripsi: row[1],
                                 vol: parseNumber(row[2]),
@@ -2709,7 +3092,8 @@
                                 orang: parseNumber(row[4]),
                                 unit: parseNumber(row[5]),
                                 total: parseNumber(row[6]),
-                                id_jasa_detail: row[7] || null
+                                id_jasa_detail: row[7] || null,
+                                comments: getJasaCommentsForRow(section.id, rowIndex)
                             }));
 
                             const processedData = dedupeSectionData({
@@ -3079,8 +3463,97 @@
                             },
                             onselection: function (instance, x1, y1, x2, y2, origin) {
                                 scrollToSelectedCell(instance, x2, y2);
+                            },
+                            contextMenu: function(obj, x, y, e, items) {
+                                // Get existing comment for current cell
+                                const existingComment = getComment(sectionId, y, x);
+                                
+                                // Build new items array with comment options first
+                                let newItems = [];
+                                
+                                if (existingComment) {
+                                    newItems.push({
+                                        title: 'Edit Komentar',
+                                        onclick: function() {
+                                            const newComment = prompt('Edit komentar:', existingComment);
+                                            if (newComment !== null) {
+                                                setComment(sectionId, y, x, newComment);
+                                            }
+                                        }
+                                    });
+                                    newItems.push({
+                                        title: 'Hapus Komentar',
+                                        onclick: function() {
+                                            if (confirm('Hapus komentar ini?')) {
+                                                deleteComment(sectionId, y, x);
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    newItems.push({
+                                        title: 'Tambah Komentar',
+                                        onclick: function() {
+                                            const comment = prompt('Masukkan komentar:');
+                                            if (comment) {
+                                                setComment(sectionId, y, x, comment);
+                                            }
+                                        }
+                                    });
+                                }
+                                
+                                // Add separator
+                                newItems.push({ type: 'line' });
+                                
+                                // Build default jspreadsheet menu items manually
+                                newItems.push({
+                                    title: 'Insert a new row before',
+                                    onclick: function() {
+                                        obj.insertRow(1, y, 1);
+                                    }
+                                });
+                                newItems.push({
+                                    title: 'Insert a new row after',
+                                    onclick: function() {
+                                        obj.insertRow(1, y);
+                                    }
+                                });
+                                newItems.push({
+                                    title: 'Delete selected rows',
+                                    onclick: function() {
+                                        obj.deleteRow(obj.getSelectedRows().length ? undefined : y);
+                                    }
+                                });
+                                newItems.push({ type: 'line' });
+                                newItems.push({
+                                    title: 'Copy',
+                                    shortcut: 'Ctrl + C',
+                                    onclick: function() {
+                                        obj.copy(true);
+                                    }
+                                });
+                                newItems.push({
+                                    title: 'Paste',
+                                    shortcut: 'Ctrl + V',
+                                    onclick: function() {
+                                        if (obj.selectedCell) {
+                                            navigator.clipboard.readText().then(function(text) {
+                                                obj.paste(obj.selectedCell[0], obj.selectedCell[1], text);
+                                            });
+                                        }
+                                    }
+                                });
+                                
+                                return newItems;
                             }
                         });
+                        
+                        // Bind comment hover events after spreadsheet is created
+                        bindCommentHoverEvents(sectionId);
+                        
+                        // Load comments if section has data
+                        if (sectionData) {
+                            loadCommentsFromSectionData(sectionId, sectionData);
+                        }
 
                         const sectionElement = document.getElementById(sectionId);
 
@@ -3437,7 +3910,7 @@
                             return {
                                 area: areaSelect.value,
                                 nama_section: namaSectionInput.value,
-                                data: rawData.map(row => ({
+                                data: rawData.map((row, rowIndex) => ({
                                     no: row[0],
                                     tipe: row[1],
                                     deskripsi: row[2],
@@ -3451,14 +3924,19 @@
                                     profit: parseNumber(row[10]) || 0,
                                     color_code: row[11] || 1,
                                     added_cost: parseNumber(row[12]) || 0,
-                                    delivery_time: row[13] || ''
+                                    delivery_time: row[13] || '',
+                                    comments: getCommentsForRow(section.id, rowIndex)
                                 })).filter(row => 
                                     // Only keep rows that have actual data (not completely empty)
-                                    row.no || row.tipe || row.deskripsi || row.satuan || row.delivery_time || 
+                                    row.no || row.tipe || row.deskripsi || row.satuan || row.delivery_time || row.comments ||
                                     row.harga_satuan > 0 || row.harga_total > 0 || row.hpp > 0 || row.added_cost > 0
                                 )
                             };
                         });
+
+                        // Debug: log all sections data with comments
+                        console.log('📝 Saving sections with comments:', JSON.stringify(allSectionsData, null, 2));
+                        console.log('📝 sectionComments state:', JSON.stringify(sectionComments, null, 2));
 
                         fetch("{{ route('penawaran.save') }}", {
                             credentials: 'same-origin',
@@ -3554,7 +4032,7 @@
                             return {
                                 area: areaSelect.value || '',
                                 nama_section: namaSectionInput.value || '',
-                                data: rawData.map(row => ({
+                                data: rawData.map((row, rowIndex) => ({
                                     no: row[0] || '',
                                     tipe: row[1] || '',
                                     deskripsi: row[2] || '',
@@ -3568,7 +4046,8 @@
                                     profit: parseNumber(row[10]) || 0,
                                     color_code: row[11] || 1,
                                     added_cost: parseNumber(row[12]) || 0,
-                                    delivery_time: row[13] || ''
+                                    delivery_time: row[13] || '',
+                                    comments: getCommentsForRow(section.id, rowIndex)
                                 }))
                             };
                         });
