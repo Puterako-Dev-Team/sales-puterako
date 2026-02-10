@@ -6,6 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Puterako Super App</title>
     <link rel="icon" type="image/png" href="{{ asset('assets/icon_puterako.png') }}">
     
@@ -707,6 +708,15 @@
                                                     d="M7 21H17a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                                             </svg>
                                             <span class="menu-label show text-sm text-gray-700">Kategori Rekap</span>
+                                        </a>
+                                        <a href="{{ route('survey-formulas.index') }}"
+                                            class="submenu-item block py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <svg class="w-4 h-4 inline-block mr-2 text-gray-600" fill="none"
+                                                stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                            </svg>
+                                            <span class="menu-label show text-sm text-gray-700">Formula Survey</span>
                                         </a>
                                     </div>
                                 </div>

@@ -19,6 +19,7 @@ use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RekapKategoriController;
 use App\Http\Controllers\FileUploadController;
+use App\Http\Controllers\SurveyFormulaController;
 
 // Redirect root ke login
 Route::get('/', function () {
@@ -211,5 +212,21 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/info', [FileUploadController::class, 'info'])->name('info');
         Route::get('/download', [FileUploadController::class, 'download'])->name('download');
         Route::get('/allowed-extensions', [FileUploadController::class, 'allowedExtensions'])->name('allowed-extensions');
+    });
+
+    // Survey Formula Management - API endpoint for getting formulas (available to Presales & Administrator)
+    Route::get('/survey-formulas/api', [SurveyFormulaController::class, 'getFormulas'])->name('survey-formulas.api');
+
+    // Survey Formula Management - Admin routes
+    Route::prefix('survey-formulas')->name('survey-formulas.')->group(function () {
+        Route::get('/', [SurveyFormulaController::class, 'index'])->name('index');
+        Route::post('/', [SurveyFormulaController::class, 'store'])->name('store');
+        Route::put('/{id}', [SurveyFormulaController::class, 'update'])->name('update');
+        Route::delete('/{id}', [SurveyFormulaController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/toggle-active', [SurveyFormulaController::class, 'toggleActive'])->name('toggle-active');
+        Route::post('/reorder', [SurveyFormulaController::class, 'reorder'])->name('reorder');
+        Route::post('/seed-defaults', [SurveyFormulaController::class, 'seedDefaults'])->name('seed-defaults');
+        Route::get('/column/{columnKey}', [SurveyFormulaController::class, 'getByColumnKey'])->name('by-column');
+        Route::post('/test', [SurveyFormulaController::class, 'testFormula'])->name('test');
     });
 });
