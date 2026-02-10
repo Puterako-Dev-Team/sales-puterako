@@ -1316,6 +1316,7 @@ class PenawaranController extends Controller
                     'added_cost' => $detail->added_cost,
                     'delivery_time' => $detail->delivery_time,
                     'profit' => $detail->profit,
+                    'comments' => $detail->comments,
                 ]);
             }
         }
@@ -1354,6 +1355,7 @@ class PenawaranController extends Controller
                         'total' => $jasaDetail->total,
                         'pembulatan' => $jasaDetail->pembulatan,
                         'profit' => $jasaDetail->profit,
+                        'comments' => $jasaDetail->comments,
                     ]);
                 }
             }
