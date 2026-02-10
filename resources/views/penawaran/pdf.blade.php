@@ -428,7 +428,14 @@
             $diskon = $versionRow->diskon ?? 0;
             $totalPenawaran = $details->sum('harga_total');
             // Jika tipe penawaran "barang", jangan ikutkan jasa ke perhitungan
-            $grandTotalJasa = ($tipe && $tipe === 'barang') ? 0 : ($jasa->grand_total ?? 0);
+            // Jika pembulatan final diaktifkan, gunakan nilai pembulatan
+            $jasaFinalValue = 0;
+            if ($versionRow->jasa_use_pembulatan && $versionRow->jasa_pembulatan_final > 0) {
+                $jasaFinalValue = $versionRow->jasa_pembulatan_final;
+            } else {
+                $jasaFinalValue = $versionRow->jasa_grand_total ?? 0;
+            }
+            $grandTotalJasa = ($tipe && $tipe === 'barang') ? 0 : $jasaFinalValue;
             $baseAmount = $isBest && $bestPrice > 0 ? $bestPrice : $totalPenawaran + $grandTotalJasa;
             // Hitung diskon sebagai persen
             $diskonNominal = 0;
@@ -567,14 +574,14 @@
                         </td>
                         <td style="text-align: center;">1</td>
                         <td style="text-align: center;">Lot</td>
-                        <td style="text-align: right;">{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
-                        <td style="text-align: right;">{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
+                        <td style="text-align: right;">{{ number_format($jasaFinalValue, 0, ',', '.') }}</td>
+                        <td style="text-align: right;">{{ number_format($jasaFinalValue, 0, ',', '.') }}</td>
                     </tr>
                 </tbody>
                 <tfoot>
                     <tr>
                         <td colspan="5">Subtotal</td>
-                        <td>{{ number_format($versionRow->jasa_grand_total ?? 0, 0, ',', '.') }}</td>
+                        <td>{{ number_format($jasaFinalValue, 0, ',', '.') }}</td>
                     </tr>
                 </tfoot>
             </table>

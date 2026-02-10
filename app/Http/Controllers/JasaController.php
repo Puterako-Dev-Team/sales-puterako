@@ -80,6 +80,8 @@ class JasaController extends Controller
         $profitPercent = floatval($data['profit'] ?? 0);
         $pphPercent = floatval($data['pph'] ?? 0);
         $useBpjs = boolval($data['use_bpjs'] ?? false);
+        $usePembulatan = boolval($data['use_pembulatan'] ?? false);
+        $pembulatanFinal = floatval($data['pembulatan_final'] ?? 0);
         $version = $data['version'] ?? 1;
 
         $versionRow = \App\Models\PenawaranVersion::where('penawaran_id', $penawaranId)
@@ -135,6 +137,11 @@ class JasaController extends Controller
             }
 
             $grandTotalJasaFinal = $grandTotalPembulatan + $bpjskValue;
+            
+            // Jika pembulatan final diaktifkan, gunakan nilai pembulatan sebagai final total
+            if ($usePembulatan && $pembulatanFinal > 0) {
+                $grandTotalJasaFinal = $pembulatanFinal;
+            }
 
             // Simpan summary jasa ke penawaran_versions
             $versionRow->jasa_total_awal      = $totalAwal;
@@ -146,6 +153,8 @@ class JasaController extends Controller
             $versionRow->jasa_bpjsk_value    = $bpjskValue;
             $versionRow->jasa_grand_total    = $grandTotalJasaFinal;
             $versionRow->jasa_use_bpjs       = $useBpjs ? 1 : 0;
+            $versionRow->jasa_use_pembulatan = $usePembulatan ? 1 : 0;
+            $versionRow->jasa_pembulatan_final = $pembulatanFinal;
             $versionRow->jasa_ringkasan      = $ringkasan;
             $versionRow->save();
 
