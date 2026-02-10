@@ -347,7 +347,7 @@
                             <p class="text-xs text-gray-500 mt-1">Pilih tipe untuk menyesuaikan tab detail.</p>
                         </div>
 
-                        <div class="add-only" id="lokasiPengerjaanGroup">
+                        <div id="lokasiPengerjaanGroup">
                             <label class="block mb-2 font-medium text-sm text-gray-700">Lokasi Pengerjaan</label>
                             <select name="lokasi_pengerjaan" id="f_lokasi_pengerjaan" required
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
@@ -501,7 +501,26 @@
         // Update no penawaran jika lokasi pengerjaan berubah
         const f_lokasi_pengerjaan = document.getElementById('f_lokasi_pengerjaan');
         if (f_lokasi_pengerjaan) {
-            f_lokasi_pengerjaan.addEventListener('change', updateGeneratedNoPenawaran);
+            f_lokasi_pengerjaan.addEventListener('change', function() {
+                const mode = penawaranForm?.dataset?.mode || 'add';
+                
+                if (mode === 'edit') {
+                    // Update no_penawaran_edit dengan mengganti kode lokasi
+                    const f_no_penawaran_edit = document.getElementById('f_no_penawaran_edit');
+                    if (f_no_penawaran_edit && f_no_penawaran_edit.value) {
+                        const newLokasi = f_lokasi_pengerjaan.value; // SBY or JKT
+                        // Pattern: PIB/SS-{lokasi}/...
+                        const updatedNo = f_no_penawaran_edit.value.replace(
+                            /^(PIB\/SS-)(SBY|JKT)(\/)/,
+                            `$1${newLokasi}$3`
+                        );
+                        f_no_penawaran_edit.value = updatedNo;
+                    }
+                } else {
+                    // Mode add - generate new no penawaran
+                    updateGeneratedNoPenawaran();
+                }
+            });
         }
 
         /* ================== ELEMEN FORM / MODAL ================== */
@@ -692,6 +711,12 @@
 
                     // Hide add-only fields
                     grpNoPenawaran.classList.add('hidden');
+
+                    // Set lokasi pengerjaan from loaded data
+                    const f_lokasi_pengerjaan = document.getElementById('f_lokasi_pengerjaan');
+                    if (f_lokasi_pengerjaan) {
+                        f_lokasi_pengerjaan.value = d.lokasi_pengerjaan ?? 'SBY';
+                    }
 
                     // Show edit-only fields for admin
                     const editNoPenawaranGroup = document.getElementById('editNoPenawaranGroup');

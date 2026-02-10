@@ -12,6 +12,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Comment;
 use Illuminate\Support\Facades\Response;
 
 class PenawaranApprovalExport
@@ -90,6 +91,44 @@ class PenawaranApprovalExport
     protected function roundToNearest($value, $nearest = 1000)
     {
         return round($value / $nearest) * $nearest;
+    }
+
+    /**
+     * Add comment to a cell if comment exists
+     */
+    protected function addCellComments($sheet, $row, $detail, $columnMapping)
+    {
+        $comments = $detail->comments;
+        if (empty($comments) || !is_array($comments)) {
+            return;
+        }
+        
+        // Group comments by Excel column (in case multiple source columns map to same Excel column)
+        $groupedComments = [];
+        foreach ($comments as $colIndex => $commentText) {
+            if (empty($commentText)) continue;
+            
+            // Get Excel column from mapping
+            $excelColumn = $columnMapping[$colIndex] ?? null;
+            if (!$excelColumn) continue;
+            
+            // Group by Excel column
+            if (!isset($groupedComments[$excelColumn])) {
+                $groupedComments[$excelColumn] = [];
+            }
+            $groupedComments[$excelColumn][] = $commentText;
+        }
+        
+        // Add comments to cells
+        foreach ($groupedComments as $excelColumn => $commentTexts) {
+            $cell = $excelColumn . $row;
+            $comment = $sheet->getComment($cell);
+            // Concatenate multiple comments with newline
+            $combinedComment = implode("\n\n", $commentTexts);
+            $comment->getText()->createTextRun($combinedComment);
+            $comment->setWidth('200pt');
+            $comment->setHeight('100pt');
+        }
     }
 
     protected function createPenawaranSheet(Spreadsheet $spreadsheet)
@@ -259,6 +298,25 @@ class PenawaranApprovalExport
                     // Border
                     $sheet->getStyle('A' . $row . ':H' . $row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
                     
+                    // Add comments to cells
+                    // Column mapping: jspreadsheet column index => Excel column letter
+                    // Note: HPP (7), Profit (10), Added Cost (12) comments are mapped to Harga Satuan (F)
+                    // since they influence the pricing calculation
+                    $penawaranColumnMapping = [
+                        0 => 'A',   // No
+                        1 => 'B',   // Tipe
+                        2 => 'C',   // Deskripsi
+                        3 => 'D',   // QTY
+                        4 => 'E',   // Satuan
+                        5 => 'F',   // Harga Satuan
+                        6 => 'G',   // Harga Total
+                        7 => 'F',   // HPP → mapped to Harga Satuan
+                        10 => 'F',  // Profit → mapped to Harga Satuan
+                        12 => 'F',  // Added Cost → mapped to Harga Satuan
+                        13 => 'H',  // Keterangan/Delivery Time
+                    ];
+                    $this->addCellComments($sheet, $row, $detail, $penawaranColumnMapping);
+                    
                     $row++;
                 }
             }
@@ -405,6 +463,19 @@ class PenawaranApprovalExport
                 
                 // Border
                 $sheet->getStyle('A' . $row . ':G' . $row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                
+                // Add comments to cells
+                // Column mapping: jspreadsheet column index => Excel column letter
+                $jasaColumnMapping = [
+                    0 => 'A',   // No
+                    1 => 'B',   // Deskripsi
+                    2 => 'C',   // Vol
+                    3 => 'D',   // Hari
+                    4 => 'E',   // Orang
+                    5 => 'F',   // Unit
+                    6 => 'G',   // Total
+                ];
+                $this->addCellComments($sheet, $row, $detail, $jasaColumnMapping);
                 
                 $row++;
             }
