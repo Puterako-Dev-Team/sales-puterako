@@ -174,7 +174,7 @@
                         </span>
                     @elseif($p->status === 'success')
                         <span class="inline-block px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">
-                            Success
+                            Submit
                         </span>
                     @elseif($p->status === 'po')
                         <span class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full" style="background-color: #804cb2;">
