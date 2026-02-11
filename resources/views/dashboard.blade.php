@@ -9,7 +9,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <!-- Card Total Omzet Success -->
                         <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
-                            <h3 class="text-lg font-semibold mb-2">Total Omzet Success</h3>
+                            <h3 class="text-lg font-semibold mb-2">Total Omzet Submit</h3>
                             <p class="text-4xl font-bold">Rp {{ number_format($totalOmzetKeseluruhanSuccess ?? 0, 0, ',', '.') }}</p>
                         </div>
                         
@@ -34,7 +34,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                         <!-- Chart Success -->
                         <div class="bg-gray-50 p-4 rounded-lg">
-                            <h3 class="font-semibold text-sm mb-3 text-center">Tren Omzet Success - 12 Bulan Terakhir</h3>
+                            <h3 class="font-semibold text-sm mb-3 text-center">Tren Omzet Submit - 12 Bulan Terakhir</h3>
                             <div style="height: 300px;">
                                 <canvas id="omzetPerBulanChartSuccess"></canvas>
                             </div>
@@ -53,7 +53,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                         <!-- Chart Success -->
                         <div class="bg-gray-50 p-4 rounded-lg">
-                            <h3 class="font-semibold text-sm mb-3 text-center">Omzet per Sales - Success - {{ date('F Y', strtotime($month . '-01')) }}</h3>
+                            <h3 class="font-semibold text-sm mb-3 text-center">Omzet per Sales - Submit - {{ date('F Y', strtotime($month . '-01')) }}</h3>
                             <div style="height: 350px;">
                                 <canvas id="omzetPerSalesChartSuccess"></canvas>
                             </div>
@@ -409,7 +409,7 @@
                 data: {
                     labels: omzetLabelsSuccess,
                     datasets: [{
-                        label: 'Omzet Success (Rp)',
+                        label: 'Omzet Submit (Rp)',
                         data: omzetValuesSuccess,
                         backgroundColor: '#22C55E',
                         borderColor: '#16A34A',
@@ -566,7 +566,7 @@
                 data: {
                     labels: bulanLabelsSuccess,
                     datasets: [{
-                        label: 'Omzet Success (Rp)',
+                        label: 'Omzet Submit (Rp)',
                         data: bulanOmzetSuccess,
                         borderColor: '#059669',
                         backgroundColor: 'rgba(5, 150, 105, 0.1)',

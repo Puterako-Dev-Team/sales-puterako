@@ -193,7 +193,7 @@
                             <option value="">Semua Status</option>
                             <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>Draft</option>
                             <option value="lost" {{ request('status') == 'lost' ? 'selected' : '' }}>Lost</option>
-                            <option value="success" {{ request('status') == 'success' ? 'selected' : '' }}>Success</option>
+                            <option value="success" {{ request('status') == 'success' ? 'selected' : '' }}>Submit</option>
                             <option value="po" {{ request('status') == 'po' ? 'selected' : '' }}>PO</option>
                             @if(Auth::user()->role === 'administrator')
                             <option value="deleted" {{ request('status') == 'deleted' ? 'selected' : '' }}>Deleted</option>
