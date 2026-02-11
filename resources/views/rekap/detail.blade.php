@@ -2,6 +2,45 @@
 @extends('layouts.app')
 
 @section('content')
+    <!-- Modal untuk Activity Log -->
+    <div id="activityLogModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-[600px] max-w-full mx-4 max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Laporan Progress</h3>
+                <button type="button" onclick="closeActivityLogModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="activityLogContent" class="overflow-y-auto flex-1">
+                <div class="text-center py-8">
+                    <svg class="animate-spin h-8 w-8 mx-auto text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="text-gray-500 mt-2">Loading...</p>
+                </div>
+            </div>
+            
+            <div id="loadMoreContainer" class="hidden text-center mt-3">
+                <button type="button" id="loadMoreBtn" onclick="loadMoreActivities()"
+                    class="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium">
+                    Load More
+                </button>
+            </div>
+
+            <div class="flex justify-end mt-4">
+                <button type="button" onclick="closeActivityLogModal()"
+                    class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="container mx-auto p-8">
 
         <div class="flex items-center p-8 text-gray-600 mb-2">
@@ -63,6 +102,15 @@
                     + Tambah Revisi
                 </button>
             </form>
+            
+            <!-- Activity Log Button -->
+            <button type="button" id="logActivityBtn"
+                class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 font-semibold relative flex items-center gap-2"
+                title="Laporan Progress">
+                <x-lucide-clipboard-list class="w-5 h-5" />
+                <span class="hidden sm:inline">Log</span>
+                <span id="unreadBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"></span>
+            </button>
             @endif
         </div>
         @endif
@@ -70,36 +118,103 @@
         {{-- CSRF Token for AJAX requests --}}
         <input type="hidden" name="_token" value="{{ csrf_token() }}">
 
-        {{-- Survey Spreadsheet Section (Excel-like interface using jspreadsheet) --}}
-        <div class="bg-white p-6 rounded shadow mt-8" id="survey-spreadsheet-section">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-800">
-                    <x-lucide-table-2 class="inline w-6 h-6 mr-2 text-green-600" />
+        {{-- Tab Navigation --}}
+        <div class="bg-white shadow rounded-t-lg mt-8">
+            <div class="flex border-b border-gray-200 px-8">
+                <button class="tab-btn px-6 py-4 font-semibold text-green-600 border-b-2 border-green-600 hover:text-green-600 focus:outline-none" data-tab="survey">
+                    <x-lucide-table-2 class="inline w-5 h-5 mr-2" />
                     Data Survey
-                </h3>
-                <div class="flex gap-2">
-                    <button type="button" id="btnTambahArea" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition flex items-center gap-2 text-sm">
-                        <x-lucide-plus-circle class="w-4 h-4" /> Tambah Area
-                    </button>
-                    <a href="{{ url('rekap/' . $rekap->id . '/export-survey') }}{{ $currentVersion !== null ? '?version=' . $currentVersion->version : '' }}" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600 transition flex items-center gap-2 text-sm" id="exportExcelLink">
-                        <x-lucide-download class="w-4 h-4" /> Export Excel
-                    </a>
-                    <button type="button" id="btnSimpanSurvey" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2">
-                        <x-lucide-save class="w-5 h-5" /> Simpan Semua
-                    </button>
+                </button>
+                <button class="tab-btn px-6 py-4 font-semibold text-gray-600 hover:text-green-600 focus:outline-none" data-tab="dokumen">
+                    <x-lucide-file-text class="inline w-5 h-5 mr-2" />
+                    Dokumen Pendukung
+                </button>
+            </div>
+        </div>
+
+        {{-- Tab Content --}}
+        <div class="bg-white p-6 rounded-b-lg shadow" id="tabContent">
+            
+            <!-- Data Survey Tab -->
+            <div class="tab-panel" data-tab="survey">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">
+                        <x-lucide-table-2 class="inline w-6 h-6 mr-2 text-green-600" />
+                        Data Survey
+                    </h3>
+                    <div class="flex gap-2">
+                        <button type="button" id="btnTambahArea" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition flex items-center gap-2 text-sm">
+                            <x-lucide-plus-circle class="w-4 h-4" /> Tambah Area
+                        </button>
+                        <a href="{{ url('rekap/' . $rekap->id . '/export-survey') }}{{ $currentVersion !== null ? '?version=' . $currentVersion->version : '' }}" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600 transition flex items-center gap-2 text-sm" id="exportExcelLink">
+                            <x-lucide-download class="w-4 h-4" /> Export Excel
+                        </a>
+                        <button type="button" id="btnSimpanSurvey" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2">
+                            <x-lucide-save class="w-5 h-5" /> Simpan Semua
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="text-sm text-gray-500 mb-4">
+                    <p><strong>Tips:</strong> Setiap area memiliki spreadsheet sendiri. Tambah area baru dengan tombol "Tambah Area". Edit langsung seperti Excel. Klik kanan untuk menu tambah/hapus baris.</p>
+                </div>
+                
+                {{-- jspreadsheet container for multiple areas --}}
+                <div id="survey-spreadsheet" class="space-y-4"></div>
+                
+                {{-- Loading state --}}
+                <div id="survey-loading" class="p-4 text-gray-500 text-center">
+                    Memuat spreadsheet...
                 </div>
             </div>
-            
-            <div class="text-sm text-gray-500 mb-4">
-                <p><strong>Tips:</strong> Setiap area memiliki spreadsheet sendiri. Tambah area baru dengan tombol "Tambah Area". Edit langsung seperti Excel. Klik kanan untuk menu tambah/hapus baris.</p>
-            </div>
-            
-            {{-- jspreadsheet container for multiple areas --}}
-            <div id="survey-spreadsheet" class="space-y-4"></div>
-            
-            {{-- Loading state --}}
-            <div id="survey-loading" class="p-4 text-gray-500 text-center">
-                Memuat spreadsheet...
+
+            <!-- Dokumen Pendukung Tab -->
+            <div class="tab-panel hidden" data-tab="dokumen">
+                <h3 class="text-xl font-bold text-gray-800 mb-6">
+                    <x-lucide-file-text class="inline w-6 h-6 mr-2 text-green-600" />
+                    Dokumen Pendukung
+                </h3>
+                
+                <div class="space-y-6">
+                    <!-- Supporting Documents Section -->
+                    <div class="border border-gray-200 rounded-lg p-6">
+                        <h3 class="font-bold text-gray-900 mb-4">File Pendukung</h3>
+                        
+                        <!-- Upload Form -->
+                        <div class="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            <form id="supportDocForm" class="space-y-4">
+                                @csrf
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Pilih File</label>
+                                    <input type="file" id="supportDocFile" name="file"
+                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+                                        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                                        required>
+                                    <p class="text-xs text-gray-500 mt-1">Format: PDF, Word, Excel, atau Gambar (Maks 10MB)</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Catatan (Opsional)</label>
+                                    <textarea id="supportDocNotes" name="notes"
+                                        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                                        rows="2" placeholder="Tambahkan catatan tentang file ini..."></textarea>
+                                </div>
+
+                                <button type="submit" id="uploadSupportDocBtn"
+                                    class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
+                                    Upload Dokumen Pendukung
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Documents List -->
+                        <div id="supportDocsList">
+                            <div class="text-center text-gray-500 py-8">
+                                <p>Belum ada dokumen pendukung.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -999,5 +1114,344 @@
                 }
             }
         });
+    </script>
+
+    {{-- Activity Log JavaScript --}}
+    <script>
+        // Activity Log Modal Functions
+        const rekapId = {{ $rekap->id }};
+        let allActivities = [];
+        let displayedCount = 0;
+        const itemsPerPage = 7;
+
+        function checkUnreadActivities() {
+            const badge = document.getElementById('unreadBadge');
+            if (!badge) return;
+            
+            fetch(`{{ route('rekap.countUnreadActivities') }}?id=${rekapId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.unread_count > 0) {
+                        badge.textContent = data.unread_count > 9 ? '9+' : data.unread_count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking unread activities:', error);
+                });
+        }
+
+        function openActivityLogModal() {
+            const modal = document.getElementById('activityLogModal');
+            modal.classList.remove('hidden');
+            loadActivityLog();
+            
+            // Mark activities as read on server
+            fetch(`{{ route('rekap.markActivitiesRead') }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ id: rekapId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide badge
+                    const badge = document.getElementById('unreadBadge');
+                    if (badge) badge.classList.add('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Error marking activities as read:', error);
+            });
+        }
+
+        function closeActivityLogModal() {
+            const modal = document.getElementById('activityLogModal');
+            modal.classList.add('hidden');
+        }
+
+        function renderActivity(activity) {
+            let description = '';
+            if (activity.description === 'Exported Excel') {
+                description = `${activity.causer_name} melakukan export Excel`;
+                if (activity.properties && activity.properties.version !== undefined) {
+                    description += ` (Rev ${activity.properties.version})`;
+                }
+            } else if (activity.description === 'Created revision') {
+                description = `${activity.causer_name} membuat revisi`;
+                if (activity.properties && activity.properties.new_version !== undefined) {
+                    description += ` (Rev ${activity.properties.new_version})`;
+                }
+            } else if (activity.description === 'Edited survey') {
+                description = `${activity.causer_name} mengedit data survey`;
+                if (activity.properties && activity.properties.version !== undefined) {
+                    description += ` (Rev ${activity.properties.version})`;
+                }
+            } else if (activity.description === 'Saved survey') {
+                description = `${activity.causer_name} menyimpan data survey`;
+                if (activity.properties && activity.properties.version !== undefined) {
+                    description += ` (Rev ${activity.properties.version})`;
+                }
+            } else {
+                description = `${activity.causer_name} - ${activity.description}`;
+            }
+            
+            let html = `<div class="border-b pb-2">`;
+            html += `<div class="text-sm text-gray-500 mb-1">${activity.created_at_formatted}</div>`;
+            html += `<div class="text-gray-700">• ${description}</div>`;
+            html += `</div>`;
+            return html;
+        }
+
+        function loadActivityLog() {
+            const contentDiv = document.getElementById('activityLogContent');
+            const loadMoreContainer = document.getElementById('loadMoreContainer');
+
+            fetch(`{{ route('rekap.showLog') }}?id=${rekapId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.activities.length > 0) {
+                        allActivities = data.activities;
+                        displayedCount = 0;
+                        
+                        let html = '<div id="activityList" class="space-y-3">';
+                        
+                        // Show first 7 items
+                        const initialItems = allActivities.slice(0, itemsPerPage);
+                        initialItems.forEach(activity => {
+                            html += renderActivity(activity);
+                        });
+                        displayedCount = initialItems.length;
+                        
+                        html += '</div>';
+                        contentDiv.innerHTML = html;
+                        
+                        // Show/hide load more button
+                        if (allActivities.length > displayedCount) {
+                            loadMoreContainer.classList.remove('hidden');
+                        } else {
+                            loadMoreContainer.classList.add('hidden');
+                        }
+                    } else {
+                        contentDiv.innerHTML = '<p class="text-center text-gray-500 py-4">Belum ada aktivitas yang tercatat</p>';
+                        loadMoreContainer.classList.add('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading activity log:', error);
+                    contentDiv.innerHTML = '<p class="text-center text-red-500 py-4">Gagal memuat activity log</p>';
+                    loadMoreContainer.classList.add('hidden');
+                });
+        }
+
+        function loadMoreActivities() {
+            const activityList = document.getElementById('activityList');
+            const loadMoreContainer = document.getElementById('loadMoreContainer');
+            
+            // Get next 7 items
+            const nextItems = allActivities.slice(displayedCount, displayedCount + itemsPerPage);
+            
+            nextItems.forEach(activity => {
+                const activityHtml = renderActivity(activity);
+                activityList.insertAdjacentHTML('beforeend', activityHtml);
+            });
+            
+            displayedCount += nextItems.length;
+            
+            // Hide load more button if all items are displayed
+            if (displayedCount >= allActivities.length) {
+                loadMoreContainer.classList.add('hidden');
+            }
+        }
+
+        // Initialize activity log button
+        document.addEventListener('DOMContentLoaded', function() {
+            const logBtn = document.getElementById('logActivityBtn');
+            if (logBtn) {
+                logBtn.addEventListener('click', openActivityLogModal);
+            }
+            
+            // Check unread activities on page load
+            checkUnreadActivities();
+            
+            // Close activity log modal when clicking outside
+            const modal = document.getElementById('activityLogModal');
+            if (modal) {
+                modal.addEventListener('click', function (e) {
+                    if (e.target === this) {
+                        closeActivityLogModal();
+                    }
+                });
+            }
+
+            // Initialize tab switching
+            initializeTabSwitching();
+
+            // Load supporting documents
+            loadSupportingDocuments();
+
+            // Attach form submit handler
+            const supportDocForm = document.getElementById('supportDocForm');
+            if (supportDocForm) {
+                supportDocForm.addEventListener('submit', handleDocumentUpload);
+            }
+        });
+        function initializeTabSwitching() {
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+            
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    
+                    // Remove active state from all buttons
+                    tabBtns.forEach(b => {
+                        b.classList.remove('text-green-600', 'border-b-2', 'border-green-600');
+                        b.classList.add('text-gray-600');
+                    });
+                    
+                    // Hide all tab panels
+                    tabPanels.forEach(panel => {
+                        panel.classList.add('hidden');
+                    });
+                    
+                    // Add active state to clicked button
+                    this.classList.add('text-green-600', 'border-b-2', 'border-green-600');
+                    this.classList.remove('text-gray-600');
+                    
+                    // Show corresponding tab panel
+                    document.querySelector(`.tab-panel[data-tab="${tabName}"]`).classList.remove('hidden');
+                });
+            });
+        }
+
+        // Load supporting documents
+        async function loadSupportingDocuments() {
+            try {
+                const response = await fetch(`{{ route('rekap.supporting-documents', $rekap->id) }}`);
+                if (!response.ok) {
+                    // If route doesn't exist yet, show empty state
+                    document.getElementById('supportDocsList').innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            <p>Belum ada dokumen pendukung.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const documents = await response.json();
+                renderSupportingDocuments(documents);
+            } catch (error) {
+                console.error('Error loading documents:', error);
+                document.getElementById('supportDocsList').innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <p>Belum ada dokumen pendukung.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderSupportingDocuments(documents) {
+            const container = document.getElementById('supportDocsList');
+            
+            if (!documents || documents.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <p>Belum ada dokumen pendukung.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = documents.map(doc => `
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded hover:bg-gray-50">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-gray-900 truncate">${doc.filename}</p>
+                            <p class="text-xs text-gray-500">${doc.notes ? doc.notes : 'Tanpa catatan'}</p>
+                            <p class="text-xs text-gray-400 mt-1">${new Date(doc.created_at).toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 ml-4 flex-shrink-0">
+                        <a href="/rekap/{{ $rekap->id }}/download-document/${doc.id}"
+                            class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            Download
+                        </a>
+                        <button onclick="deleteSupportDocument(${doc.id})"
+                            class="text-red-600 hover:text-red-800 text-sm font-medium">
+                            Hapus
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+
+        async function handleDocumentUpload(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('supportDocFile');
+            const notesInput = document.getElementById('supportDocNotes');
+            const uploadBtn = document.getElementById('uploadSupportDocBtn');
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('notes', notesInput.value);
+            formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+            
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Uploading...';
+                
+                const response = await fetch(`{{ route('rekap.upload-document', $rekap->id) }}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+                
+                // Reset form and reload documents
+                fileInput.value = '';
+                notesInput.value = '';
+                await loadSupportingDocuments();
+                
+            } catch (error) {
+                console.error('Error uploading document:', error);
+                alert('Gagal upload dokumen. Coba lagi.');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Dokumen Pendukung';
+            }
+        }
+
+        async function deleteSupportDocument(documentId) {
+            if (!confirm('Yakin hapus dokumen ini?')) return;
+            
+            try {
+                const response = await fetch(`/rekap/{{ $rekap->id }}/document/${documentId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Delete failed');
+                }
+                
+                await loadSupportingDocuments();
+            } catch (error) {
+                console.error('Error deleting document:', error);
+                alert('Gagal hapus dokumen. Coba lagi.');
+            }
+        }
     </script>
 @endsection
