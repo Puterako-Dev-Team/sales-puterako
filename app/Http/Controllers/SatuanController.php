@@ -10,9 +10,23 @@ class SatuanController extends Controller
 {
     public function __construct()
     {
-        if (!Auth::check() || Auth::user()->role !== 'administrator') {
-            abort(403, 'Unauthorized. Administrator access required.');
-        }
+        // Skip middleware for getSatuansApi - allow any authenticated user
+        // Admin check for other routes
+        $this->middleware(function ($request, $next) {
+            $routeName = $request->route()->getName();
+            
+            // Allow API access to all authenticated users
+            if ($routeName === 'api.satuans') {
+                return $next($request);
+            }
+            
+            // Admin-only routes
+            if (!Auth::check() || Auth::user()->role !== 'administrator') {
+                abort(403, 'Unauthorized. Administrator access required.');
+            }
+            
+            return $next($request);
+        });
     }
 
     /**
@@ -148,5 +162,40 @@ class SatuanController extends Controller
             ->get(['id', 'nama']);
 
         return response()->json($satuans);
+    }
+
+    /**
+     * Get all satuans for API (used by survey spreadsheet) - simple method without admin check
+     */
+    public function getSatuansApi(Request $request)
+    {
+        try {
+            \Log::debug('📦 getSatuansApi called');
+            
+            // Simple query without any complex logic
+            $satuans = Satuan::select('id', 'nama')
+                        ->orderBy('nama', 'asc')
+                        ->get();
+            
+            \Log::debug('📦 Retrieved satuans count: ' . $satuans->count());
+            
+            if ($satuans->isEmpty()) {
+                \Log::warning('⚠️ No satuans found in database');
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => $satuans->toArray()
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('❌ getSatuansApi error: ' . $e->getMessage());
+            \Log::error('❌ File: ' . $e->getFile() . ' Line: ' . $e->getLine());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching satuans: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

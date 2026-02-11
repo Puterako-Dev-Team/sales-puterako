@@ -1444,6 +1444,7 @@
         </script>
         <script>
             const satuanOptions = @json($satuans->pluck('nama'));
+            const satuanMap = @json($satuans->mapWithKeys(function($s) { return [$s->id => $s->nama]; }));
         </script>
 
         @push('scripts')
@@ -4554,6 +4555,7 @@
                     }
 
                     const allNumericTotals = {}; // For accumulation across all areas
+                    const allSatuans = {}; // For accumulation - satuan per column
 
                     // Render each rekap
                     response.rekaps.forEach((rekapData, rekapIdx) => {
@@ -4578,6 +4580,7 @@
                             const headers = survey.headers || [];
                             const data = survey.data || [];
                             const totals = survey.totals || {};
+                            const satuans = survey.satuans || {};
 
                             // Area header
                             const areaHeader = document.createElement('div');
@@ -4691,13 +4694,45 @@
                                 tbody.appendChild(totalsRow);
                             }
 
+                            // Satuan row - display satuan for each numeric column
+                            if (Object.keys(satuans).length > 0) {
+                                const satuanRow = document.createElement('tr');
+                                satuanRow.className = 'bg-blue-50';
+                                
+                                let isFirstSatuan = true;
+                                columnKeys.forEach(key => {
+                                    const td = document.createElement('td');
+                                    td.className = 'py-2 px-2 border text-center text-sm';
+                                    
+                                    if (satuans[key]) {
+                                        // Lookup satuan name from ID
+                                        const satuanId = satuans[key];
+                                        const satuanName = satuanMap[satuanId] || '';
+                                        td.textContent = satuanName;
+                                        td.style.fontWeight = 'bold';
+                                        td.style.color = '#1e40af';
+                                        
+                                        // Store satuan for accumulation
+                                        if (!allSatuans[key]) allSatuans[key] = satuanName;
+                                    } else if (isFirstSatuan) {
+                                        td.textContent = 'Satuan';
+                                        td.style.fontWeight = 'bold';
+                                        isFirstSatuan = false;
+                                    } else {
+                                        td.textContent = '';
+                                    }
+                                    satuanRow.appendChild(td);
+                                });
+                                tbody.appendChild(satuanRow);
+                            }
+
                             table.appendChild(tbody);
                             tableWrapper.appendChild(table);
                             container.appendChild(tableWrapper);
                         });
                     });
 
-                    // Render accumulation (grand totals across all areas)
+                    // Render accumulation (grand totals across all areas) with Satuan column
                     if (Object.keys(allNumericTotals).length > 0) {
                         const accTable = document.createElement('table');
                         accTable.className = 'w-full text-sm border-collapse';
@@ -4712,8 +4747,13 @@
 
                         const th2 = document.createElement('th');
                         th2.className = 'text-center font-semibold pb-2 bg-blue-100 px-3 py-2';
-                        th2.textContent = 'Grand Total';
+                        th2.textContent = 'Quantity';
                         accHeadRow.appendChild(th2);
+
+                        const th3 = document.createElement('th');
+                        th3.className = 'text-center font-semibold pb-2 bg-blue-100 px-3 py-2';
+                        th3.textContent = 'Satuan';
+                        accHeadRow.appendChild(th3);
 
                         accThead.appendChild(accHeadRow);
                         accTable.appendChild(accThead);
@@ -4731,6 +4771,11 @@
                             tdTotal.className = 'py-2 border-t text-center px-3 font-bold';
                             tdTotal.textContent = data.total.toLocaleString('id-ID');
                             tr.appendChild(tdTotal);
+
+                            const tdSatuan = document.createElement('td');
+                            tdSatuan.className = 'py-2 border-t text-center px-3';
+                            tdSatuan.textContent = allSatuans[key] || '-';
+                            tr.appendChild(tdSatuan);
 
                             accTbody.appendChild(tr);
                         });
