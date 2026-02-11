@@ -113,6 +113,12 @@
             const containerId = 'survey-spreadsheet';
             const loadingEl = document.getElementById('survey-loading');
             
+            // AUTO-SAVE CONSTANTS
+            const AUTOSAVE_INTERVAL = 60000; // 1 minute
+            const LOCAL_STORAGE_KEY = `rekap_survey_autosave_{{ $rekap->id }}_v{{ isset($activeVersion) && $activeVersion !== null ? $activeVersion : 0 }}`;
+            let autoSaveIntervalId = null;
+            let survey = null;
+            
             // Wait for SurveySpreadsheet class to be available
             const waitForModule = () => new Promise((resolve) => {
                 if (window.SurveySpreadsheet) {
@@ -124,8 +130,11 @@
             
             await waitForModule();
             
+            // Check for auto-saved data before initializing
+            const savedAutoSave = loadAutoSaveData();
+            
             // Initialize spreadsheet with version
-            const survey = new window.SurveySpreadsheet(containerId, {
+            survey = new window.SurveySpreadsheet(containerId, {
                 rekapId: {{ $rekap->id }},
                 csrfToken: document.querySelector('input[name="_token"]').value,
                 baseUrl: '{{ url('') }}',
@@ -136,6 +145,145 @@
             
             // Hide loading
             if (loadingEl) loadingEl.style.display = 'none';
+            
+            // If there's auto-saved data, ask user to restore
+            if (savedAutoSave && savedAutoSave.areas && savedAutoSave.areas.length > 0) {
+                const savedDate = new Date(savedAutoSave.saved_at);
+                const formattedDate = savedDate.toLocaleString('id-ID');
+                
+                if (confirm(`Ditemukan data auto-save dari ${formattedDate}.\n\nApakah Anda ingin memulihkan data tersebut?`)) {
+                    restoreAutoSaveData(savedAutoSave);
+                } else {
+                    // User chose not to restore, clear the auto-save
+                    clearAutoSaveData();
+                }
+            }
+            
+            // Start auto-save interval
+            startAutoSave();
+            
+            // AUTO-SAVE FUNCTIONS
+            function autoSaveToLocalStorage() {
+                if (!survey || !survey.areas || survey.areas.length === 0) {
+                    console.log('⏭️ Auto-save skipped: no areas');
+                    return false;
+                }
+                
+                console.log('💾 Auto-saving survey data to localStorage...');
+                
+                // Sync column headers from spreadsheet first
+                survey.syncAllColumnHeaders();
+                
+                const areasData = survey.areas.map(area => {
+                    const areaNameInput = document.getElementById(`area-${area.id}-name`);
+                    const areaName = areaNameInput ? areaNameInput.value : '';
+                    
+                    const arrayData = survey.getAreaData(area);
+                    const objData = survey.convertArrayToData(arrayData, area.headers);
+                    
+                    return {
+                        id: area.serverId,
+                        area_name: areaName,
+                        headers: area.headers,
+                        data: objData,
+                        comments: survey.comments[area.id] || {}
+                    };
+                });
+                
+                const autoSaveData = {
+                    rekap_id: {{ $rekap->id }},
+                    version: {{ isset($activeVersion) && $activeVersion !== null ? $activeVersion : 0 }},
+                    areas: areasData,
+                    saved_at: new Date().toISOString()
+                };
+                
+                try {
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(autoSaveData));
+                    const now = new Date();
+                    console.log('✅ Auto-save to localStorage successful at', now.toLocaleTimeString());
+                    
+                    if (typeof window.notyf !== 'undefined') {
+                        window.notyf.success({
+                            message: 'Auto-save berhasil',
+                            duration: 2000,
+                            dismissible: true
+                        });
+                    }
+                    return true;
+                } catch (error) {
+                    console.error('❌ Auto-save to localStorage failed:', error);
+                    return false;
+                }
+            }
+            
+            function loadAutoSaveData() {
+                try {
+                    const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+                    if (savedData) {
+                        return JSON.parse(savedData);
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to load auto-save data:', error);
+                }
+                return null;
+            }
+            
+            function clearAutoSaveData() {
+                try {
+                    localStorage.removeItem(LOCAL_STORAGE_KEY);
+                    console.log('🗑️ Auto-save data cleared from localStorage');
+                } catch (error) {
+                    console.error('❌ Failed to clear auto-save data:', error);
+                }
+            }
+            
+            function restoreAutoSaveData(savedData) {
+                if (!savedData || !savedData.areas || !survey) return false;
+                
+                console.log('🔄 Restoring data from localStorage...', savedData);
+                
+                // Clear existing areas - use while loop to avoid modifying array while iterating
+                while (survey.areas.length > 0) {
+                    survey.removeArea(survey.areas[0].id);
+                }
+                survey.areaCounter = 0;
+                survey.container.innerHTML = '';
+                
+                // Recreate areas from saved data
+                savedData.areas.forEach(areaData => {
+                    survey.addArea(areaData.area_name, areaData.headers, areaData.data, areaData.id, areaData.comments);
+                });
+                
+                // Re-apply formulas
+                survey.areas.forEach(area => {
+                    survey.applyFormulasToAllRows(area);
+                    survey.styleFormulaColumns(area);
+                });
+                
+                console.log('✅ Data restored from localStorage');
+                
+                if (typeof window.notyf !== 'undefined') {
+                    window.notyf.success('Data berhasil dipulihkan dari auto-save');
+                }
+                
+                return true;
+            }
+            
+            function startAutoSave() {
+                if (autoSaveIntervalId) {
+                    clearInterval(autoSaveIntervalId);
+                }
+                autoSaveIntervalId = setInterval(autoSaveToLocalStorage, AUTOSAVE_INTERVAL);
+                console.log('🚀 Auto-save started (every 1 minute)');
+            }
+            
+            function stopAutoSave() {
+                if (autoSaveIntervalId) {
+                    clearInterval(autoSaveIntervalId);
+                    autoSaveIntervalId = null;
+                    console.log('⏹️ Auto-save stopped');
+                }
+            }
             
             // Button handlers
             const btnTambahArea = document.getElementById('btnTambahArea');
@@ -155,6 +303,9 @@
                     try {
                         const success = await survey.save();
                         if (success) {
+                            // Clear auto-save data after successful save
+                            clearAutoSaveData();
+                            
                             if (typeof window.notyf !== 'undefined') {
                                 window.notyf.success('Semua area survey berhasil disimpan!');
                             } else {
@@ -176,6 +327,9 @@
                     }
                 });
             }
+            
+            // Stop auto-save when leaving page
+            window.addEventListener('beforeunload', stopAutoSave);
         });
     </script>
 

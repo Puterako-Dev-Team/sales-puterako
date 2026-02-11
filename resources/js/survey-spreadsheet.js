@@ -1171,7 +1171,51 @@ class SurveySpreadsheet {
     }
 
     // Save all areas to server
+    // Sync column headers from jspreadsheet back to area.headers
+    syncColumnHeadersFromSpreadsheet(area) {
+        if (!area.worksheet || !area.headers) return false;
+        
+        // Get the columns configuration from jspreadsheet
+        const worksheetColumns = area.worksheet.getConfig().columns || [];
+        
+        let colIdx = 0;
+        let headerUpdateCount = 0;
+        
+        area.headers.forEach(group => {
+            group.columns.forEach(col => {
+                if (colIdx < worksheetColumns.length) {
+                    const jssCol = worksheetColumns[colIdx];
+                    const newTitle = jssCol.title || col.title;
+                    
+                    // Update column title if it changed
+                    if (newTitle !== col.title) {
+                        console.log(`📝 Syncing column title: "${col.title}" → "${newTitle}"`);
+                        col.title = newTitle;
+                        headerUpdateCount++;
+                    }
+                }
+                colIdx++;
+            });
+        });
+        
+        if (headerUpdateCount > 0) {
+            console.log(`✅ Synced ${headerUpdateCount} column header(s) from spreadsheet`);
+        }
+        
+        return headerUpdateCount > 0;
+    }
+
+    // Sync all areas' column headers before saving
+    syncAllColumnHeaders() {
+        this.areas.forEach(area => {
+            this.syncColumnHeadersFromSpreadsheet(area);
+        });
+    }
+
     async save() {
+        // Sync column headers from spreadsheet before saving
+        this.syncAllColumnHeaders();
+        
         const areasData = this.areas.map(area => {
             const areaNameInput = document.getElementById(`area-${area.id}-name`);
             const areaName = areaNameInput ? areaNameInput.value : '';
