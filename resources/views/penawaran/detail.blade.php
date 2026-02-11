@@ -947,7 +947,7 @@
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-32">Harga
                                                     Satuan
                                                 </th>
-                                                <th class="border border-gray-300 px-3 py-2 text-right w-32">Harga
+                                                <th class="border border-gray-300 px-3 py-2 text-center w-32">Harga
                                                     Total
                                                 </th>
                                                 <th class="border border-gray-300 px-3 py-2 text-center w-32" style="color: #000000; font-weight: bold;">Keterangan</th>
@@ -978,12 +978,12 @@
                                                                 {{ $row['tipe'] }}
                                                             </td>
                                                             <td class="border border-gray-300 px-3 py-2">
-                                                                {{ $row['deskripsi'] }}
+                                                                {!! nl2br(e($row['deskripsi'])) !!}
                                                             </td>
                                                             <td class="border border-gray-300 px-3 py-2 text-center">
                                                                 {{ number_format($row['qty'], 0) }}
                                                             </td>
-                                                            <td class="border border-gray-300 px-3 py-2">
+                                                            <td class="border border-gray-300 px-3 py-2 text-center">
                                                                 {{ $row['satuan'] }}
                                                             </td>
                                                             <td class="border border-gray-300 px-3 py-2 text-right">

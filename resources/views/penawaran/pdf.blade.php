@@ -332,6 +332,61 @@
             clear: both;
         }
 
+        /* Jasa Table Column Widths */
+        .jasa-table th:nth-child(1),
+        .jasa-table td:nth-child(1) {
+            /* fixed narrow No column to avoid wrapping */
+            width: 10px !important;
+            min-width: 10px;
+            max-width: 10px;
+            text-align: center;
+            white-space: nowrap;
+            padding-left: 4px;
+            padding-right: 4px;
+        }
+
+        .jasa-table th:nth-child(2),
+        .jasa-table td:nth-child(2) {
+            width: 50% !important;
+        }
+
+        .jasa-table th:nth-child(3),
+        .jasa-table td:nth-child(3) {
+            /* fixed narrow Qty column */
+            width: 40px !important;
+            min-width: 35px;
+            max-width: 35px;
+            text-align: center;
+            white-space: nowrap;
+            padding-left: 4px;
+            padding-right: 4px;
+        }
+
+        .jasa-table th:nth-child(4),
+        .jasa-table td:nth-child(4) {
+            width: 8% !important;
+            text-align: center;
+        }
+
+        .jasa-table th:nth-child(5),
+        .jasa-table td:nth-child(5) {
+            width: 14% !important;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .jasa-table th:nth-child(6),
+        .jasa-table td:nth-child(6) {
+            width: 14% !important;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        /* Make jasa table use fixed layout so col widths are respected */
+        .jasa-table {
+            table-layout: fixed;
+            word-wrap: break-word;
+        }
         /* Page Break */
         @page {
             margin-top: 120px;
@@ -490,8 +545,8 @@
                         <th>Deskripsi</th>
                         <th>Qty</th>
                         <th>Satuan</th>
-                        <th style="width: 15%; text-align: right;">Harga Satuan</th>
-                        <th>Harga Total</th>
+                        <th style="text-align: center;">Harga Satuan</th>
+                        <th style="text-align: center;">Harga Total</th>
                         <th style="text-align: center;">Keterangan</th>
                     </tr>
                 </thead>
@@ -511,7 +566,7 @@
                             <tr class="{{ $fontClass }}">
                                 <td>{{ $row->no }}</td>
                                 <td>{{ $row->tipe }}</td>
-                                <td>{{ $row->deskripsi }}</td>
+                                <td class="pre-wrap">{{ $row->deskripsi }}</td>
                                 <td>{{ $row->qty }}</td>
                                 <td>{{ $row->satuan }}</td>
                                 <td style="text-align: right;">
@@ -524,7 +579,7 @@
                                         {{ $row->harga_satuan > 0 ? number_format($row->harga_satuan, 0, ',', '.') : '' }}
                                     @endif
                                 </td>
-                                <td>
+                                <td style="text-align: right;">
                                     @if (!empty($row->is_judul))
                                         {{-- Kosong jika is_judul --}}
                                     @elseif (!empty($row->is_mitra))
@@ -556,21 +611,29 @@
                 {{ convertToRoman($sectionNumber) }}. Biaya Quotation Jasa
             </h3>
             <table class="jasa-table">
+                <colgroup>
+                    <col style="width:10px" />
+                    <col style="width:60%" />
+                    <col style="width:40px" />
+                    <col style="width:8%" />
+                    <col style="width:12%" />
+                    <col style="width:12%" />
+                </colgroup>
                 <thead>
                     <tr>
-                        <th style="width: 4%; text-align: center;">No</th>
-                        <th style="width: 50%;">Deskripsi</th>
-                        <th style="width: 1%; text-align: center;">Qty</th>
-                        <th style="width: 10%; text-align: center;">Satuan</th>
-                        <th style="width: 16%; text-align: right;">Harga Satuan</th>
-                        <th style="width: 16%; text-align: right;">Harga Total</th>
+                        <th style="text-align: center;">No</th>
+                        <th >Deskripsi</th>
+                        <th style="text-align: center;">Qty</th>
+                        <th style="text-align: center;">Satuan</th>
+                        <th style="text-align: center;">Harga Satuan</th>
+                        <th style="text-align: center;">Harga Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td style="text-align: center;">1</td>
                         <td>
-                            <pre>{{ $versionRow->jasa_ringkasan ?? '' }}</pre>
+                            <div class="pre-wrap">{{ $versionRow->jasa_ringkasan ?? '' }}</div>
                         </td>
                         <td style="text-align: center;">1</td>
                         <td style="text-align: center;">Lot</td>
