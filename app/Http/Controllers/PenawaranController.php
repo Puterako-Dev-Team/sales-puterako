@@ -334,7 +334,7 @@ class PenawaranController extends Controller
         $bulanRomawi = [1=>'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
         $bulan = $bulanRomawi[intval(date('n'))];
         $tahun = date('Y');
-        $data['no_penawaran'] = "PIB/SS-{$lokasi}/{$userId}-{$paddedSequence}/{$bulan}/{$tahun}";
+        $data['no_penawaran'] = "PIB/SS-{$lokasi}/JK/{$userId}-{$paddedSequence}/{$bulan}/{$tahun}";
 
         \App\Models\Penawaran::create($data);
 
