@@ -5,10 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Rekap extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['status', 'nama', 'nama_perusahaan'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
 
     protected $fillable = [
         'user_id',
@@ -66,6 +76,11 @@ class Rekap extends Model
     public function versions()
     {
         return $this->hasMany(RekapVersion::class, 'rekap_id', 'id');
+    }
+
+    public function supportingDocuments()
+    {
+        return $this->hasMany(RekapSupportingDocument::class, 'id_rekap', 'id');
     }
 
     /**
