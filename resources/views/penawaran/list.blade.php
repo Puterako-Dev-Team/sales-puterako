@@ -484,11 +484,11 @@
                 });
                 const data = await response.json();
                 const sequenceNumber = (data.count + 1).toString().padStart(3, '0');
-                return `PIB/SS-${lokasiKode}/${userId}-${sequenceNumber}/${month}/${year}`;
+                return `PIB/SS-${lokasiKode}/JK/${userId}-${sequenceNumber}/${month}/${year}`;
             } catch (error) {
                 console.error('Error generating No Penawaran:', error);
                 // Fallback if API fails
-                return `PIB/SS-${lokasiKode}/${userId}-001/${month}/${year}`;
+                return `PIB/SS-${lokasiKode}/JK/${userId}-001/${month}/${year}`;
             }
         }
 
