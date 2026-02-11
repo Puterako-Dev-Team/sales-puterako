@@ -819,7 +819,7 @@ class SurveySpreadsheet {
         
         // Column management buttons
         const columnButtons = document.createElement('div');
-        columnButtons.style.cssText = 'display: flex; gap: 8px; margin-bottom: 10px;';
+        columnButtons.style.cssText = 'display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;';
         columnButtons.innerHTML = `
             <button type="button" class="btn-add-group" data-area-id="${areaId}"
                     style="padding: 6px 12px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
@@ -828,6 +828,10 @@ class SurveySpreadsheet {
             <button type="button" class="btn-add-col" data-area-id="${areaId}"
                     style="padding: 6px 12px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
                 + Tambah Kolom
+            </button>
+            <button type="button" class="btn-rename-group" data-area-id="${areaId}"
+                    style="padding: 6px 12px; background: #14b8a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                ✎ Rename Grup
             </button>
             <button type="button" class="btn-remove-group" data-area-id="${areaId}"
                     style="padding: 6px 12px; background: #f97316; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
@@ -1088,6 +1092,30 @@ class SurveySpreadsheet {
             this.addColumnToGroup(area, groupIdx, columnName, isNumeric);
         });
         
+        // Rename group button
+        wrapper.querySelector('.btn-rename-group')?.addEventListener('click', () => {
+            if (area.headers.length === 0) {
+                alert('Belum ada grup kolom!');
+                return;
+            }
+            
+            const groups = area.headers.map((g, i) => `${i + 1}. ${g.group}`).join('\n');
+            const input = prompt(`Pilih nomor grup yang akan direname:\n${groups}`);
+            if (!input) return;
+            
+            const groupIdx = parseInt(input) - 1;
+            if (isNaN(groupIdx) || groupIdx < 0 || groupIdx >= area.headers.length) {
+                alert('Nomor tidak valid!');
+                return;
+            }
+            
+            const currentName = area.headers[groupIdx].group;
+            const newName = prompt(`Masukkan nama grup baru (sebelumnya: "${currentName}"):`);
+            if (!newName || newName.trim() === '') return;
+            
+            this.renameColumnGroup(area, groupIdx, newName);
+        });
+        
         // Remove group button
         wrapper.querySelector('.btn-remove-group')?.addEventListener('click', () => {
             if (area.headers.length <= 1) {
@@ -1202,6 +1230,18 @@ class SurveySpreadsheet {
         });
         
         this.reinitializeArea(area);
+    }
+
+    // Rename column group
+    renameColumnGroup(area, groupIndex, newName) {
+        if (groupIndex < 0 || groupIndex >= area.headers.length) return false;
+        if (!newName || newName.trim() === '') return false;
+        
+        const oldName = area.headers[groupIndex].group;
+        area.headers[groupIndex].group = newName.trim();
+        console.log(`📝 Group renamed: "${oldName}" → "${newName}"`);
+        this.reinitializeArea(area);
+        return true;
     }
 
     // Remove column group
