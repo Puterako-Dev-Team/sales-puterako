@@ -168,7 +168,7 @@
             </button>
             <button type="button" onclick="openStatusModal('success')"
                 class="bg-green-500 text-white px-2 py-2 rounded hover:bg-green-600 font-semibold"
-                title="Mark as Success">
+                title="Mark as Submit">
                 <x-lucide-badge-check class="w-6 h-6 inline-block" />
             </button>
             <button type="button" onclick="openStatusModal('po')"
@@ -273,6 +273,8 @@
                             <span class="status-badge status-{{ $penawaran->status }}">
                                 @if($penawaran->status === 'po')
                                     Purchase Order
+                                @elseif($penawaran->status === 'success')
+                                    Submit
                                 @else
                                     {{ ucfirst($penawaran->status) }}
                                 @endif
