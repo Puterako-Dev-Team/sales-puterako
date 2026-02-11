@@ -15,6 +15,7 @@ class RekapSurvey extends Model
         'data',
         'totals',
         'comments',
+        'satuans',
         'version',
     ];
 
@@ -23,6 +24,7 @@ class RekapSurvey extends Model
         'data' => 'array',
         'totals' => 'array',
         'comments' => 'object',
+        'satuans' => 'array',
     ];
 
     /**
