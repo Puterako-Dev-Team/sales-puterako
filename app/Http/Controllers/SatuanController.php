@@ -8,25 +8,14 @@ use App\Models\Satuan;
 
 class SatuanController extends Controller
 {
-    public function __construct()
+    /**
+     * Check if user is admin, abort if not
+     */
+    private function checkAdminAccess()
     {
-        // Skip middleware for getSatuansApi - allow any authenticated user
-        // Admin check for other routes
-        $this->middleware(function ($request, $next) {
-            $routeName = $request->route()->getName();
-            
-            // Allow API access to all authenticated users
-            if ($routeName === 'api.satuans') {
-                return $next($request);
-            }
-            
-            // Admin-only routes
-            if (!Auth::check() || Auth::user()->role !== 'administrator') {
-                abort(403, 'Unauthorized. Administrator access required.');
-            }
-            
-            return $next($request);
-        });
+        if (!Auth::check() || Auth::user()->role !== 'administrator') {
+            abort(403, 'Unauthorized. Administrator access required.');
+        }
     }
 
     /**
@@ -34,6 +23,8 @@ class SatuanController extends Controller
      */
     public function index(Request $request)
     {
+        $this->checkAdminAccess();
+        
         $query = Satuan::query();
 
         if ($request->filled('q')) {
@@ -57,6 +48,8 @@ class SatuanController extends Controller
      */
     public function filter(Request $request)
     {
+        $this->checkAdminAccess();
+        
         $query = Satuan::query();
 
         if ($request->filled('q')) {
@@ -85,6 +78,8 @@ class SatuanController extends Controller
      */
     public function store(Request $request)
     {
+        $this->checkAdminAccess();
+        
         $data = $request->validate([
             'nama' => 'required|string|max:255|unique:satuans,nama'
         ]);
@@ -103,6 +98,8 @@ class SatuanController extends Controller
      */
     public function edit($id)
     {
+        $this->checkAdminAccess();
+        
         $satuan = Satuan::findOrFail($id);
         return response()->json($satuan);
     }
@@ -112,6 +109,8 @@ class SatuanController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->checkAdminAccess();
+        
         $satuan = Satuan::findOrFail($id);
 
         $data = $request->validate([
@@ -132,6 +131,8 @@ class SatuanController extends Controller
      */
     public function destroy($id)
     {
+        $this->checkAdminAccess();
+        
         $satuan = Satuan::findOrFail($id);
         $satuan->delete();
 
@@ -146,6 +147,8 @@ class SatuanController extends Controller
      */
     public function getAll()
     {
+        $this->checkAdminAccess();
+        
         $satuans = Satuan::orderBy('nama')->get();
         return response()->json($satuans);
     }
@@ -155,6 +158,8 @@ class SatuanController extends Controller
      */
     public function search(Request $request)
     {
+        $this->checkAdminAccess();
+        
         $query = $request->input('q', '');
 
         $satuans = Satuan::where('nama', 'LIKE', "%{$query}%")

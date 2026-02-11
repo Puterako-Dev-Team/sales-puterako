@@ -131,6 +131,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/create-tipe', [RekapController::class, 'createTipe'])->name('rekap.create-tipe');
         Route::post('/store', [RekapController::class, 'store'])->name('rekap.store');
         Route::get('/all', [RekapController::class, 'all'])->name('rekap.all');
+        
+        // Activity log routes (must be before /{id} to avoid being caught by that route)
+        Route::get('/show-log', [RekapController::class, 'showLog'])->name('rekap.showLog');
+        Route::get('/count-unread-activities', [RekapController::class, 'countUnreadActivities'])->name('rekap.countUnreadActivities');
+        Route::post('/mark-activities-read', [RekapController::class, 'markActivitiesAsRead'])->name('rekap.markActivitiesRead');
+        
         Route::get('/{id}', [RekapController::class, 'show'])->name('rekap.show');
         Route::get('/{id}/edit', [RekapController::class, 'edit'])->name('rekap.edit');
         Route::get('/{id}/export', [RekapController::class, 'export'])->name('rekap.export');
@@ -159,6 +165,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/create-revision', [RekapController::class, 'createRevision'])->name('rekap.createRevision');
         Route::put('/{id}/version/{version}/notes', [RekapController::class, 'updateVersionNotes'])->name('rekap.updateVersionNotes');
         Route::put('/{id}/version/{version}/status', [RekapController::class, 'updateVersionStatus'])->name('rekap.updateVersionStatus');
+
+        // Supporting Documents routes
+        Route::get('/{id}/supporting-documents', [RekapController::class, 'getSupportingDocuments'])->name('rekap.supporting-documents');
+        Route::post('/{id}/upload-document', [RekapController::class, 'uploadDocument'])->name('rekap.upload-document');
+        Route::delete('/{id}/document/{documentId}', [RekapController::class, 'deleteDocument'])->name('rekap.delete-document');
+        Route::get('/{id}/download-document/{documentId}', [RekapController::class, 'downloadDocument'])->name('rekap.download-document');
     });
 
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
