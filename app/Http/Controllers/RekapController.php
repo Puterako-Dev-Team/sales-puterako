@@ -780,6 +780,7 @@ class RekapController extends Controller
                             'data' => $survey->data,
                             'totals' => $survey->totals,
                             'comments' => $survey->comments,
+                            'satuans' => $survey->satuans,
                         ];
                     })->values()
                 ];
@@ -1123,6 +1124,12 @@ class RekapController extends Controller
                 $comments = new \stdClass();
             }
             
+            // Ensure satuans is always an object, not array
+            $satuans = $survey->satuans;
+            if (empty($satuans) || (is_array($satuans) && array_keys($satuans) === range(0, count($satuans) - 1))) {
+                $satuans = new \stdClass();
+            }
+            
             return [
                 'id' => $survey->id,
                 'area_name' => $survey->area_name ?? '',
@@ -1130,6 +1137,7 @@ class RekapController extends Controller
                 'data' => $survey->data,
                 'totals' => $survey->totals,
                 'comments' => $comments,
+                'satuans' => $satuans,
             ];
         });
 
@@ -1206,6 +1214,14 @@ class RekapController extends Controller
                 $survey->comments = (object) $comments;
             } else {
                 $survey->comments = new \stdClass();
+            }
+            
+            // Save satuans data
+            $satuans = $areaData['satuans'] ?? [];
+            if (is_array($satuans) && !empty($satuans)) {
+                $survey->satuans = (object) $satuans;
+            } else {
+                $survey->satuans = new \stdClass();
             }
             
             $survey->totals = $survey->calculateTotals();

@@ -35,6 +35,13 @@ class SurveySpreadsheet {
         // Comments storage: { areaId: { 'row,col': 'comment text' } }
         this.comments = {};
         
+        // Satuan storage: { areaId: { 'columnKey': satuanId } }
+        this.satuans = {};
+        
+        // Available satuans list - can be passed from options or loaded via API
+        this.satuanList = options.satuans && Array.isArray(options.satuans) ? options.satuans : [];
+        console.log('📦 SurveySpreadsheet initialized with satuans:', this.satuanList);
+        
         // Formula support
         this.formulas = []; // Array of formula configurations from server
         this.formulasByColumn = {}; // Formulas indexed by target column_key
@@ -169,6 +176,51 @@ class SurveySpreadsheet {
             this.formulas = [];
             this.formulasByColumn = {};
         }
+    }
+    
+    // Load satuans from the server API
+    async loadSatuans() {
+        try {
+            const url = `${this.baseUrl}/api/satuans`;
+            console.log('📦 Fetching satuans from:', url);
+            const response = await fetch(url);
+            console.log('📦 Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            console.log('📦 Satuans response:', result);
+            
+            if (result.success && result.data) {
+                this.satuanList = Array.isArray(result.data) ? result.data : [];
+                console.log(`✅ Loaded ${this.satuanList.length} satuans:`, this.satuanList);
+            } else if (Array.isArray(result)) {
+                // Handle direct array response
+                this.satuanList = result;
+                console.log(`✅ Loaded ${this.satuanList.length} satuans (direct array):`, this.satuanList);
+            } else {
+                console.warn('⚠️ Unexpected satuans response format:', result);
+                this.satuanList = [];
+            }
+        } catch (err) {
+            console.error('❌ Failed to load satuans:', err);
+            this.satuanList = [];
+        }
+    }
+    
+    // Get satuan for a column
+    getSatuan(areaId, columnKey) {
+        return this.satuans[areaId]?.[columnKey] || null;
+    }
+    
+    // Set satuan for a column
+    setSatuan(areaId, columnKey, satuanId) {
+        if (!this.satuans[areaId]) {
+            this.satuans[areaId] = {};
+        }
+        this.satuans[areaId][columnKey] = satuanId;
     }
 
     // Build column key to index mapping for an area
@@ -589,13 +641,109 @@ class SurveySpreadsheet {
         html += '</tr></tbody></table>';
         totalsContainer.innerHTML = html;
     }
+    
+    // Update satuan display for an area - create a row with satuan dropdowns
+    updateSatuanDisplay(area) {
+        console.log(`📊 updateSatuanDisplay called for area ${area.id}`);
+        console.log(`📊 Current satuanList:`, this.satuanList);
+        console.log(`📊 satuanList length:`, this.satuanList ? this.satuanList.length : 0);
+        
+        const scrollContainer = document.getElementById(`area-${area.id}-scroll`);
+        if (!scrollContainer) {
+            console.warn(`⚠️ Scroll container not found for area ${area.id}`);
+            return;
+        }
+        
+        let satuanContainer = document.getElementById(`area-${area.id}-satuan-container`);
+        if (!satuanContainer) {
+            satuanContainer = document.createElement('div');
+            satuanContainer.id = `area-${area.id}-satuan-container`;
+            const innerWrapper = scrollContainer.querySelector('div');
+            if (innerWrapper) {
+                innerWrapper.appendChild(satuanContainer);
+            } else {
+                scrollContainer.appendChild(satuanContainer);
+            }
+        }
+        
+        // Get jspreadsheet table
+        const jssTable = area.container.querySelector('table');
+        if (!jssTable) return;
+        
+        // Get colgroup from jspreadsheet to copy exact widths
+        const jssColgroup = jssTable.querySelector('colgroup');
+        
+        // Groups that should NOT have satuan dropdowns
+        const excludedGroups = ['lokasi', 'dimensi'];
+        
+        // Build satuan table HTML
+        let html = `<table style="border-collapse: collapse; margin-top: -1px; width: ${jssTable.offsetWidth}px; table-layout: fixed;">`;
+        
+        // Copy colgroup if exists
+        if (jssColgroup) {
+            html += jssColgroup.outerHTML;
+        }
+        
+        html += '<tbody><tr id="satuan-row-' + area.id + '">';
+        
+        // Cell base style
+        const cellStyle = 'font-weight: bold; background: #dbeafe; padding: 2px; border: 1px solid #ccc; text-align: center; box-sizing: border-box; height: 40px;';
+        
+        // First column (row number column) - label
+        html += `<td style="${cellStyle}">Satuan</td>`;
+        
+        // Each column
+        area.headers.forEach(group => {
+            const groupName = (group.group || '').toLowerCase();
+            const isExcludedGroup = excludedGroups.includes(groupName);
+            
+            group.columns.forEach(col => {
+                if (col.type === 'numeric' && !isExcludedGroup) {
+                    const selectId = `satuan-${area.id}-${col.key}`;
+                    const currentSatuan = this.getSatuan(area.id, col.key) || '';
+                    
+                    html += `<td style="${cellStyle}"><select id="${selectId}" class="satuan-select" data-area-id="${area.id}" data-col-key="${col.key}" style="width: 100%; padding: 4px; border: 1px solid #999; border-radius: 3px; font-size: 12px;">`;
+                    html += '<option value="">-- Pilih --</option>';
+                    
+                    // Add satuan options
+                    console.log(`  📊 Adding satuan options for column ${col.key}, satuanList has ${this.satuanList.length} items`);
+                    this.satuanList.forEach(satuan => {
+                        console.log(`    - Option: id=${satuan.id}, nama=${satuan.nama}`);
+                        const selected = currentSatuan == satuan.id ? 'selected' : '';
+                        html += `<option value="${satuan.id}" ${selected}>${satuan.nama}</option>`;
+                    });
+                    console.log(`  📊 Added options count: ${this.satuanList.length}`);
+                    
+                    html += '</select></td>';
+                } else {
+                    // Empty cell for non-numeric columns or excluded groups
+                    html += `<td style="${cellStyle}"></td>`;
+                }
+            });
+        });
+        
+        html += '</tr></tbody></table>';
+        satuanContainer.innerHTML = html;
+        
+        // Bind satuan select events
+        const self = this;
+        satuanContainer.querySelectorAll('.satuan-select').forEach(select => {
+            select.addEventListener('change', function() {
+                const areaId = this.dataset.areaId;
+                const colKey = this.dataset.colKey;
+                const satuanId = this.value || null;
+                self.setSatuan(areaId, colKey, satuanId);
+                console.log('Satuan updated:', {areaId, colKey, satuanId});
+            });
+        });
+    }
 
     // Initialize with data from server
     async init() {
         // Clear container
         this.container.innerHTML = '';
         
-        // Load formulas first
+        // Load formulas first (satuans already loaded from options)
         await this.loadFormulas();
         
         // Load saved areas
@@ -607,7 +755,7 @@ class SurveySpreadsheet {
         } else {
             // Create areas from saved data
             savedAreas.forEach(areaData => {
-                this.addArea(areaData.area_name, areaData.headers, areaData.data, areaData.id, areaData.comments);
+                this.addArea(areaData.area_name, areaData.headers, areaData.data, areaData.id, areaData.comments, areaData.satuans);
             });
         }
         
@@ -619,13 +767,20 @@ class SurveySpreadsheet {
     }
 
     // Add a new area
-    addArea(areaName = '', headers = null, data = null, serverId = null, comments = null) {
+    addArea(areaName = '', headers = null, data = null, serverId = null, comments = null, satuans = null) {
         const areaId = ++this.areaCounter;
         const areaHeaders = headers || this.getDefaultHeaders();
         
         // Load comments for this area
         if (comments) {
             this.comments[areaId] = comments;
+        }
+        
+        // Load satuans for this area
+        if (satuans) {
+            this.satuans[areaId] = satuans;
+        } else {
+            this.satuans[areaId] = {};
         }
         
         const area = {
@@ -664,7 +819,7 @@ class SurveySpreadsheet {
         
         // Column management buttons
         const columnButtons = document.createElement('div');
-        columnButtons.style.cssText = 'display: flex; gap: 8px; margin-bottom: 10px;';
+        columnButtons.style.cssText = 'display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;';
         columnButtons.innerHTML = `
             <button type="button" class="btn-add-group" data-area-id="${areaId}"
                     style="padding: 6px 12px; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
@@ -673,6 +828,10 @@ class SurveySpreadsheet {
             <button type="button" class="btn-add-col" data-area-id="${areaId}"
                     style="padding: 6px 12px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
                 + Tambah Kolom
+            </button>
+            <button type="button" class="btn-rename-group" data-area-id="${areaId}"
+                    style="padding: 6px 12px; background: #14b8a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                ✎ Rename Grup
             </button>
             <button type="button" class="btn-remove-group" data-area-id="${areaId}"
                     style="padding: 6px 12px; background: #f97316; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
@@ -844,8 +1003,11 @@ class SurveySpreadsheet {
         }
         
         this.styleAreaHeaders(area);
-        // Delay initial totals display to ensure DOM is rendered
-        setTimeout(() => this.updateTotalsDisplay(area), 50);
+        // Delay initial totals display and satuan row to ensure DOM is rendered
+        setTimeout(() => {
+            this.updateTotalsDisplay(area);
+            this.updateSatuanDisplay(area);
+        }, 50);
         // Bind comment events after DOM is ready
         this.bindCommentEvents(area);
     }
@@ -928,6 +1090,30 @@ class SurveySpreadsheet {
             
             const isNumeric = confirm('Kolom berisi angka? (OK = Ya, Cancel = Teks)');
             this.addColumnToGroup(area, groupIdx, columnName, isNumeric);
+        });
+        
+        // Rename group button
+        wrapper.querySelector('.btn-rename-group')?.addEventListener('click', () => {
+            if (area.headers.length === 0) {
+                alert('Belum ada grup kolom!');
+                return;
+            }
+            
+            const groups = area.headers.map((g, i) => `${i + 1}. ${g.group}`).join('\n');
+            const input = prompt(`Pilih nomor grup yang akan direname:\n${groups}`);
+            if (!input) return;
+            
+            const groupIdx = parseInt(input) - 1;
+            if (isNaN(groupIdx) || groupIdx < 0 || groupIdx >= area.headers.length) {
+                alert('Nomor tidak valid!');
+                return;
+            }
+            
+            const currentName = area.headers[groupIdx].group;
+            const newName = prompt(`Masukkan nama grup baru (sebelumnya: "${currentName}"):`);
+            if (!newName || newName.trim() === '') return;
+            
+            this.renameColumnGroup(area, groupIdx, newName);
         });
         
         // Remove group button
@@ -1046,6 +1232,18 @@ class SurveySpreadsheet {
         this.reinitializeArea(area);
     }
 
+    // Rename column group
+    renameColumnGroup(area, groupIndex, newName) {
+        if (groupIndex < 0 || groupIndex >= area.headers.length) return false;
+        if (!newName || newName.trim() === '') return false;
+        
+        const oldName = area.headers[groupIndex].group;
+        area.headers[groupIndex].group = newName.trim();
+        console.log(`📝 Group renamed: "${oldName}" → "${newName}"`);
+        this.reinitializeArea(area);
+        return true;
+    }
+
     // Remove column group
     removeColumnGroup(area, groupIndex) {
         if (area.headers.length <= 1) return false;
@@ -1067,6 +1265,10 @@ class SurveySpreadsheet {
         const totalColumns = area.headers.reduce((sum, g) => sum + g.columns.length, 0);
         if (totalColumns <= 1) return false;
         
+        // Get column key before removing it
+        const removedColumn = group.columns[columnIndex];
+        const removedKey = removedColumn.key;
+        
         // If this is the last column in the group, remove the entire group
         if (group.columns.length === 1) {
             return this.removeColumnGroup(area, groupIndex);
@@ -1074,6 +1276,12 @@ class SurveySpreadsheet {
         
         // Remove the column
         group.columns.splice(columnIndex, 1);
+        
+        // Clean up satuan data for removed column
+        if (this.satuans[area.id] && this.satuans[area.id][removedKey]) {
+            delete this.satuans[area.id][removedKey];
+        }
+        
         this.reinitializeArea(area);
         return true;
     }
@@ -1233,7 +1441,8 @@ class SurveySpreadsheet {
                 area_name: areaName,
                 headers: area.headers,
                 data: filteredData.length > 0 ? filteredData : [],
-                comments: this.comments[area.id] || {}
+                comments: this.comments[area.id] || {},
+                satuans: this.satuans[area.id] || {}
             };
         });
         

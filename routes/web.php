@@ -214,6 +214,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/allowed-extensions', [FileUploadController::class, 'allowedExtensions'])->name('allowed-extensions');
     });
 
+    // Satuan API endpoint for survey spreadsheet (available to all authenticated users)
+    Route::get('/api/satuans', [SatuanController::class, 'getSatuansApi'])->name('api.satuans');
+
     // Survey Formula Management - API endpoint for getting formulas (available to Presales & Administrator)
     Route::get('/survey-formulas/api', [SurveyFormulaController::class, 'getFormulas'])->name('survey-formulas.api');
 

@@ -119,6 +119,9 @@
             let autoSaveIntervalId = null;
             let survey = null;
             
+            // Embed satuans data from server
+            const SATUANS_DATA = @json($satuans ?? []);
+            
             // Wait for SurveySpreadsheet class to be available
             const waitForModule = () => new Promise((resolve) => {
                 if (window.SurveySpreadsheet) {
@@ -138,7 +141,8 @@
                 rekapId: {{ $rekap->id }},
                 csrfToken: document.querySelector('input[name="_token"]').value,
                 baseUrl: '{{ url('') }}',
-                version: {{ isset($activeVersion) && $activeVersion !== null ? $activeVersion : 'null' }}
+                version: {{ isset($activeVersion) && $activeVersion !== null ? $activeVersion : 'null' }},
+                satuans: SATUANS_DATA
             });
             
             await survey.init();
@@ -165,11 +169,9 @@
             // AUTO-SAVE FUNCTIONS
             function autoSaveToLocalStorage() {
                 if (!survey || !survey.areas || survey.areas.length === 0) {
-                    console.log('⏭️ Auto-save skipped: no areas');
                     return false;
                 }
                 
-                console.log('💾 Auto-saving survey data to localStorage...');
                 
                 // Sync column headers from spreadsheet first
                 survey.syncAllColumnHeaders();
@@ -186,7 +188,8 @@
                         area_name: areaName,
                         headers: area.headers,
                         data: objData,
-                        comments: survey.comments[area.id] || {}
+                        comments: survey.comments[area.id] || {},
+                        satuans: survey.satuans[area.id] || {}
                     };
                 });
                 
@@ -200,7 +203,6 @@
                 try {
                     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(autoSaveData));
                     const now = new Date();
-                    console.log('✅ Auto-save to localStorage successful at', now.toLocaleTimeString());
                     
                     if (typeof window.notyf !== 'undefined') {
                         window.notyf.success({
@@ -211,7 +213,6 @@
                     }
                     return true;
                 } catch (error) {
-                    console.error('❌ Auto-save to localStorage failed:', error);
                     return false;
                 }
             }
@@ -231,7 +232,6 @@
             function clearAutoSaveData() {
                 try {
                     localStorage.removeItem(LOCAL_STORAGE_KEY);
-                    console.log('🗑️ Auto-save data cleared from localStorage');
                 } catch (error) {
                     console.error('❌ Failed to clear auto-save data:', error);
                 }
@@ -240,7 +240,6 @@
             function restoreAutoSaveData(savedData) {
                 if (!savedData || !savedData.areas || !survey) return false;
                 
-                console.log('🔄 Restoring data from localStorage...', savedData);
                 
                 // Clear existing areas - use while loop to avoid modifying array while iterating
                 while (survey.areas.length > 0) {
@@ -251,7 +250,7 @@
                 
                 // Recreate areas from saved data
                 savedData.areas.forEach(areaData => {
-                    survey.addArea(areaData.area_name, areaData.headers, areaData.data, areaData.id, areaData.comments);
+                    survey.addArea(areaData.area_name, areaData.headers, areaData.data, areaData.id, areaData.comments, areaData.satuans);
                 });
                 
                 // Re-apply formulas
@@ -274,14 +273,12 @@
                     clearInterval(autoSaveIntervalId);
                 }
                 autoSaveIntervalId = setInterval(autoSaveToLocalStorage, AUTOSAVE_INTERVAL);
-                console.log('🚀 Auto-save started (every 1 minute)');
             }
             
             function stopAutoSave() {
                 if (autoSaveIntervalId) {
                     clearInterval(autoSaveIntervalId);
                     autoSaveIntervalId = null;
-                    console.log('⏹️ Auto-save stopped');
                 }
             }
             
