@@ -10,6 +10,7 @@ use App\Models\Tipe;
 use App\Models\Satuan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class RekapController extends Controller
 {
@@ -1063,6 +1064,13 @@ class RekapController extends Controller
         
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         
+        // Log activity for exporting survey
+        activity()
+            ->performedOn($rekap)
+            ->causedBy(Auth::user())
+            ->withProperties(['version' => $versionNum ?? 0])
+            ->log('Exported Excel');
+        
         return response()->stream(
             function() use ($writer) {
                 $writer->save('php://output');
@@ -1237,6 +1245,13 @@ class RekapController extends Controller
             \App\Models\RekapSurvey::whereIn('id', $toDelete)->delete();
         }
 
+        // Log activity for saving survey
+        activity()
+            ->performedOn($rekap)
+            ->causedBy(Auth::user())
+            ->withProperties(['version' => $versionNum ?? 0, 'areas_count' => count($request->areas)])
+            ->log('Saved survey');
+
         return response()->json([
             'success' => true,
             'message' => 'Semua area survey berhasil disimpan',
@@ -1325,6 +1340,7 @@ class RekapController extends Controller
                     'data' => $survey->data,
                     'totals' => $survey->totals,
                     'comments' => $survey->comments,
+                    'satuans' => $survey->satuans,
                 ]);
             }
         } else {
@@ -1352,9 +1368,17 @@ class RekapController extends Controller
                     'data' => $survey->data,
                     'totals' => $survey->totals,
                     'comments' => $survey->comments,
+                    'satuans' => $survey->satuans,
                 ]);
             }
         }
+
+        // Log activity for creating revision
+        activity()
+            ->performedOn($rekap)
+            ->causedBy(Auth::user())
+            ->withProperties(['new_version' => $newVersionNum])
+            ->log('Created revision');
 
         // Redirect to the same page with new version
         return redirect()->route('rekap.show', ['id' => $rekap_id, 'version' => $newVersionNum])
@@ -1407,5 +1431,182 @@ class RekapController extends Controller
             'success' => true,
             'message' => 'Status berhasil diubah'
         ]);
+    }
+
+    /**
+     * Show activity log for a rekap.
+     */
+    public function showLog(Request $request)
+    {
+        $id = $request->query('id');
+        $rekap = Rekap::findOrFail($id);
+        
+        $activities = \Spatie\Activitylog\Models\Activity::where('subject_type', Rekap::class)
+            ->where('subject_id', $id)
+            ->with('causer')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'activities' => $activities->map(function($activity) {
+                return [
+                    'description' => $activity->description,
+                    'causer_name' => $activity->causer ? $activity->causer->name : 'System',
+                    'properties' => $activity->properties,
+                    'created_at' => $activity->created_at->format('d/m/Y H:i:s'),
+                    'created_at_formatted' => $activity->created_at->translatedFormat('l, d F Y H:i')
+                ];
+            })
+        ]);
+    }
+
+    /**
+     * Count unread activities for a rekap.
+     */
+    public function countUnreadActivities(Request $request)
+    {
+        $id = $request->query('id');
+        $userId = Auth::id();
+        
+        // Get last read timestamp for this user and rekap
+        $lastRead = DB::table('activity_reads')
+            ->where('user_id', $userId)
+            ->where('rekap_id', $id)
+            ->value('last_read_at');
+        
+        // Count activities after last read
+        $query = \Spatie\Activitylog\Models\Activity::where('subject_type', Rekap::class)
+            ->where('subject_id', $id);
+        
+        if ($lastRead) {
+            $query->where('created_at', '>', $lastRead);
+        }
+        
+        $count = $query->count();
+        
+        return response()->json([
+            'success' => true,
+            'unread_count' => $count
+        ]);
+    }
+
+    /**
+     * Mark activities as read for a rekap.
+     */
+    public function markActivitiesAsRead(Request $request)
+    {
+        $id = $request->input('id');
+        $userId = Auth::id();
+        
+        DB::table('activity_reads')->updateOrInsert(
+            ['user_id' => $userId, 'rekap_id' => $id, 'penawaran_id' => null],
+            ['last_read_at' => now(), 'updated_at' => now()]
+        );
+        
+        return response()->json([
+            'success' => true
+        ]);
+    }
+
+    /**
+     * Get supporting documents for a rekap.
+     */
+    public function getSupportingDocuments($id)
+    {
+        $rekap = Rekap::findOrFail($id);
+
+        $documents = $rekap->supportingDocuments()
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function($doc) {
+                return [
+                    'id' => $doc->id,
+                    'filename' => $doc->original_filename,
+                    'file_type' => $doc->file_type,
+                    'file_size' => $doc->file_size,
+                    'notes' => $doc->notes,
+                    'uploaded_by' => $doc->uploaded_by,
+                    'created_at' => $doc->created_at,
+                ];
+            });
+
+        return response()->json($documents);
+    }
+
+    /**
+     * Upload a supporting document for a rekap.
+     */
+    public function uploadDocument(Request $request, $id)
+    {
+        $rekap = Rekap::findOrFail($id);
+
+        $request->validate([
+            'file' => 'required|file|max:10240', // 10MB
+            'notes' => 'nullable|string|max:500'
+        ]);
+
+        $file = $request->file('file');
+        $fileName = $id . '_' . time() . '_' . $file->getClientOriginalName();
+        $filePath = $file->storeAs('rekap/' . $id . '/documents', $fileName, 'public');
+
+        $document = \App\Models\RekapSupportingDocument::create([
+            'id_rekap' => $id,
+            'file_path' => $filePath,
+            'original_filename' => $file->getClientOriginalName(),
+            'file_type' => $file->getClientMimeType(),
+            'file_size' => $file->getSize(),
+            'uploaded_by' => Auth::user()->name,
+            'notes' => $request->input('notes'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'document' => [
+                'id' => $document->id,
+                'filename' => $document->original_filename,
+                'created_at' => $document->created_at,
+            ]
+        ], 201);
+    }
+
+    /**
+     * Delete a supporting document.
+     */
+    public function deleteDocument($id, $documentId)
+    {
+        $rekap = Rekap::findOrFail($id);
+
+        $document = \App\Models\RekapSupportingDocument::where('id', $documentId)
+            ->where('id_rekap', $id)
+            ->firstOrFail();
+
+        // Delete file from storage
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($document->file_path)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($document->file_path);
+        }
+
+        $document->delete();
+
+        return response()->json([
+            'success' => true
+        ]);
+    }
+
+    /**
+     * Download a supporting document.
+     */
+    public function downloadDocument($id, $documentId)
+    {
+        $rekap = Rekap::findOrFail($id);
+
+        $document = \App\Models\RekapSupportingDocument::where('id', $documentId)
+            ->where('id_rekap', $id)
+            ->firstOrFail();
+
+        return \Illuminate\Support\Facades\Storage::disk('public')->download(
+            $document->file_path,
+            $document->original_filename
+        );
     }
 }
