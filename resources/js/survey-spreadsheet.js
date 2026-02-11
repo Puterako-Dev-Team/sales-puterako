@@ -527,49 +527,49 @@ class SurveySpreadsheet {
     // Update totals display for an area
     updateTotalsDisplay(area) {
         const totals = this.calculateTotals(area);
-        const totalsTable = document.getElementById(`area-${area.id}-totals-table`);
-        const totalsRow = document.getElementById(`area-${area.id}-totals`);
         
-        if (!totalsRow || !totalsTable) return;
+        // Find or create totals container
+        const scrollContainer = document.getElementById(`area-${area.id}-scroll`);
+        if (!scrollContainer) return;
         
-        // Get jspreadsheet table and read actual cell widths
-        const jssTable = area.container.querySelector('.jss, .jexcel');
-        let columnWidths = [];
-        
-        if (jssTable) {
-            // Get widths from the last header row (column names row)
-            const headerRows = jssTable.querySelectorAll('thead tr');
-            const lastHeaderRow = headerRows[headerRows.length - 1];
-            if (lastHeaderRow) {
-                const cells = lastHeaderRow.querySelectorAll('td');
-                cells.forEach(cell => {
-                    columnWidths.push(cell.offsetWidth);
-                });
+        let totalsContainer = document.getElementById(`area-${area.id}-totals-container`);
+        if (!totalsContainer) {
+            totalsContainer = document.createElement('div');
+            totalsContainer.id = `area-${area.id}-totals-container`;
+            // Append to scroll container's inner wrapper
+            const innerWrapper = scrollContainer.querySelector('div');
+            if (innerWrapper) {
+                innerWrapper.appendChild(totalsContainer);
+            } else {
+                scrollContainer.appendChild(totalsContainer);
             }
-            
-            // Match table width exactly
-            totalsTable.style.width = jssTable.offsetWidth + 'px';
-            totalsTable.style.tableLayout = 'fixed';
-            totalsTable.style.borderCollapse = 'collapse';
         }
         
-        // Remove old colgroup if exists
-        const existingColgroup = totalsTable.querySelector('colgroup');
-        if (existingColgroup) {
-            existingColgroup.remove();
-        }
+        // Get jspreadsheet table
+        const jssTable = area.container.querySelector('table');
+        if (!jssTable) return;
+        
+        // Get colgroup from jspreadsheet to copy exact widths
+        const jssColgroup = jssTable.querySelector('colgroup');
         
         // Groups that should NOT have totals
         const excludedGroups = ['lokasi', 'dimensi'];
         
-        // Build cells with explicit widths
-        let html = '';
-        let colIdx = 0;
+        // Build totals table HTML
+        let html = `<table style="border-collapse: collapse; margin-top: -1px; width: ${jssTable.offsetWidth}px; table-layout: fixed;">`;
         
-        // First column (row number column) - label
-        const firstWidth = columnWidths[colIdx] || 50;
-        html += `<td style="font-weight: bold; background: #fef3c7; padding: 4px 8px; border: 1px solid #ccc; text-align: center; white-space: nowrap; width: ${firstWidth}px;">TOTAL</td>`;
-        colIdx++;
+        // Copy colgroup if exists
+        if (jssColgroup) {
+            html += jssColgroup.outerHTML;
+        }
+        
+        html += '<tbody><tr>';
+        
+        // Cell base style
+        const cellStyle = 'font-weight: bold; background: #fef3c7; padding: 6px 8px; border: 1px solid #ccc; text-align: center; box-sizing: border-box;';
+        
+        // First column (row number column) - use Σ symbol
+        html += `<td style="${cellStyle}" title="Total">Σ</td>`;
         
         // Each column matches the header column above
         area.headers.forEach(group => {
@@ -577,19 +577,17 @@ class SurveySpreadsheet {
             const isExcludedGroup = excludedGroups.includes(groupName);
             
             group.columns.forEach(col => {
-                const width = columnWidths[colIdx] || 100;
                 if (col.type === 'numeric' && !isExcludedGroup) {
                     const value = totals[col.key] || 0;
-                    html += `<td style="font-weight: bold; background: #fef3c7; padding: 4px 8px; border: 1px solid #ccc; text-align: center; width: ${width}px;">${value}</td>`;
+                    html += `<td style="${cellStyle}">${value}</td>`;
                 } else {
-                    // Empty cell for non-numeric columns or excluded groups
-                    html += `<td style="font-weight: bold; background: #fef3c7; padding: 4px 8px; border: 1px solid #ccc; width: ${width}px;"></td>`;
+                    html += `<td style="${cellStyle}"></td>`;
                 }
-                colIdx++;
             });
         });
         
-        totalsRow.innerHTML = html;
+        html += '</tr></tbody></table>';
+        totalsContainer.innerHTML = html;
     }
 
     // Initialize with data from server
@@ -680,6 +678,10 @@ class SurveySpreadsheet {
                     style="padding: 6px 12px; background: #f97316; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
                 - Hapus Grup
             </button>
+            <button type="button" class="btn-remove-col" data-area-id="${areaId}"
+                    style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                - Hapus Kolom
+            </button>
         `;
         areaWrapper.appendChild(columnButtons);
         
@@ -688,7 +690,7 @@ class SurveySpreadsheet {
         scrollContainer.id = `area-${areaId}-scroll`;
         scrollContainer.style.cssText = 'overflow-x: auto; overflow-y: visible; max-width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; background: white;';
         
-        // Inner wrapper to keep spreadsheet and totals together
+        // Inner wrapper to keep spreadsheet together
         const innerWrapper = document.createElement('div');
         innerWrapper.style.cssText = 'min-width: fit-content;';
         
@@ -696,12 +698,6 @@ class SurveySpreadsheet {
         const spreadsheetContainer = document.createElement('div');
         spreadsheetContainer.id = `area-${areaId}-spreadsheet`;
         innerWrapper.appendChild(spreadsheetContainer);
-        
-        // Totals row - inside the same scroll container
-        const totalsContainer = document.createElement('div');
-        totalsContainer.id = `area-${areaId}-totals-container`;
-        totalsContainer.innerHTML = `<table id="area-${areaId}-totals-table" style="border-collapse: collapse; margin-top: -1px; table-layout: fixed;"><tbody><tr id="area-${areaId}-totals"></tr></tbody></table>`;
-        innerWrapper.appendChild(totalsContainer);
         
         scrollContainer.appendChild(innerWrapper);
         areaWrapper.appendChild(scrollContainer);
@@ -954,6 +950,44 @@ class SurveySpreadsheet {
             if (!confirm(`Hapus grup "${area.headers[groupIdx].group}"?`)) return;
             this.removeColumnGroup(area, groupIdx);
         });
+        
+        // Remove column button
+        wrapper.querySelector('.btn-remove-col')?.addEventListener('click', () => {
+            // Build list of all columns with their group
+            let columnList = [];
+            let colNumber = 1;
+            area.headers.forEach((group, gIdx) => {
+                group.columns.forEach((col, cIdx) => {
+                    columnList.push({
+                        number: colNumber,
+                        groupIdx: gIdx,
+                        colIdx: cIdx,
+                        groupName: group.group,
+                        colName: col.title
+                    });
+                    colNumber++;
+                });
+            });
+            
+            if (columnList.length <= 1) {
+                alert('Minimal harus ada satu kolom!');
+                return;
+            }
+            
+            const listText = columnList.map(c => `${c.number}. [${c.groupName}] ${c.colName}`).join('\n');
+            const input = prompt(`Pilih nomor kolom yang akan dihapus:\n${listText}`);
+            if (!input) return;
+            
+            const selectedNum = parseInt(input);
+            const selected = columnList.find(c => c.number === selectedNum);
+            if (!selected) {
+                alert('Nomor tidak valid!');
+                return;
+            }
+            
+            if (!confirm(`Hapus kolom "${selected.colName}" dari grup "${selected.groupName}"?`)) return;
+            this.removeColumnFromGroup(area, selected.groupIdx, selected.colIdx);
+        });
     }
 
     // Remove an area
@@ -1018,6 +1052,28 @@ class SurveySpreadsheet {
         if (groupIndex < 0 || groupIndex >= area.headers.length) return false;
         
         area.headers.splice(groupIndex, 1);
+        this.reinitializeArea(area);
+        return true;
+    }
+    
+    // Remove a single column from a group
+    removeColumnFromGroup(area, groupIndex, columnIndex) {
+        if (groupIndex < 0 || groupIndex >= area.headers.length) return false;
+        
+        const group = area.headers[groupIndex];
+        if (columnIndex < 0 || columnIndex >= group.columns.length) return false;
+        
+        // Count total columns
+        const totalColumns = area.headers.reduce((sum, g) => sum + g.columns.length, 0);
+        if (totalColumns <= 1) return false;
+        
+        // If this is the last column in the group, remove the entire group
+        if (group.columns.length === 1) {
+            return this.removeColumnGroup(area, groupIndex);
+        }
+        
+        // Remove the column
+        group.columns.splice(columnIndex, 1);
         this.reinitializeArea(area);
         return true;
     }
@@ -1268,6 +1324,7 @@ class SurveySpreadsheet {
             .btn-add-group:hover { background: #7c3aed !important; }
             .btn-add-col:hover { background: #4f46e5 !important; }
             .btn-remove-group:hover { background: #ea580c !important; }
+            .btn-remove-col:hover { background: #dc2626 !important; }
             
             /* Formula column styling */
             .formula-cell {
@@ -1292,6 +1349,15 @@ class SurveySpreadsheet {
                 font-size: 10px;
                 color: #16a34a;
                 font-weight: bold;
+            }
+            
+            /* Totals row styling */
+            [id$="-totals-container"] table {
+                border-collapse: collapse !important;
+            }
+            
+            [id$="-totals-container"] td {
+                box-sizing: border-box !important;
             }
         `;
         document.head.appendChild(style);
