@@ -673,7 +673,7 @@ class PenawaranController extends Controller
         $activeVersionId = $versionRow->id;
 
         $details = PenawaranDetail::where('version_id', $activeVersionId)
-            ->orderBy('order', 'asc')
+            ->orderByRaw('CASE WHEN `order` > 0 THEN `order` ELSE id_penawaran_detail END ASC')
             ->get();
         $profit = $details->first()->profit ?? 0;
         $jasa = $versionRow ? $versionRow->jasa : null;
@@ -995,7 +995,7 @@ class PenawaranController extends Controller
 
         // Ambil detail penawaran sesuai versi
         $details = PenawaranDetail::where('version_id', $versionRow->id)
-            ->orderBy('order', 'asc')
+            ->orderByRaw('CASE WHEN `order` > 0 THEN `order` ELSE id_penawaran_detail END ASC')
             ->get();
 
         // Hitung total penawaran
@@ -1003,7 +1003,7 @@ class PenawaranController extends Controller
 
         // Ambil jasa sesuai versi
         $jasa = \App\Models\Jasa::where('version_id', $versionRow->id)->first();
-        $jasaDetails = \App\Models\JasaDetail::where('version_id', $versionRow->id)->orderBy('order', 'asc')->get();
+        $jasaDetails = \App\Models\JasaDetail::where('version_id', $versionRow->id)->orderByRaw('CASE WHEN `order` > 0 THEN `order` ELSE id_jasa_detail END ASC')->get();
         $grandTotalJasa = $jasa ? $jasa->grand_total : 0;
 
         // Hitung grand total
@@ -1343,7 +1343,7 @@ class PenawaranController extends Controller
                 ]);
 
                 // Copy JasaDetail
-                $oldJasaDetails = \App\Models\JasaDetail::where('version_id', $oldVersion->id)->orderBy('order', 'asc')->get();
+                $oldJasaDetails = \App\Models\JasaDetail::where('version_id', $oldVersion->id)->orderByRaw('CASE WHEN `order` > 0 THEN `order` ELSE id_jasa_detail END ASC')->get();
                 foreach ($oldJasaDetails as $jasaDetail) {
                     \App\Models\JasaDetail::create([
                         'version_id' => $newVersionRow->id,
