@@ -467,20 +467,35 @@ class RekapController extends Controller
 
         // Debug: Return all approved rekaps without complex filtering
         $rekaps = Rekap::where('status', 'approved')
-            ->select('id', 'nama', 'imported_by', 'imported_into_penawaran_id', 'penawaran_id')
+            ->with('user')
+            ->select('id', 'nama', 'user_id', 'imported_by', 'imported_into_penawaran_id', 'penawaran_id')
             ->orderBy('created_at', 'desc')
             ->get();
 
         // Also include rekaps created for this penawaran (even if not approved yet)
         if ($penawaranId) {
             $rekapForPenawaran = Rekap::where('penawaran_id', $penawaranId)
-                ->select('id', 'nama', 'imported_by', 'imported_into_penawaran_id', 'penawaran_id')
+                ->with('user')
+                ->select('id', 'nama', 'user_id', 'imported_by', 'imported_into_penawaran_id', 'penawaran_id')
                 ->get();
             
             $rekaps = $rekaps->merge($rekapForPenawaran)->unique('id');
         }
 
-        return response()->json($rekaps->values());
+        // Format response to include user name
+        $formatted = $rekaps->map(function($r) {
+            return [
+                'id' => $r->id,
+                'nama' => $r->nama,
+                'user_id' => $r->user_id,
+                'user_name' => $r->user ? $r->user->name : 'Unknown',
+                'imported_by' => $r->imported_by,
+                'imported_into_penawaran_id' => $r->imported_into_penawaran_id,
+                'penawaran_id' => $r->penawaran_id
+            ];
+        });
+
+        return response()->json($formatted->values());
     }
     public function getItems(Request $request, $id)
     {

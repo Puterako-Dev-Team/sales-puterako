@@ -4541,9 +4541,22 @@
                             .then(res => res.json())
                             .then(data => {
                                 if (!dropdown) return;
+                                
+                                // Get already loaded rekap IDs from the display
+                                const loadedRekapIds = new Set();
+                                const rekapHeaders = document.querySelectorAll('[data-rekap-id]');
+                                rekapHeaders.forEach(header => {
+                                    const rekapId = header.getAttribute('data-rekap-id');
+                                    if (rekapId) loadedRekapIds.add(parseInt(rekapId));
+                                });
+                                
                                 dropdown.innerHTML = '<option value="">-- Pilih Rekap --</option>';
                                 data.forEach(r => {
-                                    dropdown.innerHTML += `<option value="${r.id}">${r.nama} (ID: ${r.id})</option>`;
+                                    // Skip already loaded rekaps
+                                    if (loadedRekapIds.has(r.id)) return;
+                                    
+                                    const displayText = `${r.nama} - ${r.user_name}`;
+                                    dropdown.innerHTML += `<option value="${r.id}">${displayText}</option>`;
                                 });
                             })
                             .catch(err => {
@@ -4586,6 +4599,7 @@
                         // Rekap header
                         const rekapHeader = document.createElement('div');
                         rekapHeader.className = 'mb-4 p-4 rounded bg-blue-50 border-l-4 border-blue-500';
+                        rekapHeader.setAttribute('data-rekap-id', rekapData.rekap_id);
                         
                         const hasDocuments = rekapData.supporting_documents && rekapData.supporting_documents.length > 0;
                         const docButton = hasDocuments ? `
