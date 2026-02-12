@@ -1751,7 +1751,7 @@
                     // =====================================================
 
                     // Variabel Penawaran
-                    let sections = [];
+                    let sections = window.penawaranSections = [];
                     let sectionCounter = 0;
                     let isEditMode = !hasExistingData;
                     
@@ -3849,7 +3849,7 @@
 
                         sectionElement.querySelector('.delete-section-btn').addEventListener('click', () => {
                             if (confirm('Yakin ingin menghapus section ini?')) {
-                                sections = sections.filter(s => s.id !== sectionId);
+                                sections = window.penawaranSections = sections.filter(s => s.id !== sectionId);
                                 sectionElement.remove();
                             }
                         });
@@ -3859,6 +3859,9 @@
                             spreadsheetId,
                             spreadsheet
                         });
+                        
+                        // Update global reference
+                        window.penawaranSections = sections;
 
                         // applyTemplateStyle(spreadsheetId);
                         updateSubtotal({
@@ -4593,6 +4596,7 @@
 
                     const allNumericTotals = {}; // For accumulation across all areas
                     const allSatuans = {}; // For accumulation - satuan per column
+                    const allAreaBreakdowns = {}; // For per-area breakdown: { key: { areaName: qty, ... } }
 
                     // Render each rekap
                     response.rekaps.forEach((rekapData, rekapIdx) => {
@@ -4762,6 +4766,11 @@
                                                 if (col.key === key) allNumericTotals[key].title = col.title || key;
                                             });
                                         });
+                                        
+                                        // Track per-area breakdown
+                                        if (!allAreaBreakdowns[key]) allAreaBreakdowns[key] = {};
+                                        if (!allAreaBreakdowns[key][areaName]) allAreaBreakdowns[key][areaName] = 0;
+                                        allAreaBreakdowns[key][areaName] += parseFloat(totals[key]) || 0;
                                     } else if (isFirstTotal) {
                                         td.textContent = 'TOTAL';
                                         isFirstTotal = false;
@@ -4834,6 +4843,11 @@
                         th3.textContent = 'Satuan';
                         accHeadRow.appendChild(th3);
 
+                        const th4 = document.createElement('th');
+                        th4.className = 'text-center font-semibold pb-2 bg-blue-100 px-3 py-2';
+                        th4.textContent = 'Aksi';
+                        accHeadRow.appendChild(th4);
+
                         accThead.appendChild(accHeadRow);
                         accTable.appendChild(accThead);
 
@@ -4856,6 +4870,20 @@
                             tdSatuan.textContent = allSatuans[key] || '-';
                             tr.appendChild(tdSatuan);
 
+                            // Action button cell
+                            const tdAction = document.createElement('td');
+                            tdAction.className = 'py-2 border-t text-center px-3';
+                            
+                            const insertBtn = document.createElement('button');
+                            insertBtn.className = 'bg-blue-600 text-white px-2 py-2 rounded hover:bg-blue-700 text-sm transition inline-flex items-center justify-center';
+                            insertBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M13 3l8 8-8 8v-5c-7 0-11 4-11 9 0-9 4-13 11-13V3z"/></svg>';
+                            insertBtn.title = 'Masukkan ke penawaran';
+                            insertBtn.addEventListener('click', function() {
+                                insertItemToPenawaran(data.title, allAreaBreakdowns[key] || {}, allSatuans[key] || '');
+                            });
+                            tdAction.appendChild(insertBtn);
+                            tr.appendChild(tdAction);
+
                             accTbody.appendChild(tr);
                         });
                         accTable.appendChild(accTbody);
@@ -4866,6 +4894,111 @@
 
                     // Reattach event listeners to dokumen buttons after rendering
                     setTimeout(attachDokumenButtonListeners, 100);
+                }
+
+                /**
+                 * Insert item from akumulasi into penawaran sections by area
+                 * @param {string} itemName - The item/tipe name
+                 * @param {Object} areaBreakdown - Object with area names as keys and quantities as values
+                 * @param {string} satuan - The unit of measurement
+                 */
+                function insertItemToPenawaran(itemName, areaBreakdown, satuan) {
+                    const sectionsContainer = document.getElementById('sectionsContainer');
+                    if (!sectionsContainer) {
+                        if (window.notyf) notyf.error('Penawaran sections container not found.');
+                        return;
+                    }
+
+                    // If no area breakdown, use a default "Umum" area
+                    if (!areaBreakdown || Object.keys(areaBreakdown).length === 0) {
+                        areaBreakdown = { 'Umum': 0 };
+                    }
+
+                    let insertedCount = 0;
+
+                    // For each area in the breakdown
+                    Object.entries(areaBreakdown).forEach(([areaName, qty]) => {
+                        if (qty <= 0) return;
+
+                        // Find existing section with matching area
+                        let targetSection = null;
+                        const sections = window.penawaranSections || [];
+                        
+                        for (const section of sections) {
+                            const sectionElement = document.getElementById(section.id);
+                            if (sectionElement) {
+                                const areaInput = sectionElement.querySelector('.area-select');
+                                if (areaInput && areaInput.value.toLowerCase() === areaName.toLowerCase()) {
+                                    targetSection = section;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // If no matching section found, create a new one
+                        if (!targetSection) {
+                            const sectionData = {
+                                nama_section: itemName,
+                                area: areaName,
+                                data: []
+                            };
+                            
+                            // Trigger add section button click to create new section
+                            const addSectionBtn = document.getElementById('addSectionBtn');
+                            if (addSectionBtn) {
+                                addSectionBtn.click();
+                                // Get the newly created section (last one in the array)
+                                const updatedSections = window.penawaranSections || [];
+                                targetSection = updatedSections[updatedSections.length - 1];
+                                
+                                // Set the area value for the new section
+                                if (targetSection) {
+                                    const sectionElement = document.getElementById(targetSection.id);
+                                    if (sectionElement) {
+                                        const areaInput = sectionElement.querySelector('.area-select');
+                                        if (areaInput) areaInput.value = areaName;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Now add the item to the spreadsheet
+                        if (targetSection && targetSection.spreadsheet) {
+                            const spreadsheet = targetSection.spreadsheet;
+                            const currentData = spreadsheet.getData();
+                            
+                            // Find empty row or add new row
+                            let emptyRowIdx = -1;
+                            for (let i = 0; i < currentData.length; i++) {
+                                const row = currentData[i];
+                                // Check if row is empty (no tipe, no qty)
+                                if (!row[1] && (!row[3] || row[3] === 0 || row[3] === '0')) {
+                                    emptyRowIdx = i;
+                                    break;
+                                }
+                            }
+
+                            if (emptyRowIdx === -1) {
+                                // Add new row
+                                spreadsheet.insertRow();
+                                emptyRowIdx = currentData.length;
+                            }
+
+                            // Set the values
+                            // Column indices: 0=No, 1=Tipe, 2=Deskripsi, 3=QTY, 4=Satuan, ...
+                            spreadsheet.setValueFromCoords(1, emptyRowIdx, itemName, true);  // Tipe
+                            spreadsheet.setValueFromCoords(3, emptyRowIdx, qty, true);       // QTY
+                            spreadsheet.setValueFromCoords(4, emptyRowIdx, satuan, true);    // Satuan
+
+                            insertedCount++;
+                        }
+                    });
+
+                    if (insertedCount > 0) {
+                        if (window.notyf) notyf.success(`Berhasil memasukkan ${insertedCount} item ke penawaran.`);
+                    } else {
+                        if (window.notyf) notyf.error('Tidak ada item yang dapat dimasukkan.');
+                    }
                 }
 
                 // Legacy function for backward compatibility (items-based rendering)
