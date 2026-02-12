@@ -23,6 +23,7 @@ class JasaDetail extends Model
         'pembulatan',
         'version_id',
         'comments',
+        'order',
     ];
 
     protected $casts = [

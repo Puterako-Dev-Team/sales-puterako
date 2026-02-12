@@ -29,6 +29,7 @@ class PenawaranDetail extends Model
         'delivery_time',
         'comments',
         'version_id',
+        'order',
     ];
 
     protected $casts = [
