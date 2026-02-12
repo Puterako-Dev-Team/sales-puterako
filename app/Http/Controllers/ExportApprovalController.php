@@ -333,8 +333,8 @@ class ExportApprovalController extends Controller
     {
         $user = Auth::user();
 
-        // Only managers can approve in step 2
-        if ($user->role !== 'manager') {
+        // Only managers can approve in step 2 (support both 'manager' and 'manajer' spellings)
+        if (!in_array($user->role, ['manager', 'manajer'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Hanya manager yang dapat approve pada tahap kedua'
@@ -449,6 +449,63 @@ class ExportApprovalController extends Controller
         return response()->json([
             'success' => true,
             'message' => '✅ Persetujuan lengkap! Staff sekarang dapat export PDF'
+        ]);
+    }
+
+    /**
+     * Revise/Reset approval by Manager (Sales Department)
+     * Deletes the approval request so staff can request verification again
+     */
+    public function revisiByManager(Request $request, $requestId)
+    {
+        $user = Auth::user();
+
+        // Only managers can revise (support both 'manager' and 'manajer' spellings)
+        if (!in_array($user->role, ['manager', 'manajer'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya manager yang dapat melakukan revisi'
+            ], 403);
+        }
+
+        $approvalRequest = ExportApprovalRequest::find($requestId);
+        if (!$approvalRequest) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Permintaan verifikasi tidak ditemukan'
+            ], 404);
+        }
+
+        // Check if supervisor has approved (manager can only revise after supervisor approval)
+        if (!$approvalRequest->approved_by_supervisor && $approvalRequest->status === 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Belum disetujui oleh supervisor, tidak dapat di-revisi'
+            ], 409);
+        }
+
+        // Check if direktur already approved (can't revise if already fully approved)
+        if ($approvalRequest->approved_by_direktur || $approvalRequest->status === 'fully_approved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sudah disetujui oleh direktur, tidak dapat di-revisi'
+            ], 409);
+        }
+
+        // Also reset the export_approval_status on the penawaran_version
+        $version = PenawaranVersion::find($approvalRequest->version_id);
+        if ($version) {
+            $version->update([
+                'export_approval_status' => 'pending',
+            ]);
+        }
+
+        // Delete the approval request so staff can request again
+        $approvalRequest->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permintaan verifikasi telah dihapus. Staff dapat mengajukan verifikasi ulang.'
         ]);
     }
 

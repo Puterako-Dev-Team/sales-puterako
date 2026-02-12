@@ -220,6 +220,23 @@
     </div>
 </div>
 
+<!-- Modal Konfirmasi Revisi -->
+<div id="revisiModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">Konfirmasi Revisi</h3>
+        <p class="text-sm text-gray-600 mb-4">Anda yakin ingin merevisi (kembalikan ke supervisor) permintaan ini?</p>
+        <div class="bg-gray-50 border border-gray-200 rounded p-3 text-sm text-gray-700 mb-4">
+            <div><span class="font-semibold">No Penawaran:</span> <span id="revisiModalNoPenawaran">-</span></div>
+            <div><span class="font-semibold">Perusahaan:</span> <span id="revisiModalPerusahaan">-</span></div>
+            <div><span class="font-semibold">Versi:</span> <span id="revisiModalVersi">-</span></div>
+        </div>
+        <div class="flex justify-end gap-3">
+            <button id="revisiModalCancel" class="px-4 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100">Batal</button>
+            <button id="revisiModalConfirm" class="px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700">Revisi</button>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -230,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsInfo = document.getElementById('resultsInfo');
     const resetFilterBtn = document.getElementById('resetFilter');
     let pendingAction = null;
+    let pendingRevisionAction = null;
 
     const notyfInstance = window.notyf || new Notyf({
         duration: 2500,
@@ -261,6 +279,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const modal = document.getElementById('approveModal');
         modal.classList.remove('active');
         pendingAction = null;
+    }
+
+    function openRevisiModal(data) {
+        const modal = document.getElementById('revisiModal');
+        pendingRevisionAction = data;
+        document.getElementById('revisiModalNoPenawaran').textContent = data.no;
+        document.getElementById('revisiModalPerusahaan').textContent = data.company;
+        document.getElementById('revisiModalVersi').textContent = data.version;
+        modal.classList.add('active');
+    }
+
+    function closeRevisiModal() {
+        const modal = document.getElementById('revisiModal');
+        modal.classList.remove('active');
+        pendingRevisionAction = null;
     }
 
     function attachSortListeners() {
@@ -311,6 +344,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function attachRevisiButtons() {
+        document.querySelectorAll('.revisi-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                openRevisiModal({
+                    url: btn.dataset.url,
+                    button: btn,
+                    no: btn.dataset.no,
+                    company: btn.dataset.company,
+                    version: btn.dataset.version
+                });
+            });
+        });
+    }
+
     function fetchList(params) {
         showLoading();
         fetch(`{{ route('penawaran.approve-list') }}?${params.toString()}`, {
@@ -328,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 attachSortListeners();
                 attachPaginationListeners();
                 attachApproveButtons();
+                attachRevisiButtons();
             })
             .catch(e => {
                 console.error(e);
@@ -370,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Modal handlers
+    // Modal handlers for Approve
     const modal = document.getElementById('approveModal');
     const btnCancel = document.getElementById('modalCancel');
     const btnConfirm = document.getElementById('modalConfirm');
@@ -416,10 +464,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Modal handlers for Revisi
+    const revisiModal = document.getElementById('revisiModal');
+    const revisiCancel = document.getElementById('revisiModalCancel');
+    const revisiConfirm = document.getElementById('revisiModalConfirm');
+
+    revisiCancel.addEventListener('click', closeRevisiModal);
+    revisiModal.addEventListener('click', (e) => {
+        if (e.target === revisiModal) closeRevisiModal();
+    });
+
+    revisiConfirm.addEventListener('click', async () => {
+        if (!pendingRevisionAction) return;
+        const { url, button } = pendingRevisionAction;
+
+        try {
+            button.disabled = true;
+            button.classList.add('opacity-60', 'cursor-not-allowed');
+
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': getCsrf(),
+                    'Accept': 'application/json'
+                }
+            });
+
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                throw new Error(data.message || 'Gagal revisi');
+            }
+
+            notyfInstance.success(data.message || 'Berhasil di-revisi');
+
+            // Reload the list
+            performFilter();
+        } catch (err) {
+            notyfInstance.error(err.message || 'Gagal revisi');
+            if (pendingRevisionAction?.button) {
+                pendingRevisionAction.button.disabled = false;
+                pendingRevisionAction.button.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+        } finally {
+            closeRevisiModal();
+        }
+    });
+
     // Initial binding of listeners
     attachSortListeners();
     attachPaginationListeners();
     attachApproveButtons();
+    attachRevisiButtons();
 });
 </script>
 @endpush
