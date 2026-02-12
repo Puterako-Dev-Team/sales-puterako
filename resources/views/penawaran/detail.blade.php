@@ -976,8 +976,8 @@
                                                             <td class="border border-gray-300 px-3 py-2 text-center">
                                                                 {{ $row['no'] }}
                                                             </td>
-                                                            <td class="border border-gray-300 px-3 py-2">
-                                                                {{ $row['tipe'] }}
+                                                            <td class="border border-gray-300 px-3 py-2 text-center">
+                                                                {!! nl2br(e($row['tipe'])) !!}
                                                             </td>
                                                             <td class="border border-gray-300 px-3 py-2">
                                                                 {!! nl2br(e($row['deskripsi'])) !!}
@@ -1518,10 +1518,10 @@
                         submitBtn.className = 'px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600';
                         noteInput.placeholder = 'Masukkan catatan untuk draft...';
                     } else if (status === 'success') {
-                        modalTitle.textContent = 'Tandai Penawaran Selesai';
-                        submitBtn.textContent = 'Tandai Selesai';
+                        modalTitle.textContent = 'Tandai Penawaran Submit';
+                        submitBtn.textContent = 'Tandai Submit';
                         submitBtn.className = 'px-4 py-2 text-white bg-green-500 rounded hover:bg-green-600';
-                        noteInput.placeholder = 'Masukkan catatan penyelesaian penawaran...';
+                        noteInput.placeholder = 'Masukkan catatan untuk submit penawaran...';
                     } else if (status === 'lost') {
                         modalTitle.textContent = 'Tandai Penawaran Gagal';
                         submitBtn.textContent = 'Tandai Gagal';
@@ -2879,13 +2879,16 @@
                                 newItems.push({
                                     title: 'Insert a new row before',
                                     onclick: function() {
-                                        obj.insertRow(1, y, 1);
+                                        // y is the row index where context menu was clicked
+                                        // insertRow(quantity, index, insertBefore=true)
+                                        obj.insertRow(1, parseInt(y), true);
                                     }
                                 });
                                 newItems.push({
                                     title: 'Insert a new row after',
                                     onclick: function() {
-                                        obj.insertRow(1, y);
+                                        // Insert after means insertBefore=false, so insert at y+1
+                                        obj.insertRow(1, parseInt(y) + 1, false);
                                     }
                                 });
                                 newItems.push({
@@ -3722,13 +3725,16 @@
                                 newItems.push({
                                     title: 'Insert a new row before',
                                     onclick: function() {
-                                        obj.insertRow(1, y, 1);
+                                        // y is the row index where context menu was clicked
+                                        // insertRow(quantity, index, insertBefore=true)
+                                        obj.insertRow(1, parseInt(y), true);
                                     }
                                 });
                                 newItems.push({
                                     title: 'Insert a new row after',
                                     onclick: function() {
-                                        obj.insertRow(1, y);
+                                        // Insert after means insertBefore=false, so insert at y+1
+                                        obj.insertRow(1, parseInt(y) + 1, false);
                                     }
                                 });
                                 newItems.push({

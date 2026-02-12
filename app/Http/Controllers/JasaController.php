@@ -176,12 +176,14 @@ class JasaController extends Controller
 
             // Simpan JasaDetail
             $processedIds = [];
+            $globalRowOrder = 0;
             foreach ($sections as $section) {
                 $namaSection = $section['nama_section'] ?? '';
                 $pembulatan = $section['pembulatan'] ?? 0;
                 foreach ($section['data'] as $row) {
                     // Skip hanya jika semua field penting kosong
                     if (empty($row['deskripsi']) && empty($row['no']) && empty($row['vol']) && empty($row['hari']) && empty($row['orang']) && empty($row['unit'])) continue;
+                    $globalRowOrder++;
                     $idJasaDetail = $row['id_jasa_detail'] ?? null;
                     $attrs = [
                         'id_penawaran'  => $penawaranId,
@@ -199,6 +201,7 @@ class JasaController extends Controller
                         'pph'           => $pphPercent,
                         'pembulatan'    => $pembulatan,
                         'comments'      => $row['comments'] ?? null,
+                        'order'         => $globalRowOrder,
                     ];
                     if ($idJasaDetail) {
                         $detail = JasaDetail::find($idJasaDetail);
