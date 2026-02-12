@@ -112,6 +112,8 @@
                         @php
                             $canApprove = false;
                             $approveRoute = null;
+                            $canRevise = false;
+                            $reviseRoute = null;
                             $isRepresentative = false; // Flag untuk supervisor mewakili direktur
                             $buttonText = 'Approve';
                             $buttonColor = 'bg-green-500';
@@ -133,7 +135,7 @@
                             }
                             
                             // Manager approval
-                            if ($userRole === 'manager' && $req->approved_by_supervisor && !$req->approved_by_manager) {
+                            if (in_array($userRole, ['manager']) && $req->approved_by_supervisor && !$req->approved_by_manager) {
                                 $canApprove = true;
                                 $approveRoute = route('export-approval.approve-manager', $req->id);
                             }
@@ -143,6 +145,11 @@
                                 $canApprove = true;
                                 $approveRoute = route('export-approval.approve-direktur', $req->id);
                             }
+                            
+                            // Manager can revise (when supervisor has approved and waiting for manager decision)
+                            // Shows alongside Approve button so manager can choose to approve OR revise
+                            $canRevise = in_array($userRole, ['manager']) && $req->approved_by_supervisor && !$req->approved_by_direktur && $req->status !== 'fully_approved';
+                            $reviseRoute = $canRevise ? route('export-approval.revisi-manager', $req->id) : null;
                         @endphp
 
                         <div class="flex items-center justify-center gap-2">
@@ -171,6 +178,23 @@
                                         </svg>
                                     @endif
                                     {{ $buttonText }}
+                                </button>
+                            @endif
+                            
+                            {{-- Revisi Button for Manager --}}
+                            @if($canRevise)
+                                <button type="button"
+                                    class="revisi-btn bg-orange-500 text-white px-3 py-2 rounded hover:bg-orange-600 transition text-xs font-semibold"
+                                    data-url="{{ $reviseRoute }}"
+                                    data-id="{{ $req->id }}"
+                                    data-no="{{ $req->penawaran->no_penawaran ?? '-' }}"
+                                    data-company="{{ $req->penawaran->nama_perusahaan ?? '-' }}"
+                                    data-version="{{ $req->version->version ?? '-' }}"
+                                    title="Revisi dan kembalikan ke supervisor">
+                                    <svg class="w-3 h-3 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Revisi
                                 </button>
                             @endif
                         </div>
