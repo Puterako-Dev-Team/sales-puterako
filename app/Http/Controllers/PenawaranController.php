@@ -673,7 +673,7 @@ class PenawaranController extends Controller
         $activeVersionId = $versionRow->id;
 
         $details = PenawaranDetail::where('version_id', $activeVersionId)
-            ->orderBy('id_penawaran_detail', 'asc')
+            ->orderBy('order', 'asc')
             ->get();
         $profit = $details->first()->profit ?? 0;
         $jasa = $versionRow ? $versionRow->jasa : null;
@@ -800,6 +800,7 @@ class PenawaranController extends Controller
                 ->delete();
 
             $totalKeseluruhan = 0;
+            $globalRowOrder = 0;
 
             foreach ($sections as $section) {
                 $area = (string) ($section['area'] ?? '');
@@ -808,6 +809,7 @@ class PenawaranController extends Controller
                 foreach ($section['data'] as $row) {
                     $hargaTotal = floatval($row['harga_total'] ?? 0);
                     $totalKeseluruhan += $hargaTotal;
+                    $globalRowOrder++;
 
                     $values = [
                         'tipe' => $row['tipe'] ?? null,
@@ -828,6 +830,7 @@ class PenawaranController extends Controller
                         'delivery_time' => $row['delivery_time'] ?? null,
                         'comments' => isset($row['comments']) ? $row['comments'] : null,
                         'version_id' => $version_id, // pastikan selalu isi version_id
+                        'order' => $globalRowOrder, // Track row order
                     ];
 
                     // Cari tipe_id berdasarkan tipe_name
@@ -992,7 +995,7 @@ class PenawaranController extends Controller
 
         // Ambil detail penawaran sesuai versi
         $details = PenawaranDetail::where('version_id', $versionRow->id)
-            ->orderBy('id_penawaran_detail', 'asc')
+            ->orderBy('order', 'asc')
             ->get();
 
         // Hitung total penawaran
@@ -1000,7 +1003,7 @@ class PenawaranController extends Controller
 
         // Ambil jasa sesuai versi
         $jasa = \App\Models\Jasa::where('version_id', $versionRow->id)->first();
-        $jasaDetails = \App\Models\JasaDetail::where('version_id', $versionRow->id)->get();
+        $jasaDetails = \App\Models\JasaDetail::where('version_id', $versionRow->id)->orderBy('order', 'asc')->get();
         $grandTotalJasa = $jasa ? $jasa->grand_total : 0;
 
         // Hitung grand total
@@ -1317,6 +1320,7 @@ class PenawaranController extends Controller
                     'delivery_time' => $detail->delivery_time,
                     'profit' => $detail->profit,
                     'comments' => $detail->comments,
+                    'order' => $detail->order,
                 ]);
             }
         }
@@ -1339,7 +1343,7 @@ class PenawaranController extends Controller
                 ]);
 
                 // Copy JasaDetail
-                $oldJasaDetails = \App\Models\JasaDetail::where('version_id', $oldVersion->id)->get();
+                $oldJasaDetails = \App\Models\JasaDetail::where('version_id', $oldVersion->id)->orderBy('order', 'asc')->get();
                 foreach ($oldJasaDetails as $jasaDetail) {
                     \App\Models\JasaDetail::create([
                         'version_id' => $newVersionRow->id,
@@ -1356,6 +1360,7 @@ class PenawaranController extends Controller
                         'pembulatan' => $jasaDetail->pembulatan,
                         'profit' => $jasaDetail->profit,
                         'comments' => $jasaDetail->comments,
+                        'order' => $jasaDetail->order,
                     ]);
                 }
             }

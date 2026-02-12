@@ -127,6 +127,9 @@
         table th:nth-child(3),
         table td:nth-child(3) {
             width: 28%;
+            text-align: center;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
 
         /* Deskripsi (LEBAR) */
@@ -565,7 +568,7 @@
                             @endphp
                             <tr class="{{ $fontClass }}">
                                 <td>{{ $row->no }}</td>
-                                <td>{{ $row->tipe }}</td>
+                                <td class="pre-wrap" style="text-align: center;">{{ $row->tipe }}</td>
                                 <td class="pre-wrap">{{ $row->deskripsi }}</td>
                                 <td>{{ $row->qty }}</td>
                                 <td>{{ $row->satuan }}</td>
