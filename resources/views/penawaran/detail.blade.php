@@ -1437,6 +1437,22 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Dokumen Pendukung Modal for Rekap -->
+            <div id="rekapSupportDocModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-900">Dokumen Pendukung Rekap</h2>
+                        <button id="rekapSupportDocClose" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    <div id="rekapSupportDocContent" class="space-y-4">
+                        <!-- Documents will be rendered here -->
+                    </div>
+                    <div class="flex justify-end gap-2 mt-6 border-t pt-4">
+                        <button id="rekapSupportDocCloseBtn" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Tutup</button>
+                    </div>
+                </div>
+            </div>
 @endsection
 
         <script>
@@ -4570,12 +4586,24 @@
                         // Rekap header
                         const rekapHeader = document.createElement('div');
                         rekapHeader.className = 'mb-4 p-4 rounded bg-blue-50 border-l-4 border-blue-500';
+                        
+                        const hasDocuments = rekapData.supporting_documents && rekapData.supporting_documents.length > 0;
+                        const docButton = hasDocuments ? `
+                            <button class="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 text-sm dokumen-btn" 
+                                    data-docs='${JSON.stringify(rekapData.supporting_documents)}'>
+                                📁 Dokumen Pendukung (${rekapData.supporting_documents.length})
+                            </button>
+                        ` : '';
+                        
                         rekapHeader.innerHTML = `
-                            <div class="flex justify-between items-center">
+                            <div class="flex justify-between items-center mb-2">
                                 <h2 class="text-lg font-bold text-blue-800">${escapeHtml(rekapData.rekap_nama)}</h2>
-                                <div class="text-sm text-blue-600">
-                                    ${rekapData.version !== null ? `<span class="bg-blue-100 px-2 py-1 rounded">Rev ${rekapData.version}</span>` : ''}
-                                    <span class="ml-2 ${rekapData.rekap_status === 'approved' ? 'text-green-600' : 'text-orange-600'}">${rekapData.rekap_status}</span>
+                                <div class="flex items-center gap-2">
+                                    ${docButton}
+                                    <div class="text-sm text-blue-600">
+                                        ${rekapData.version !== null ? `<span class="bg-blue-100 px-2 py-1 rounded">Rev ${rekapData.version}</span>` : ''}
+                                        <span class="ml-2 ${rekapData.rekap_status === 'approved' ? 'text-green-600' : 'text-orange-600'}">${rekapData.rekap_status}</span>
+                                    </div>
                                 </div>
                             </div>
                             ${rekapData.version_notes ? `<p class="text-sm text-gray-600 mt-1">${escapeHtml(rekapData.version_notes)}</p>` : ''}
@@ -4650,19 +4678,48 @@
                                 tr.className = 'hover:bg-gray-50';
                                 tr.dataset.rowIndex = rowIdx;
 
-                                columnKeys.forEach(key => {
+                                columnKeys.forEach((key, colIdx) => {
                                     const td = document.createElement('td');
-                                    td.className = 'py-1 px-2 border text-center';
+                                    td.className = 'py-1 px-2 border text-center relative';
+                                    td.style.position = 'relative';
                                     const value = row[key];
+                                    
+                                    // Add cell value normally
+                                    const valueSpan = document.createElement('span');
                                     if (value !== null && value !== undefined && value !== '') {
                                         if (numericKeys.includes(key) && !isNaN(parseFloat(value))) {
-                                            td.textContent = parseFloat(value).toLocaleString('id-ID');
+                                            valueSpan.textContent = parseFloat(value).toLocaleString('id-ID');
                                         } else {
-                                            td.textContent = value;
+                                            valueSpan.textContent = value;
                                         }
                                     } else {
-                                        td.textContent = '';
+                                        valueSpan.textContent = '';
                                     }
+                                    td.appendChild(valueSpan);
+                                    
+                                    // Check if there's a comment for this specific cell
+                                    const cellKey = rowIdx + ',' + colIdx;
+                                    if (survey.comments && survey.comments[cellKey] && survey.comments[cellKey].trim() !== '') {
+                                        // Create red triangle indicator at top-right corner
+                                        const triangle = document.createElement('div');
+                                        triangle.style.position = 'absolute';
+                                        triangle.style.top = '0';
+                                        triangle.style.right = '0';
+                                        triangle.style.width = '0';
+                                        triangle.style.height = '0';
+                                        triangle.style.borderLeft = '12px solid transparent';
+                                        triangle.style.borderTop = '12px solid #ef4444';
+                                        triangle.style.cursor = 'pointer';
+                                        triangle.style.zIndex = '10';
+                                        triangle.title = 'Klik untuk melihat komentar';
+                                        triangle.addEventListener('click', function(e) {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            window.showCommentModal(survey.comments[cellKey]);
+                                        });
+                                        td.appendChild(triangle);
+                                    }
+                                    
                                     tr.appendChild(td);
                                 });
 
@@ -4792,6 +4849,9 @@
                     } else {
                         accumulationBody.innerHTML = '<div class="text-gray-500">Tidak ada data numerik untuk diakumulasi.</div>';
                     }
+
+                    // Reattach event listeners to dokumen buttons after rendering
+                    setTimeout(attachDokumenButtonListeners, 100);
                 }
 
                 // Legacy function for backward compatibility (items-based rendering)
@@ -5025,6 +5085,203 @@
                     const container = document.getElementById('rekapSpreadsheet');
                     if (container) container.innerHTML = '<div class="text-gray-500">Gagal memuat data rekap.</div>';
                 });
+
+                // =====================================================
+                // SUPPORTING DOCUMENTS MODAL FUNCTIONS
+                // =====================================================
+                
+                // Function to render modal content with supporting documents
+                window.renderSupportDocuments = function(documents) {
+                    const modal = document.getElementById('rekapSupportDocModal');
+                    const contentDiv = modal.querySelector('#rekapSupportDocContent');
+                    
+                    if (!documents || documents.length === 0) {
+                        contentDiv.innerHTML = '<div class="text-center text-gray-500 py-8">Tidak ada dokumen pendukung.</div>';
+                        return;
+                    }
+
+                    let html = '<div class="space-y-4">';
+                    documents.forEach((doc, index) => {
+                        const fileExt = doc.filename.split('.').pop().toLowerCase();
+                        const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileExt);
+                        const isPdf = fileExt === 'pdf';
+                        const isDoc = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExt);
+                        
+                        let icon = '📄'; // default document icon
+                        if (isImage) icon = '🖼️';
+                        else if (isPdf) icon = '📕';
+                        else if (isDoc) icon = '📑';
+
+                        const createdDate = new Date(doc.created_at).toLocaleDateString('id-ID', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+
+                        html += `
+                            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <span class="text-xl">${icon}</span>
+                                            <p class="font-medium text-gray-900 break-words">${doc.filename}</p>
+                                        </div>
+                                        ${doc.notes ? `<p class="text-sm text-gray-600 mb-2"><strong>Catatan:</strong> ${doc.notes}</p>` : ''}
+                                        <p class="text-xs text-gray-500">Ditambahkan: ${createdDate}</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 mt-3">
+                                    <a href="{{ route('upload.download') }}?path=${encodeURIComponent(doc.file_path)}" 
+                                       target="_blank" 
+                                       class="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                                        Download
+                                    </a>
+                                    ${(isImage || isPdf) ? `
+                                        <button class="inline-flex items-center gap-1 px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition preview-btn"
+                                                data-path="${doc.file_path}"
+                                                data-type="${isImage ? 'image' : 'pdf'}"
+                                                data-name="${doc.filename}">
+                                            Pratinjau
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+
+                    contentDiv.innerHTML = html;
+
+                    // Attach preview button listeners
+                    contentDiv.querySelectorAll('.preview-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const path = this.dataset.path;
+                            const type = this.dataset.type;
+                            const name = this.dataset.name;
+                            window.openFilePreview(path, type, name);
+                        });
+                    });
+                };
+
+                // Function to open the support documents modal
+                window.openSupportDocModal = function(documents) {
+                    const modal = document.getElementById('rekapSupportDocModal');
+                    if (modal) {
+                        window.renderSupportDocuments(documents);
+                        modal.classList.remove('hidden');
+                    }
+                };
+
+                // Function to close support documents modal
+                window.closeSupportDocModal = function() {
+                    const modal = document.getElementById('rekapSupportDocModal');
+                    if (modal) {
+                        modal.classList.add('hidden');
+                    }
+                };
+
+                // Function to preview file
+                window.openFilePreview = function(path, type, name) {
+                    if (type === 'image') {
+                        const previewHtml = `
+                            <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" id="imagePreviewModal">
+                                <div class="bg-white rounded-lg p-4 max-w-2xl max-h-[90vh] overflow-auto relative">
+                                    <button class="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                                            onclick="document.getElementById('imagePreviewModal').remove()">✕</button>
+                                    <h3 class="text-lg font-bold mb-4">${name}</h3>
+                                    <img src="{{ route('upload.download') }}?path=${encodeURIComponent(path)}" 
+                                         alt="${name}"
+                                         class="max-w-full h-auto">
+                                </div>
+                            </div>
+                        `;
+                        document.body.insertAdjacentHTML('beforeend', previewHtml);
+                    } else if (type === 'pdf') {
+                        // Fetch PDF as blob and create object URL for preview
+                        fetch("{{ route('upload.download') }}?path=" + encodeURIComponent(path))
+                            .then(response => response.blob())
+                            .then(blob => {
+                                const pdfUrl = URL.createObjectURL(blob);
+                                const previewHtml = `
+                                    <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" id="pdfPreviewModal">
+                                        <div class="bg-white rounded-lg p-4 max-w-4xl max-h-[90vh] overflow-auto relative w-11/12">
+                                            <button class="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 z-10"
+                                                    onclick="URL.revokeObjectURL('${pdfUrl}'); document.getElementById('pdfPreviewModal').remove()">✕</button>
+                                            <h3 class="text-lg font-bold mb-4 pr-8">${name}</h3>
+                                            <iframe src="${pdfUrl}" 
+                                                    class="w-full h-[80vh] border rounded"
+                                                    frameborder="0"></iframe>
+                                        </div>
+                                    </div>
+                                `;
+                                document.body.insertAdjacentHTML('beforeend', previewHtml);
+                            })
+                            .catch(err => {
+                                console.error('Error loading PDF:', err);
+                                if (window.notyf) notyf.error('Gagal memuat PDF.');
+                            });
+                    }
+                };
+
+                // Function to show comment modal
+                window.showCommentModal = function(comment) {
+                    const modalHtml = `
+                        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="commentDisplayModal">
+                            <div class="bg-white rounded-lg p-6 max-w-lg mx-4 max-h-[80vh] overflow-y-auto">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-bold text-gray-900">Komentar</h3>
+                                    <button class="text-gray-500 hover:text-gray-700 text-2xl"
+                                            onclick="document.getElementById('commentDisplayModal').remove()">×</button>
+                                </div>
+                                <div class="text-sm text-gray-700 bg-blue-50 p-3 rounded border border-blue-200 break-words">
+                                    ${escapeHtml(comment)}
+                                </div>
+                                <div class="flex justify-end gap-2 mt-6">
+                                    <button class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                                            onclick="document.getElementById('commentDisplayModal').remove()">Tutup</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                };
+
+                // Attach event listeners to dokumen-btn elements
+                function attachDokumenButtonListeners() {
+                    document.querySelectorAll('.dokumen-btn').forEach(btn => {
+                        btn.removeEventListener('click', handleDokumenClick);
+                        btn.addEventListener('click', handleDokumenClick);
+                    });
+                }
+
+                function handleDokumenClick(e) {
+                    e.preventDefault();
+                    const docs = JSON.parse(this.dataset.docs || '[]');
+                    window.openSupportDocModal(docs);
+                }
+
+                // Attach listeners after initial render
+                attachDokumenButtonListeners();
+
+                // Attach close button listeners for support doc modal
+                const rekapSupportDocClose = document.getElementById('rekapSupportDocClose');
+                const rekapSupportDocCloseBtn = document.getElementById('rekapSupportDocCloseBtn');
+                if (rekapSupportDocClose) {
+                    rekapSupportDocClose.addEventListener('click', window.closeSupportDocModal);
+                }
+                if (rekapSupportDocCloseBtn) {
+                    rekapSupportDocCloseBtn.addEventListener('click', window.closeSupportDocModal);
+                }
+
+                // Close modal on background click
+                const rekapSupportDocModal = document.getElementById('rekapSupportDocModal');
+                if (rekapSupportDocModal) {
+                    rekapSupportDocModal.addEventListener('click', function(e) {
+                        if (e.target === this) {
+                            window.closeSupportDocModal();
+                        }
+                    });
+                }
                     
 
                 // =====================================================

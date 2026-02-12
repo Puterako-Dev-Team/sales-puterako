@@ -724,7 +724,7 @@ class RekapController extends Controller
             $q->where('penawaran_id', $penawaran_id)
               ->where('status', 'approved');
         })
-        ->with(['versions', 'surveys'])
+        ->with(['versions', 'surveys', 'supportingDocuments'])
         ->get();
 
         if ($rekaps->isEmpty()) {
@@ -767,12 +767,24 @@ class RekapController extends Controller
             }
 
             if ($surveys->isNotEmpty()) {
+                // Format supporting documents
+                $supportingDocs = $rekap->supportingDocuments->map(function($doc) {
+                    return [
+                        'id' => $doc->id,
+                        'filename' => $doc->original_filename,
+                        'file_path' => $doc->file_path,
+                        'notes' => $doc->notes,
+                        'created_at' => $doc->created_at
+                    ];
+                })->values();
+
                 $result[] = [
                     'rekap_id' => $rekap->id,
                     'rekap_nama' => $rekap->nama,
                     'rekap_status' => $rekap->status,
                     'version' => $latestVersion ? $latestVersion->version : null,
                     'version_notes' => $latestVersion ? $latestVersion->notes : null,
+                    'supporting_documents' => $supportingDocs,
                     'surveys' => $surveys->map(function($survey) {
                         return [
                             'id' => $survey->id,
