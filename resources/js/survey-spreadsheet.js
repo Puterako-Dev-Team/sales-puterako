@@ -1350,7 +1350,10 @@ class SurveySpreadsheet {
                 },
                 onresizecolumn: function () {
                     // Delay to allow DOM to update
-                    setTimeout(() => self.updateTotalsDisplay(area), 10);
+                    setTimeout(() => {
+                        self.updateTotalsDisplay(area);
+                        self.updateSatuanDisplay(area);
+                    }, 10);
                 },
                 onselection: function (instance, x1, y1, x2, y2, origin) {
                     // Auto-scroll to selected cell horizontally
@@ -1674,7 +1677,36 @@ class SurveySpreadsheet {
         if (area.headers.length <= 1) return false;
         if (groupIndex < 0 || groupIndex >= area.headers.length) return false;
 
+        // Get the group being removed
+        const removedGroup = area.headers[groupIndex];
+        const removedKeys = removedGroup.columns.map(col => col.key);
+
+        // Convert data using OLD headers (before group removal)
+        const currentArrayData = this.getAreaData(area);
+        const currentObjDataBeforeRemoval = this.convertArrayToData(
+            currentArrayData,
+            area.headers,
+        );
+
+        // Remove the group
         area.headers.splice(groupIndex, 1);
+
+        // Remove all keys from the deleted group from all row objects
+        currentObjDataBeforeRemoval.forEach((row) => {
+            removedKeys.forEach(key => {
+                delete row[key];
+            });
+        });
+
+        // Clean up satuan data for all removed columns
+        removedKeys.forEach(key => {
+            if (this.satuans[area.id] && this.satuans[area.id][key]) {
+                delete this.satuans[area.id][key];
+            }
+        });
+
+        // Store the cleaned data for reinitialize to use
+        area.preservedData = currentObjDataBeforeRemoval;
         this.reinitializeArea(area);
         return true;
     }
@@ -1703,14 +1735,29 @@ class SurveySpreadsheet {
             return this.removeColumnGroup(area, groupIndex);
         }
 
+        // IMPORTANT: Convert data using OLD headers (before column removal)
+        // This ensures the array data is correctly mapped to column keys
+        const currentArrayData = this.getAreaData(area);
+        const currentObjDataBeforeRemoval = this.convertArrayToData(
+            currentArrayData,
+            area.headers,
+        );
+
         // Remove the column
         group.columns.splice(columnIndex, 1);
+
+        // Remove the deleted key from all row objects
+        currentObjDataBeforeRemoval.forEach((row) => {
+            delete row[removedKey];
+        });
 
         // Clean up satuan data for removed column
         if (this.satuans[area.id] && this.satuans[area.id][removedKey]) {
             delete this.satuans[area.id][removedKey];
         }
 
+        // Store the cleaned data for reinitialize to use
+        area.preservedData = currentObjDataBeforeRemoval;
         this.reinitializeArea(area);
         return true;
     }
@@ -1718,12 +1765,18 @@ class SurveySpreadsheet {
     // Reinitialize area's spreadsheet
     reinitializeArea(area) {
         try {
-            // Get current data
-            const currentArrayData = this.getAreaData(area);
-            const currentObjData = this.convertArrayToData(
-                currentArrayData,
-                area.headers,
-            );
+            // Get current data - use preserved data if available (e.g., after column removal)
+            let currentObjData;
+            if (area.preservedData) {
+                currentObjData = area.preservedData;
+                area.preservedData = null; // Clear after use
+            } else {
+                const currentArrayData = this.getAreaData(area);
+                currentObjData = this.convertArrayToData(
+                    currentArrayData,
+                    area.headers,
+                );
+            }
 
             // Destroy current spreadsheet
             if (area.spreadsheetInstance) {
