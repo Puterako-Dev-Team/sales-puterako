@@ -336,16 +336,29 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block mb-2 font-medium text-sm text-gray-700">Tipe Penawaran</label>
-                            <select name="tipe" id="f_tipe"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                                <option value="">Default (Semua Tab)</option>
-                                <option value="soc">SOC</option>
-                                <option value="barang">Barang</option>
-                            </select>
-                            <p class="text-xs text-gray-500 mt-1">Pilih tipe untuk menyesuaikan tab detail.</p>
-                        </div>
+        <!-- Grand Total BoQ (Hidden by default, shown only for template_boq) -->
+        <div id="grandTotalBoqGroup" class="hidden">
+            <label class="block mb-2 font-medium text-sm text-gray-700">Grand Total BoQ <span class="text-red-500">*</span></label>
+            <div class="relative">
+                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                <input type="text" name="grand_total" id="f_grand_total"
+                    class="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    placeholder="0"
+                    onkeyup="formatCurrency(this)">
+            </div>
+            <p class="text-xs text-green-600 mt-2 font-medium">💡 Grand total keseluruhan untuk kebutuhan chart pendapatan sales</p>
+        </div>
+
+        <div>
+            <label class="block mb-2 font-medium text-sm text-gray-700">Tipe Penawaran</label>
+            <select name="tipe" id="f_tipe"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                <option value="">Default (Semua Tab)</option>
+                <option value="soc">SOC</option>
+                <option value="barang">Barang</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-1">Pilih tipe untuk menyesuaikan tab detail.</p>
+        </div>
 
                         <div id="lokasiPengerjaanGroup">
                             <label class="block mb-2 font-medium text-sm text-gray-700">Lokasi Pengerjaan</label>
@@ -568,6 +581,27 @@
             params.forEach((v, k) => { if (v) url.searchParams.set(k, v); });
             window.history.pushState({}, '', url.toString());
         }
+        
+        /* ================== FORMAT CURRENCY ================== */
+        function formatCurrency(input) {
+            // Remove all non-numeric characters except dots and commas
+            let value = input.value.replace(/[^\d]/g, '');
+            
+            // Format with thousand separators
+            if (value) {
+                value = parseInt(value).toLocaleString('id-ID');
+            }
+            
+            input.value = value;
+        }
+        
+        function formatNumber(number) {
+            return parseInt(number).toLocaleString('id-ID');
+        }
+        
+        function parseNumber(formattedNumber) {
+            return parseInt(formattedNumber.replace(/[^\d]/g, '') || '0');
+        }
 
         /* ================== SLIDE FORM ================== */
         function openSlide() {
@@ -611,23 +645,39 @@
         const f_template_type = document.getElementById('f_template_type');
         const f_tipe = document.getElementById('f_tipe');
         const boqFileGroup = document.getElementById('boqFileGroup');
+        const grandTotalBoqGroup = document.getElementById('grandTotalBoqGroup');
         const f_boq_file = document.getElementById('f_boq_file');
+        const f_grand_total = document.getElementById('f_grand_total');
 
         f_template_type.addEventListener('change', function () {
             const selectedTemplate = this.value;
 
             if (selectedTemplate === 'template_boq') {
-                // Show file upload and disable tipe field
+                // Show file upload, grand total boq and disable tipe field
                 boqFileGroup.classList.remove('hidden');
-                f_tipe.disabled = true;
-                f_tipe.classList.add('bg-gray-100', 'cursor-not-allowed');
-                f_tipe.value = ''; // Clear tipe value
+                grandTotalBoqGroup.classList.remove('hidden');
+                if (f_tipe) {
+                    f_tipe.disabled = true;
+                    f_tipe.classList.add('bg-gray-100', 'cursor-not-allowed');
+                    f_tipe.value = ''; // Clear tipe value
+                }
+                // Make grand total boq required
+                if (f_grand_total_boq) {
+                    f_grand_total_boq.required = true;
+                }
             } else {
-                // Hide file upload and enable tipe field
+                // Hide file upload, grand total boq and enable tipe field
                 boqFileGroup.classList.add('hidden');
-                f_tipe.disabled = false;
-                f_tipe.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                grandTotalBoqGroup.classList.add('hidden');
+                if (f_tipe) {
+                    f_tipe.disabled = false;
+                    f_tipe.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                }
                 f_boq_file.value = ''; // Clear file selection
+                if (f_grand_total) {
+                    f_grand_total.value = ''; // Clear grand total boq
+                    f_grand_total.required = false;
+                }
             }
         });
 
@@ -643,8 +693,15 @@
             // Reset template type logic
             f_template_type.value = 'template_puterako';
             boqFileGroup.classList.add('hidden');
-            f_tipe.disabled = false;
-            f_tipe.classList.remove('bg-gray-100', 'cursor-not-allowed');
+            grandTotalBoqGroup.classList.add('hidden');
+            if (f_tipe) {
+                f_tipe.disabled = false;
+                f_tipe.classList.remove('bg-gray-100', 'cursor-not-allowed');
+            }
+            if (f_grand_total) {
+                f_grand_total.value = '';
+                f_grand_total.required = false;
+            }
             
             // Reset edit-only fields
             const f_no_penawaran_edit = document.getElementById('f_no_penawaran_edit');
@@ -697,6 +754,11 @@
                     f_template_type.value = d.template_type ?? 'template_puterako';
                     f_template_type.dispatchEvent(new Event('change'));
 
+                    // Set grand total if template is template_boq
+                    if (d.template_type === 'template_boq' && d.grand_total) {
+                        f_grand_total.value = formatNumber(d.grand_total);
+                    }
+
                     // Set tipe penawaran
                     if (f_tipe) {
                         f_tipe.value = d.tipe ?? '';
@@ -736,9 +798,27 @@
         /* ================== SUBMIT FORM (AJAX) ================== */
         penawaranForm.addEventListener('submit', function (e) {
             e.preventDefault();
+            
+            // Validate grand total boq for template_boq
+            if (f_template_type.value === 'template_boq' && (!f_grand_total.value || f_grand_total.value.trim() === '')) {
+                toastSafe({
+                    type: 'error',
+                    title: 'Error',
+                    message: 'Grand Total BoQ wajib diisi untuk Template BoQ'
+                });
+                f_grand_total.focus();
+                return;
+            }
+            
             const mode = penawaranForm.dataset.mode || 'add';
 
             const fd = new FormData(penawaranForm);
+
+            // Parse grand_total if exists (remove formatting)
+            if (f_grand_total && f_grand_total.value) {
+                const parsedValue = parseNumber(f_grand_total.value);
+                fd.set('grand_total', parsedValue);
+            }
 
             if (mode === 'edit') {
                 fd.append('_method', 'PUT');

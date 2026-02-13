@@ -310,6 +310,8 @@
         <div class="bg-white shadow rounded-lg p-6">
             @php
                 $tipe = $penawaran->tipe ?? null;
+                $templateType = $penawaran->template_type ?? 'template_puterako';
+                $isBoqTemplate = ($templateType === 'template_boq');
                 $showPenawaran = empty($tipe) || $tipe === 'barang';
                 $showJasa = empty($tipe) || $tipe === 'soc';
                 // Check if user is presales
@@ -317,30 +319,30 @@
                 $isPresales = $userDepartemen === 'Presales';
             @endphp
             @php
-                $activeTab = $showPenawaran ? 'penawaran' : ($showJasa ? 'Jasa' : 'preview');
+                $activeTab = $isBoqTemplate ? 'dokumen' : ($showPenawaran ? 'penawaran' : ($showJasa ? 'Jasa' : 'preview'));
             @endphp
             <div class="flex border-b mb-4">
                 @if($showPenawaran)
                 <button
-                    class="tab-btn px-4 py-2 font-semibold {{ $activeTab === 'penawaran' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600' }} hover:text-green-600 focus:outline-none"
-                    data-tab="penawaran">Penawaran</button>
+                    class="tab-btn px-4 py-2 font-semibold {{ $activeTab === 'penawaran' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600' }} {{ $isBoqTemplate ? 'opacity-50 cursor-not-allowed' : 'hover:text-green-600' }} focus:outline-none"
+                    data-tab="penawaran" {{ $isBoqTemplate ? 'disabled' : '' }}>Penawaran</button>
                 @endif
                 @if($showJasa)
-                <button class="tab-btn px-4 py-2 font-semibold {{ $activeTab === 'Jasa' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600' }} hover:text-green-600 focus:outline-none"
-                    data-tab="Jasa">Rincian Jasa</button>
+                <button class="tab-btn px-4 py-2 font-semibold {{ $activeTab === 'Jasa' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600' }} {{ $isBoqTemplate ? 'opacity-50 cursor-not-allowed' : 'hover:text-green-600' }} focus:outline-none"
+                    data-tab="Jasa" {{ $isBoqTemplate ? 'disabled' : '' }}>Rincian Jasa</button>
                 @endif
-                <button class="tab-btn px-4 py-2 font-semibold {{ $activeTab === 'preview' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600' }} hover:text-green-600 focus:outline-none"
-                    data-tab="preview">Preview</button>
-                <button class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:text-green-600 focus:outline-none"
-                    data-tab="rekap">Rincian Rekap</button>
-                <button class="tab-btn px-4 py-2 font-semibold text-gray-600 hover:text-green-600 focus:outline-none"
+                <button class="tab-btn px-4 py-2 font-semibold {{ $activeTab === 'preview' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600' }} {{ $isBoqTemplate ? 'opacity-50 cursor-not-allowed' : 'hover:text-green-600' }} focus:outline-none"
+                    data-tab="preview" {{ $isBoqTemplate ? 'disabled' : '' }}>Preview</button>
+                <button class="tab-btn px-4 py-2 font-semibold text-gray-600 {{ $isBoqTemplate ? 'opacity-50 cursor-not-allowed' : 'hover:text-green-600' }} focus:outline-none"
+                    data-tab="rekap" {{ $isBoqTemplate ? 'disabled' : '' }}>Rincian Rekap</button>
+                <button class="tab-btn px-4 py-2 font-semibold {{ $activeTab === 'dokumen' ? 'text-green-600 border-b-2 border-green-600' : 'text-gray-600' }} hover:text-green-600 focus:outline-none"
                     data-tab="dokumen">Dokumen Pendukung</button>
             </div>
 
             <div id="tabContent">
                 <!-- Panel Penawaran -->
                 @if($showPenawaran)
-                <div class="tab-panel" data-tab="penawaran">
+                <div class="tab-panel {{ $isBoqTemplate ? 'hidden' : '' }}" data-tab="penawaran">
                     <!-- Template Selection (Global) -->
                     <div class="p-2 rounded-lg mb-6">
                         <div class="flex justify-between items-center">
@@ -420,7 +422,7 @@
                 @endif
                 <!-- Panel Jasa -->
                 @if($showJasa)
-                <div class="tab-panel {{ $activeTab === 'Jasa' ? '' : 'hidden' }}" data-tab="Jasa">
+                <div class="tab-panel {{ ($activeTab === 'Jasa' && !$isBoqTemplate) ? '' : 'hidden' }}" data-tab="Jasa">
                     <div class="flex gap-4 mb-4">
                         <div>
                             <label class="block text-sm font-semibold mb-1">Profit (%)</label>
@@ -537,7 +539,7 @@
                 </div>
                 @endif
                 <!-- Panel Preview -->
-                <div class="tab-panel {{ $activeTab === 'preview' ? '' : 'hidden' }}" data-tab="preview">
+                <div class="tab-panel {{ $isBoqTemplate ? 'hidden' : ($activeTab === 'preview' ? '' : 'hidden') }}" data-tab="preview">
                     <style>
                         @media print {
 
@@ -1312,7 +1314,7 @@
                 </div>
 
                 <!-- Dokumen Pendukung Tab -->
-                <div class="tab-panel hidden" data-tab="dokumen">
+                <div class="tab-panel {{ $activeTab === 'dokumen' ? '' : 'hidden' }}" data-tab="dokumen">
                     <div class="space-y-6">
                         <!-- BoQ File Section -->
                         @if($penawaran->template_type === 'template_boq' && $penawaran->boq_file_path)
@@ -2386,6 +2388,11 @@
 
                     tabButtons.forEach(button => {
                         button.addEventListener('click', function () {
+                            // Check if button is disabled (for template_boq)
+                            if (this.hasAttribute('disabled') || this.disabled) {
+                                return; // Do nothing if disabled
+                            }
+                            
                             const targetTab = this.getAttribute('data-tab');
 
                             // Validasi sebelum switch tab
