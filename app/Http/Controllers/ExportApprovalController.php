@@ -94,8 +94,15 @@ class ExportApprovalController extends Controller
 
             $requests = $pendingQuery->paginate(10)->appends($request->query());
             
+            // Get approval history for AJAX (fully approved items)
+            $historyQuery = clone $baseQuery;
+            $historyQuery->whereNotNull('approved_by_direktur');
+            $historyQuery->orderBy('updated_at', 'desc');
+            $historyRequests = $historyQuery->limit(20)->get();
+            
             $table = view('penawaran.approval-table', [
                 'requests' => $requests,
+                'historyRequests' => $historyRequests,
                 'userRole' => $user->role,
             ])->render();
             
@@ -168,6 +175,13 @@ class ExportApprovalController extends Controller
 
         $requests = $pendingQuery->paginate(10)->appends($request->query());
 
+        // Get approval history (fully approved requests)
+        $historyQuery = clone $baseQuery;
+        // History shows only fully approved items (approved by all: supervisor, manager, direktur)
+        $historyQuery->whereNotNull('approved_by_direktur');
+        $historyQuery->orderBy('updated_at', 'desc');
+        $historyRequests = $historyQuery->limit(20)->get();
+
         // Get PIC Admin options for filter dropdown
         $picAdmins = ExportApprovalRequest::with('requestedBy')
             ->whereHas('requestedBy')
@@ -178,6 +192,7 @@ class ExportApprovalController extends Controller
 
         return view('penawaran.approval-list', [
             'requests' => $requests,
+            'historyRequests' => $historyRequests,
             'userRole' => $user->role,
             'picAdmins' => $picAdmins,
         ]);

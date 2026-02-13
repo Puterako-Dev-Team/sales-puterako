@@ -847,11 +847,34 @@ class RekapController extends Controller
         }
 
         $rekaps = $query->paginate(10)->appends($request->query());
+        
+        // Get approved rekaps for history section
+        $historyQuery = Rekap::with(['user'])->where('status', 'approved');
+        // Apply same filters to history
+        if ($request->filled('tanggal_dari')) {
+            $historyQuery->whereDate('created_at', '>=', $request->tanggal_dari);
+        }
+        if ($request->filled('nama_rekap')) {
+            $historyQuery->where('nama', 'like', '%' . $request->nama_rekap . '%');
+        }
+        if ($request->filled('no_penawaran')) {
+            $historyQuery->where('no_penawaran', 'like', '%' . $request->no_penawaran . '%');
+        }
+        if ($request->filled('nama_perusahaan')) {
+            $historyQuery->where('nama_perusahaan', 'like', '%' . $request->nama_perusahaan . '%');
+        }
+        if ($request->filled('pic_admin')) {
+            $historyQuery->whereHas('user', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->pic_admin . '%');
+            });
+        }
+        $historyRekaps = $historyQuery->orderBy('updated_at', 'desc')->limit(20)->get();
+        
         $picAdmins = \App\Models\User::whereHas('rekaps')->distinct('name')->orderBy('name')->pluck('name');
         $totalRecords = Rekap::count();
 
         if ($request->ajax()) {
-            $table = view('rekap.approve-table', compact('rekaps'))->render();
+            $table = view('rekap.approve-table', compact('rekaps', 'historyRekaps'))->render();
             $pagination = view('components.paginator', ['paginator' => $rekaps])->render();
             
             // Generate filter info
@@ -881,7 +904,7 @@ class RekapController extends Controller
                 'info' => $info
             ]);
         }
-        return view('rekap.approve-list', compact('rekaps', 'picAdmins'));
+        return view('rekap.approve-list', compact('rekaps', 'historyRekaps', 'picAdmins'));
     }
 
     // Approve Rekap
