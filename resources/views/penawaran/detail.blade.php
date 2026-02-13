@@ -400,47 +400,7 @@
                                     </div>
                                 </div>
 
-                                {{-- <!-- Best Price toggle + input -->
-                                <div class="flex items-center gap-4 mt-3">
-                                    <label class="flex items-center gap-2">
-                                        <input type="checkbox" id="isBestPrice" {{ $penawaran->is_best_price ?? false ?
-                                        'checked' : '' }} />
-                                        <span class="text-sm font-medium">Gunakan Best Price</span>
-                                    </label>
-
-                                    <div class="flex items-center ml-4">
-                                        <input type="text" id="bestPriceInput"
-                                            class="border rounded px-3 py-2 bg-white w-40 text-right" placeholder="0"
-                                            value="{{ number_format($penawaran->best_price ?? 0, 2, ',', '.') }}">
-                                        <span class="ml-2 text-sm text-gray-600">Rp</span>
-                                    </div>
-                                </div> --}}
-
-                                <!-- Total -->
-                                <div class="flex justify-between items-center text-md font-semibold">
-                                    <span>Total:</span>
-                                    <span>Rp <span id="totalKeseluruhan">0</span></span>
-                                </div>
-
-                                <!-- Best Price display (hidden by default; JS toggles) -->
-                                <div id="bestPriceDisplayRow"
-                                    class="flex justify-between items-center text-md font-semibold" style="display:none;">
-                                    <span>Best Price:</span>
-                                    <span>Rp <span id="bestPriceDisplay">0</span></span>
-                                </div>
-
-                                <!-- PPN Nominal -->
-                                <div class="flex justify-between items-center text-md font-semibold">
-                                    <span>PPN (<span id="ppnPersenDisplay">{11}</span>%):</span>
-                                    <span>Rp <span id="ppnNominal">0</span></span>
-                                </div>
-
-                                <!-- Grand Total -->
-                                <div
-                                    class="flex justify-between items-center text-md font-bold pt-3 border-t-2 border-gray-400">
-                                    <span>Grand Total:</span>
-                                    <span>Rp <span id="grandTotal">0</span></span>
-                                </div>
+                                
                             </div>
                         </div>
 
