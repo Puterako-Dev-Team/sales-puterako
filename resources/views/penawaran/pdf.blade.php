@@ -123,37 +123,37 @@
             width: 12%;
         }
 
-        /* Tipe */
+        /* Deskripsi */
         table th:nth-child(3),
         table td:nth-child(3) {
             width: 28%;
-            text-align: center;
+            text-align: left;
             white-space: pre-wrap;
             word-wrap: break-word;
         }
 
-        /* Deskripsi (LEBAR) */
+        /* Qty */
         table th:nth-child(4),
         table td:nth-child(4) {
             width: 6%;
             text-align: center;
         }
 
-        /* Qty (SEMPIT) */
+        /* Satuan */
         table th:nth-child(5),
         table td:nth-child(5) {
             width: 8%;
             text-align: center;
         }
 
-        /* Satuan */
+        /* Harga Satuan */
         table th:nth-child(6),
         table td:nth-child(6) {
             width: 14%;
             text-align: right;
         }
 
-        /* Harga Satuan - Default (for non-penawaran tables) */
+        /* Harga Total - Default (for non-penawaran tables) */
         table th:nth-child(7),
         table td:nth-child(7) {
             width: 14%;

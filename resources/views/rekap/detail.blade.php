@@ -41,6 +41,91 @@
         </div>
     </div>
 
+    <!-- Modal untuk Tambah Grup -->
+    <div id="tambahGrupModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-[600px] max-w-full mx-4 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Tambah Grup Kolom</h3>
+                <button type="button" onclick="closeTambahGrupModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Masukkan nama grup kolom (pisahkan dengan Enter untuk membuat grup lebih dari satu):
+                </label>
+                <textarea id="grupNameInput" rows="6" 
+                    placeholder="Contoh:&#10;Kabel&#10;Pipa dan Aksesoris"
+                    class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                <p class="text-xs text-gray-500 mt-2">Setiap baris akan menjadi satu grup kolom baru</p>
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeTambahGrupModal()"
+                    class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="button" onclick="saveTambahGrup()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Tambah
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal untuk Tambah Kolom -->
+    <div id="tambahKolomModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-[500px] max-w-full mx-4 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Tambah Kolom</h3>
+                <button type="button" onclick="closeTambahKolomModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mb-4" id="grupSelectionContainer">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Pilih Grup:
+                </label>
+                <select id="grupSelection" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- Pilih Grup --</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Nama Kolom:
+                </label>
+                <input type="text" id="kolomNameInput" 
+                    placeholder="Masukkan nama kolom"
+                    class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="mb-4">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="kolomIsNumeric" class="w-4 h-4 text-blue-600 rounded">
+                    <span class="text-sm font-medium text-gray-700">Kolom berisi angka</span>
+                </label>
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeTambahKolomModal()"
+                    class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="button" onclick="saveTambahKolom()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Tambah
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="container mx-auto p-8">
 
         <div class="flex items-center p-8 text-gray-600 mb-2">
@@ -1454,4 +1539,51 @@
             }
         }
     </script>
-@endsection
+
+    <!-- Modal Control Scripts -->
+    <script>
+        // Handle modal backdrop clicks
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tambah Grup Modal
+            const tambahGrupModal = document.getElementById('tambahGrupModal');
+            if (tambahGrupModal) {
+                tambahGrupModal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeTambahGrupModal();
+                    }
+                });
+            }
+
+            // Tambah Kolom Modal
+            const tambahKolomModal = document.getElementById('tambahKolomModal');
+            if (tambahKolomModal) {
+                tambahKolomModal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeTambahKolomModal();
+                    }
+                });
+            }
+        });
+
+        // Keyboard shortcuts for modals (outside DOMContentLoaded)
+        document.addEventListener('keydown', function(e) {
+            const tambahGrupModal = document.getElementById('tambahGrupModal');
+            const tambahKolomModal = document.getElementById('tambahKolomModal');
+
+            if (e.key === 'Escape') {
+                if (tambahGrupModal && !tambahGrupModal.classList.contains('hidden')) {
+                    closeTambahGrupModal();
+                } else if (tambahKolomModal && !tambahKolomModal.classList.contains('hidden')) {
+                    closeTambahKolomModal();
+                }
+            }
+
+            if (e.key === 'Enter' && e.ctrlKey) {
+                if (tambahGrupModal && !tambahGrupModal.classList.contains('hidden')) {
+                    saveTambahGrup();
+                } else if (tambahKolomModal && !tambahKolomModal.classList.contains('hidden')) {
+                    saveTambahKolom();
+                }
+            }
+        });
+    </script>@endsection
