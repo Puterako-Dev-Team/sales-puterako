@@ -4576,6 +4576,124 @@
                     };
                 }
 
+                // =====================================================
+                // FETCHED ITEMS TRACKING HELPERS
+                // =====================================================
+                const FETCHED_ITEMS_KEY = 'penawaran_fetched_items_{{ $penawaran->id_penawaran }}';
+
+                /**
+                 * Get fetched items from localStorage
+                 * @returns {Object} { itemKey: { fetchedAt: timestamp, quantity: number, satuan: string } }
+                 */
+                function getFetchedItems() {
+                    try {
+                        const stored = localStorage.getItem(FETCHED_ITEMS_KEY);
+                        return stored ? JSON.parse(stored) : {};
+                    } catch (e) {
+                        console.error('Error reading fetched items:', e);
+                        return {};
+                    }
+                }
+
+                /**
+                 * Save fetched items to localStorage
+                 * @param {Object} items - The items object to save
+                 */
+                function saveFetchedItems(items) {
+                    try {
+                        localStorage.setItem(FETCHED_ITEMS_KEY, JSON.stringify(items));
+                    } catch (e) {
+                        console.error('Error saving fetched items:', e);
+                    }
+                }
+
+                /**
+                 * Mark an item as fetched
+                 * @param {string} itemKey - Unique key for the item
+                 * @param {number} quantity - The quantity fetched
+                 * @param {string} satuan - The unit of measurement
+                 */
+                function markItemAsFetched(itemKey, quantity, satuan) {
+                    const items = getFetchedItems();
+                    items[itemKey] = {
+                        fetchedAt: Date.now(),
+                        quantity: quantity,
+                        satuan: satuan
+                    };
+                    saveFetchedItems(items);
+                }
+
+                /**
+                 * Instantly disable an item row in the accumulation table (real-time UI update)
+                 * @param {string} itemKey - The item key to disable
+                 */
+                function disableItemRow(itemKey) {
+                    const accumulationBody = document.getElementById('rekapAccumulationBody');
+                    if (!accumulationBody) return;
+                    
+                    // Find the row with this item key
+                    const row = accumulationBody.querySelector(`tr[data-item-key="${itemKey}"]`);
+                    if (!row) return;
+                    
+                    // Update row styling
+                    row.className = 'bg-gray-50';
+                    
+                    // Update all cells in the row
+                    const cells = row.querySelectorAll('td');
+                    cells.forEach((cell, index) => {
+                        if (index < 3) { // Name, Total, Satuan cells
+                            cell.classList.add('text-gray-400');
+                        }
+                    });
+                    
+                    // Update the first cell (name) to add "Sudah diambil" badge
+                    if (cells[0]) {
+                        const currentText = cells[0].textContent;
+                        cells[0].innerHTML = currentText + ' <span class="text-xs bg-gray-200 px-1 rounded">Sudah diambil</span>';
+                    }
+                    
+                    // Find and disable the button
+                    const btn = row.querySelector(`button[data-item-key="${itemKey}"]`);
+                    if (btn) {
+                        btn.className = 'bg-gray-400 text-white px-2 py-2 rounded text-sm cursor-not-allowed inline-flex items-center justify-center';
+                        btn.disabled = true;
+                        btn.title = 'Item sudah dimasukkan ke penawaran';
+                        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M13 3l8 8-8 8v-5c-7 0-11 4-11 9 0-9 4-13 11-13V3z"/></svg>';
+                    }
+                }
+
+                /**
+                 * Check if an item has been fetched and is still current (not updated since fetch)
+                 * @param {string} itemKey - Unique key for the item
+                 * @param {number} currentQuantity - The current total quantity for this item
+                 * @param {string} currentSatuan - The current satuan for this item
+                 * @returns {Object} { fetched: boolean, outdated: boolean }
+                 */
+                function checkItemFetchStatus(itemKey, currentQuantity, currentSatuan) {
+                    const items = getFetchedItems();
+                    const fetchedItem = items[itemKey];
+                    
+                    if (!fetchedItem) {
+                        return { fetched: false, outdated: false };
+                    }
+                    
+                    // Compare actual data values to detect if THIS specific item was updated
+                    // Round to 2 decimal places for comparison to avoid floating point issues
+                    const storedQty = Math.round((fetchedItem.quantity || 0) * 100) / 100;
+                    const currentQty = Math.round((currentQuantity || 0) * 100) / 100;
+                    const storedSatuan = (fetchedItem.satuan || '').toLowerCase().trim();
+                    const currSatuan = (currentSatuan || '').toLowerCase().trim();
+                    
+                    // Item is outdated if quantity or satuan has changed since we fetched it
+                    const isOutdated = storedQty !== currentQty || storedSatuan !== currSatuan;
+                    
+                    return { 
+                        fetched: true, 
+                        outdated: isOutdated,
+                        fetchedData: fetchedItem
+                    };
+                }
+
                 /**
                  * Render survey data from rekaps for Rincian Rekap tab
                  * @param {Object} response - Response from surveysForPenawaran endpoint
@@ -4587,6 +4705,7 @@
 
                     container.innerHTML = '';
                     accumulationBody.innerHTML = '';
+
 
                     if (!response || !response.success || !response.rekaps || response.rekaps.length === 0) {
                         container.innerHTML = '<div class="text-gray-500">Belum ada data rekap.</div>';
@@ -4854,19 +4973,33 @@
                         const accTbody = document.createElement('tbody');
                         Object.entries(allNumericTotals).forEach(([key, data]) => {
                             const tr = document.createElement('tr');
+                            
+                            // Check fetch status for this item by comparing current quantity/satuan with stored values
+                            const currentQuantity = data.total;
+                            const currentSatuan = allSatuans[key] || '';
+                            const fetchStatus = checkItemFetchStatus(key, currentQuantity, currentSatuan);
+                            const isDisabled = fetchStatus.fetched && !fetchStatus.outdated;
+                            
+                            // Apply row styling based on fetch status
+                            if (isDisabled) {
+                                tr.className = 'bg-gray-50';
+                            }
 
                             const tdName = document.createElement('td');
-                            tdName.className = 'py-2 border-t px-3';
+                            tdName.className = 'py-2 border-t px-3' + (isDisabled ? ' text-gray-400' : '');
                             tdName.textContent = data.title;
+                            if (isDisabled) {
+                                tdName.innerHTML = data.title + ' <span class="text-xs bg-gray-200 px-1 rounded">Sudah diambil</span>';
+                            }
                             tr.appendChild(tdName);
 
                             const tdTotal = document.createElement('td');
-                            tdTotal.className = 'py-2 border-t text-center px-3 font-bold';
+                            tdTotal.className = 'py-2 border-t text-center px-3 font-bold' + (isDisabled ? ' text-gray-400' : '');
                             tdTotal.textContent = data.total.toLocaleString('id-ID');
                             tr.appendChild(tdTotal);
 
                             const tdSatuan = document.createElement('td');
-                            tdSatuan.className = 'py-2 border-t text-center px-3';
+                            tdSatuan.className = 'py-2 border-t text-center px-3' + (isDisabled ? ' text-gray-400' : '');
                             tdSatuan.textContent = allSatuans[key] || '-';
                             tr.appendChild(tdSatuan);
 
@@ -4875,12 +5008,30 @@
                             tdAction.className = 'py-2 border-t text-center px-3';
                             
                             const insertBtn = document.createElement('button');
-                            insertBtn.className = 'bg-blue-600 text-white px-2 py-2 rounded hover:bg-blue-700 text-sm transition inline-flex items-center justify-center';
+                            insertBtn.setAttribute('data-item-key', key);
+                            tr.setAttribute('data-item-key', key);
+                            
+                            if (isDisabled) {
+                                insertBtn.className = 'bg-gray-400 text-white px-2 py-2 rounded text-sm cursor-not-allowed inline-flex items-center justify-center';
+                                insertBtn.disabled = true;
+                                insertBtn.title = 'Item sudah dimasukkan ke penawaran';
+                            } else {
+                                insertBtn.className = 'bg-blue-600 text-white px-2 py-2 rounded hover:bg-blue-700 text-sm transition inline-flex items-center justify-center';
+                                insertBtn.title = fetchStatus.outdated ? 'Data diperbarui presales - klik untuk mengambil ulang' : 'Masukkan ke penawaran';
+                                insertBtn.addEventListener('click', function() {
+                                    // Instantly disable the button and update UI
+                                    disableItemRow(key);
+                                    insertItemToPenawaran(key, data.title, currentQuantity, allAreaBreakdowns[key] || {}, currentSatuan);
+                                });
+                            }
                             insertBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M13 3l8 8-8 8v-5c-7 0-11 4-11 9 0-9 4-13 11-13V3z"/></svg>';
-                            insertBtn.title = 'Masukkan ke penawaran';
-                            insertBtn.addEventListener('click', function() {
-                                insertItemToPenawaran(data.title, allAreaBreakdowns[key] || {}, allSatuans[key] || '');
-                            });
+                            
+                            // Add refresh icon if outdated
+                            if (fetchStatus.outdated) {
+                                insertBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>';
+                                insertBtn.className = 'bg-orange-500 text-white px-2 py-2 rounded hover:bg-orange-600 text-sm transition inline-flex items-center justify-center';
+                            }
+                            
                             tdAction.appendChild(insertBtn);
                             tr.appendChild(tdAction);
 
@@ -4898,11 +5049,13 @@
 
                 /**
                  * Insert item from akumulasi into penawaran sections by area
+                 * @param {string} itemKey - The item key (column key)
                  * @param {string} itemName - The item/tipe name
+                 * @param {number} totalQty - The total quantity
                  * @param {Object} areaBreakdown - Object with area names as keys and quantities as values
                  * @param {string} satuan - The unit of measurement
                  */
-                function insertItemToPenawaran(itemName, areaBreakdown, satuan) {
+                function insertItemToPenawaran(itemKey, itemName, totalQty, areaBreakdown, satuan) {
                     const sectionsContainer = document.getElementById('sectionsContainer');
                     if (!sectionsContainer) {
                         if (window.notyf) notyf.error('Penawaran sections container not found.');
@@ -4915,6 +5068,7 @@
                     }
 
                     let insertedCount = 0;
+                    let updatedCount = 0;
 
                     // For each area in the breakdown
                     Object.entries(areaBreakdown).forEach(([areaName, qty]) => {
@@ -4967,35 +5121,66 @@
                             const spreadsheet = targetSection.spreadsheet;
                             const currentData = spreadsheet.getData();
                             
-                            // Find empty row or add new row
-                            let emptyRowIdx = -1;
+                            // First, check if an item with the same name already exists in this section
+                            let existingRowIdx = -1;
                             for (let i = 0; i < currentData.length; i++) {
                                 const row = currentData[i];
-                                // Check if row is empty (no tipe, no qty)
-                                if (!row[1] && (!row[3] || row[3] === 0 || row[3] === '0')) {
-                                    emptyRowIdx = i;
+                                // Column 1 is Tipe (item name)
+                                const rowItemName = (row[1] || '').toString().toLowerCase().trim();
+                                if (rowItemName === itemName.toLowerCase().trim()) {
+                                    existingRowIdx = i;
                                     break;
                                 }
                             }
-
-                            if (emptyRowIdx === -1) {
-                                // Add new row
-                                spreadsheet.insertRow();
-                                emptyRowIdx = currentData.length;
+                            
+                            let targetRowIdx = existingRowIdx;
+                            
+                            // If item doesn't exist, find empty row or add new row
+                            if (targetRowIdx === -1) {
+                                for (let i = 0; i < currentData.length; i++) {
+                                    const row = currentData[i];
+                                    // Check if row is empty (no tipe, no qty)
+                                    if (!row[1] && (!row[3] || row[3] === 0 || row[3] === '0')) {
+                                        targetRowIdx = i;
+                                        break;
+                                    }
+                                }
+                                
+                                if (targetRowIdx === -1) {
+                                    // Add new row
+                                    spreadsheet.insertRow();
+                                    targetRowIdx = currentData.length;
+                                }
                             }
 
-                            // Set the values
+                            // Set the values (update existing or insert new)
                             // Column indices: 0=No, 1=Tipe, 2=Deskripsi, 3=QTY, 4=Satuan, ...
-                            spreadsheet.setValueFromCoords(1, emptyRowIdx, itemName, true);  // Tipe
-                            spreadsheet.setValueFromCoords(3, emptyRowIdx, qty, true);       // QTY
-                            spreadsheet.setValueFromCoords(4, emptyRowIdx, satuan, true);    // Satuan
+                            spreadsheet.setValueFromCoords(1, targetRowIdx, itemName, true);  // Tipe
+                            spreadsheet.setValueFromCoords(3, targetRowIdx, qty, true);       // QTY
+                            spreadsheet.setValueFromCoords(4, targetRowIdx, satuan, true);    // Satuan
 
                             insertedCount++;
+                            if (existingRowIdx !== -1) {
+                                updatedCount++;
+                            }
                         }
                     });
 
                     if (insertedCount > 0) {
-                        if (window.notyf) notyf.success(`Berhasil memasukkan ${insertedCount} item ke penawaran.`);
+                        // Mark this item as fetched so it gets disabled on next load
+                        markItemAsFetched(itemKey, totalQty, satuan);
+                        
+                        if (updatedCount > 0 && updatedCount === insertedCount) {
+                            // All items were updates
+                            if (window.notyf) notyf.success(`Berhasil memperbarui ${updatedCount} item di penawaran.`);
+                        } else if (updatedCount > 0) {
+                            // Mix of new and updated
+                            const newCount = insertedCount - updatedCount;
+                            if (window.notyf) notyf.success(`Berhasil: ${newCount} item baru, ${updatedCount} item diperbarui.`);
+                        } else {
+                            // All new
+                            if (window.notyf) notyf.success(`Berhasil memasukkan ${insertedCount} item ke penawaran.`);
+                        }
                     } else {
                         if (window.notyf) notyf.error('Tidak ada item yang dapat dimasukkan.');
                     }
