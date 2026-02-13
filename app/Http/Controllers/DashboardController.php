@@ -77,7 +77,7 @@ class DashboardController extends Controller
                 $latestVersionStaffPO = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
                     ->groupBy('penawaran_id');
                 
-                $omzetPerBulanPO = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(penawaran_versions.grand_total) as total_omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
+                $omzetPerBulanPO = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(CASE WHEN penawarans.template_type = "template_boq" THEN penawarans.grand_total ELSE penawaran_versions.grand_total END) as total_omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
                     ->joinSub($latestVersionStaffPO, 'latest_versions', function($join) {
                         $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
                              ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
@@ -101,7 +101,7 @@ class DashboardController extends Controller
                     ->join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
                     ->where('penawarans.user_id', $userId)
                     ->where('penawarans.status', 'success')
-                    ->sum('penawaran_versions.grand_total');
+                    ->sum(DB::raw('CASE WHEN penawarans.template_type = "template_boq" THEN penawarans.grand_total ELSE penawaran_versions.grand_total END'));
                     
                 // 6b. Total omzet keseluruhan untuk staff - PO
                 $latestVersionStaffTotalPO = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
@@ -114,7 +114,7 @@ class DashboardController extends Controller
                     ->join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
                     ->where('penawarans.user_id', $userId)
                     ->where('penawarans.status', 'po')
-                    ->sum('penawaran_versions.grand_total');
+                    ->sum(DB::raw('CASE WHEN penawarans.template_type = "template_boq" THEN penawarans.grand_total ELSE penawaran_versions.grand_total END'));
             } else {
                 // Untuk role lain (supervisor, manager, administrator, direktur)
                 // 1. Perusahaan paling sering penawaran
@@ -176,7 +176,7 @@ class DashboardController extends Controller
                     ->whereYear('penawarans.created_at', $year)
                     ->whereMonth('penawarans.created_at', $monthNum)
                     ->groupBy('users.id', 'users.name')
-                    ->selectRaw('users.id, users.name, SUM(penawaran_versions.grand_total) as omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
+                    ->selectRaw('users.id, users.name, SUM(CASE WHEN penawarans.template_type = "template_boq" THEN penawarans.grand_total ELSE penawaran_versions.grand_total END) as omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
                     ->orderByDesc('omzet')
                     ->get()
                     ->map(function ($user) {
@@ -203,7 +203,7 @@ class DashboardController extends Controller
                     ->whereYear('penawarans.created_at', $year)
                     ->whereMonth('penawarans.created_at', $monthNum)
                     ->groupBy('users.id', 'users.name')
-                    ->selectRaw('users.id, users.name, SUM(penawaran_versions.grand_total) as omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
+                    ->selectRaw('users.id, users.name, SUM(CASE WHEN penawarans.template_type = "template_boq" THEN penawarans.grand_total ELSE penawaran_versions.grand_total END) as omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
                     ->orderByDesc('omzet')
                     ->get()
                     ->map(function ($user) {
@@ -220,7 +220,7 @@ class DashboardController extends Controller
                 $latestVersionSuccess = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
                     ->groupBy('penawaran_id');
                 
-                $omzetPerBulanSuccess = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(penawaran_versions.grand_total) as total_omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
+                $omzetPerBulanSuccess = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(CASE WHEN penawarans.template_type = "template_boq" THEN penawarans.grand_total ELSE penawaran_versions.grand_total END) as total_omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
                     ->joinSub($latestVersionSuccess, 'latest_versions', function($join) {
                         $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
                              ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
@@ -236,7 +236,7 @@ class DashboardController extends Controller
                 $latestVersionPO = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
                     ->groupBy('penawaran_id');
                 
-                $omzetPerBulanPO = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(penawaran_versions.grand_total) as total_omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
+                $omzetPerBulanPO = \App\Models\PenawaranVersion::selectRaw('DATE_FORMAT(penawarans.created_at, "%Y-%m-01") as bulan, SUM(CASE WHEN penawarans.template_type = "template_boq" THEN penawarans.grand_total ELSE penawaran_versions.grand_total END) as total_omzet, COUNT(DISTINCT penawarans.id_penawaran) as jumlah_penawaran')
                     ->joinSub($latestVersionPO, 'latest_versions', function($join) {
                         $join->on('penawaran_versions.penawaran_id', '=', 'latest_versions.penawaran_id')
                              ->on('penawaran_versions.id', '=', 'latest_versions.max_id');
@@ -258,7 +258,7 @@ class DashboardController extends Controller
                     })
                     ->join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
                     ->where('penawarans.status', 'success')
-                    ->sum('penawaran_versions.grand_total');
+                    ->sum(DB::raw('CASE WHEN penawarans.template_type = "template_boq" THEN penawarans.grand_total ELSE penawaran_versions.grand_total END'));
                     
                 // 7b. Total omzet keseluruhan - PO
                 $latestVersionTotalPO = \App\Models\PenawaranVersion::selectRaw('penawaran_id, MAX(id) as max_id')
@@ -270,7 +270,7 @@ class DashboardController extends Controller
                     })
                     ->join('penawarans', 'penawaran_versions.penawaran_id', '=', 'penawarans.id_penawaran')
                     ->where('penawarans.status', 'po')
-                    ->sum('penawaran_versions.grand_total');
+                    ->sum(DB::raw('CASE WHEN penawarans.template_type = "template_boq" THEN penawarans.grand_total ELSE penawaran_versions.grand_total END'));
             }
         }
 

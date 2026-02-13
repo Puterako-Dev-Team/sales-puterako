@@ -296,6 +296,13 @@ class PenawaranController extends Controller
         $templateType = $request->input('template_type', 'template_puterako');
         $data['template_type'] = $templateType;
 
+        // Handle grand_total_boq - convert formatted number to integer
+        if ($request->filled('grand_total_boq')) {
+            $grandTotalBoq = $request->input('grand_total_boq');
+            // Remove formatting (dots, commas) and convert to integer
+            $data['grand_total_boq'] = (int) str_replace(['.',','], '', $grandTotalBoq);
+        }
+
         // Handle BoQ file upload if template is template_boq
         if ($templateType === 'template_boq' && $request->hasFile('boq_file')) {
             try {
@@ -388,8 +395,16 @@ class PenawaranController extends Controller
             'tipe' => 'nullable|in:soc,barang',
             'template_type' => 'nullable|in:template_puterako,template_boq',
             'lokasi_pengerjaan' => 'nullable|in:SBY,JKT',
+            'grand_total' => 'nullable|numeric|min:0',
             'no_penawaran_edit' => ['nullable', 'string', 'max:255', 'regex:#^PIB/SS-(SBY|JKT)(/JK)?/\d+-\d+/[IVX]+/\d{4}$#'],
         ]);
+
+        // Handle grand_total - convert formatted number to integer for BoQ templates
+        if ($request->input('template_type') === 'template_boq' && $request->filled('grand_total')) {
+            $grandTotal = $request->input('grand_total');
+            // Remove formatting (dots, commas) and convert to integer
+            $data['grand_total'] = (int) str_replace(['.',','], '', $grandTotal);
+        }
 
         // Handle no_penawaran edit for administrator only
         if (Auth::user()->role === 'administrator' && $request->filled('no_penawaran_edit')) {
