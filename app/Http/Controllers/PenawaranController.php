@@ -630,9 +630,13 @@ class PenawaranController extends Controller
 
         $satuans = \App\Models\Satuan::orderBy('nama')->get();
 
-        // Staff role hanya bisa melihat penawaran mereka sendiri
+        // Staff role hanya bisa melihat penawaran mereka sendiri tapi presales boleh lihat semua
         $userRole = Auth::user()->role ?? null;
-        if ($userRole === 'staff' && $penawaran && $penawaran->user_id !== Auth::id()) {
+        $userDepartemen = Auth::user()->departemen->value ?? null;
+        if (
+            $userRole === 'staff' && $penawaran && $penawaran->user_id !== Auth::id()
+            && $userDepartemen !== 'Presales'
+        ) {
             abort(403, 'Unauthorized access to this penawaran');
         }
 
