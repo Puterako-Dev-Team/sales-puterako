@@ -55,3 +55,52 @@
         {{ $rekaps->links() }}
     </div>
 @endif
+
+{{-- History Section Separator --}}
+@if(isset($historyRekaps) && $historyRekaps->count() > 0)
+<div class="border-t-4 border-gray-300 my-6"></div>
+<div class="bg-gray-100 px-4 py-3 rounded-t-lg border-b border-gray-300">
+    <h3 class="text-lg font-semibold text-gray-700 flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Riwayat Approval
+    </h3>
+</div>
+<table class="min-w-full text-sm">
+    <thead>
+        <tr class="bg-gray-500 text-white">
+            <th class="px-2 py-2 font-semibold text-center rounded-tl-md">No</th>
+            <th class="px-2 py-2 font-semibold text-left">Nama Rekap</th>
+            <th class="px-2 py-2 font-semibold text-left">No Penawaran</th>
+            <th class="px-2 py-2 font-semibold text-left">Perusahaan</th>
+            <th class="px-2 py-2 font-semibold text-left">Dibuat Oleh</th>
+            <th class="px-2 py-2 font-semibold text-left">Tgl Permintaan</th>
+            <th class="px-2 py-2 font-semibold text-left">Tgl Disetujui</th>
+            <th class="px-2 py-2 font-semibold text-center rounded-tr-md">Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($historyRekaps as $index => $rekap)
+            <tr class="border-b transition hover:bg-gray-50 bg-gray-50">
+                <td class="px-2 py-2 text-center">{{ $index + 1 }}</td>
+                <td class="px-2 py-2 text-left">
+                    <a href="{{ route('rekap.show', $rekap->id) }}" class="text-green-600 hover:text-green-800 underline">
+                        {{ $rekap->nama }}
+                    </a>
+                </td>
+                <td class="px-2 py-2 text-left">{{ $rekap->no_penawaran ?? '-' }}</td>
+                <td class="px-2 py-2 text-left">{{ $rekap->nama_perusahaan }}</td>
+                <td class="px-2 py-2 text-left">{{ $rekap->user ? $rekap->user->name : 'N/A' }}</td>
+                <td class="px-2 py-2 text-left">{{ $rekap->created_at->format('Y/m/d H:i') }}</td>
+                <td class="px-2 py-2 text-left">{{ $rekap->updated_at->format('Y/m/d H:i') }}</td>
+                <td class="px-2 py-2 text-center">
+                    <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        Approved
+                    </span>
+                </td>
+            </tr>
+        @endforeach
+    </tbody>
+</table>
+@endif

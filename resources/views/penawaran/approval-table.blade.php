@@ -213,3 +213,87 @@
     </tbody>
 </table>
 </div>
+
+{{-- History Section Separator --}}
+@if(isset($historyRequests) && $historyRequests->count() > 0)
+<div class="border-t-4 border-gray-300 my-6"></div>
+<div class="bg-gray-100 px-4 py-3 rounded-t-lg border-b border-gray-300">
+    <h3 class="text-lg font-semibold text-gray-700 flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Riwayat Approval
+    </h3>
+</div>
+<div class="overflow-x-auto">
+<table class="min-w-full text-sm approval-table">
+    <colgroup>
+        <col style="width: 5%">
+        <col style="width: 16%">
+        <col style="width: 6%">
+        <col style="width: 18%">
+        <col style="width: 12%">
+        <col style="width: 12%">
+        <col style="width: 12%">
+        <col style="width: 10%">
+        <col style="width: 9%">
+    </colgroup>
+    <thead>
+        <tr class="bg-gray-500 text-white">
+            <th class="px-3 py-3 font-semibold text-center rounded-tl-md">No</th>
+            <th class="px-3 py-3 font-semibold text-left">No Penawaran</th>
+            <th class="px-3 py-3 font-semibold text-left">Versi</th>
+            <th class="px-3 py-3 font-semibold text-left">Perusahaan</th>
+            <th class="px-3 py-3 font-semibold text-left">Diminta Oleh</th>
+            <th class="px-3 py-3 font-semibold text-left">Tgl Permintaan</th>
+            <th class="px-3 py-3 font-semibold text-left">Tgl Disetujui</th>
+            <th class="px-3 py-3 font-semibold text-left">Status</th>
+            <th class="px-3 py-3 font-semibold text-center rounded-tr-md">Aksi</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($historyRequests as $index => $req)
+            <tr class="border-b transition hover:bg-gray-50 text-gray-800 bg-gray-50">
+                <td class="px-3 py-3 text-center">{{ $index + 1 }}</td>
+                <td class="px-3 py-3">
+                    @if($req->penawaran)
+                        <a href="{{ route('penawaran.show', ['id' => $req->penawaran_id, 'version' => $req->version->version ?? 0, 'referrer' => 'approval']) }}" class="text-green-600 hover:underline">
+                            {{ $req->penawaran->no_penawaran }}
+                        </a>
+                    @else
+                        -
+                    @endif
+                </td>
+                <td class="px-3 py-3">{{ $req->version->version ?? '-' }}</td>
+                <td class="px-3 py-3">{{ $req->penawaran->nama_perusahaan ?? '-' }}</td>
+                <td class="px-3 py-3">{{ $req->requestedBy->name ?? '-' }}</td>
+                <td class="px-3 py-3">{{ $req->requested_at?->format('d M Y H:i') ?? '-' }}</td>
+                <td class="px-3 py-3">{{ $req->updated_at?->format('d M Y H:i') ?? '-' }}</td>
+                <td class="px-3 py-3">
+                    <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full
+                        @if($req->status === 'fully_approved') bg-green-100 text-green-800
+                        @elseif($req->status === 'manager_approved') bg-blue-100 text-blue-800
+                        @elseif($req->status === 'supervisor_approved') bg-yellow-100 text-yellow-800
+                        @else bg-gray-100 text-gray-800 @endif">
+                        {{ str_replace('_', ' ', ucfirst($req->status)) }}
+                    </span>
+                </td>
+                <td class="px-3 py-3 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                        {{-- Export Excel Button --}}
+                        <a href="{{ route('export-approval.export-excel', $req->id) }}"
+                            class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 transition text-xs font-semibold inline-flex items-center"
+                            title="Export Excel">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Excel
+                        </a>
+                    </div>
+                </td>
+            </tr>
+        @endforeach
+    </tbody>
+</table>
+</div>
+@endif

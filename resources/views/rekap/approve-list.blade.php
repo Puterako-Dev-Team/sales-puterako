@@ -102,7 +102,7 @@
                 </svg>
             </div>
             <div id="tableContent">
-                @include('rekap.approve-table', ['rekaps' => $rekaps])
+                @include('rekap.approve-table', ['rekaps' => $rekaps, 'historyRekaps' => $historyRekaps ?? collect()])
             </div>
         </div>
 

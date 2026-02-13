@@ -193,6 +193,7 @@
         <div id="tableContent">
             @include('penawaran.approval-table', [
                 'requests' => $requests,
+                'historyRequests' => $historyRequests ?? collect(),
                 'userRole' => $userRole,
             ])
         </div>
