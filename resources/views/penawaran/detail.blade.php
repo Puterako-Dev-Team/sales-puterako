@@ -312,6 +312,9 @@
                 $tipe = $penawaran->tipe ?? null;
                 $showPenawaran = empty($tipe) || $tipe === 'barang';
                 $showJasa = empty($tipe) || $tipe === 'soc';
+                // Check if user is presales
+                $userDepartemen = Auth::user()->departemen->value ?? null;
+                $isPresales = $userDepartemen === 'Presales';
             @endphp
             @php
                 $activeTab = $showPenawaran ? 'penawaran' : ($showJasa ? 'Jasa' : 'preview');
@@ -350,6 +353,7 @@
                                     <span class="ml-1 text-sm text-gray-600">%</span>
                                 </div> --}}
                             </div>
+                            @unless($isPresales)
                             <div class="flex gap-2">
                                 <button id="editModeBtn"
                                     class="flex items-center bg-[#FFA500] text-white px-3 py-2 rounded hover:bg-orange-600 transition text-sm font-semibold shadow-md">
@@ -369,6 +373,7 @@
                                     </button>
                                 </div>
                             </div>
+                            @endunless
                         </div>
 
                         <!-- Button Tambah Section -->
@@ -467,6 +472,7 @@
                             <input type="number" id="jasaPphInput" class="border rounded px-3 py-2 bg-white w-24" min="0"
                                 step="0.1" value="{{ $versionRow->jasa_pph_percent ?? 0 }}">
                         </div>
+                        @unless($isPresales)
                         <div class="flex-1 flex justify-end items-end gap-2 mb-4">
                             <button id="jasaAddSectionBtn"
                                 class="bg-[#02ADB8] text-white px-4 py-2 rounded hover:bg-blue-700 transition text-sm font-semibold shadow-md hidden">
@@ -495,6 +501,7 @@
                                 Simpan Data Jasa
                             </button>
                         </div>
+                        @endunless
                     </div>
                     <div id="jasaSectionsContainer"></div>
 
@@ -695,6 +702,7 @@
                                         </div>
 
                                 <!-- Right: Slider Verification -->
+                                @unless($isPresales)
                                 <div class="rounded-lg p-4" style="background-color: #f0fdf4; border: 1px solid #dcfce7;">
                                     <p id="verificationHeaderText" class="text-sm font-semibold mb-3 text-center" style="color: #166534;">Geser ke kanan untuk request verifikasi</p>
                                     <div class="relative h-12 bg-white border-2 rounded-full flex items-center cursor-grab active:cursor-grabbing select-none" 
@@ -719,6 +727,17 @@
                                         </div>
                                     </div>
                                 </div>
+                                @else
+                                <div class="rounded-lg p-4" style="background-color: #f9fafb; border: 1px solid #e5e7eb;">
+                                    <p class="text-sm font-semibold mb-3 text-center text-gray-500">Presales tidak dapat request verifikasi</p>
+                                    <div class="relative h-12 bg-gray-100 border-2 rounded-full flex items-center opacity-50" 
+                                        style="border-color: #9ca3af;">
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <span class="text-sm font-semibold pointer-events-none text-gray-400">Akses dibatasi</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endunless
                             </div>
 
                             <!-- Status Verifikasi Jabatan Manajerial -->
@@ -1116,6 +1135,7 @@
                                         </td>
                                     </tr>
                                     <!-- Best Price toggle + input -->
+                                    @unless($isPresales)
                                     <div class="flex items-center gap-4 mt-3">
 
                                         <form method="POST"
@@ -1143,8 +1163,10 @@
                                             </button>
                                         </form>
                                     </div>
+                                    @endunless
 
                                     <!-- Diskon toggle + input -->
+                                    @unless($isPresales)
                                     <div class="flex items-center gap-4 mt-3">
                                         <form method="POST"
                                             action="{{ route('penawaran.saveDiskon', ['id' => $penawaran->id_penawaran, 'version' => $activeVersion]) }}"
@@ -1171,6 +1193,7 @@
                                             </button>
                                         </form>
                                     </div>
+                                    @endunless
 
                                     @if ($isBest)
                                         <tr>
@@ -1243,10 +1266,12 @@
                                     required>{{ old('ringkasan', $versionRow->jasa_ringkasan ?? '') }}</textarea>
                                 <small class="text-gray-600">Ringkasan jasa harus diisi sebelum request verifikasi export PDF</small>
                             </div>
+                            @unless($isPresales)
                             <button type="submit"
                                 class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition font-semibold shadow-md">
                                 Simpan Ringkasan Jasa
                             </button>
+                            @endunless
                         </form>
                         @endif
 
@@ -1282,10 +1307,12 @@
                                         required>{{ old('note', $versionRow->notes ?? '') }}</textarea>
                                     <small class="text-gray-600">Notes harus diisi sebelum request verifikasi export PDF</small>
                                 </div>
+                                @unless($isPresales)
                                 <button type="submit"
                                     class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 mt-2">
                                     Simpan Notes
                                 </button>
+                                @endunless
                             </form>
                         </div>
                         <div class="mt-8 border-t pt-6">
