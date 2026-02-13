@@ -1433,48 +1433,17 @@ class SurveySpreadsheet {
         wrapper
             .querySelector(".btn-add-group")
             ?.addEventListener("click", () => {
-                const groupName = prompt("Masukkan nama grup kolom baru:");
-                if (!groupName) return;
-
-                const columnName = prompt("Masukkan nama kolom pertama:");
-                if (!columnName) return;
-
-                const isNumeric = confirm(
-                    "Kolom berisi angka? (OK = Ya, Cancel = Teks)",
-                );
-                this.addColumnGroup(area, groupName, columnName, isNumeric);
+                openTambahGrupModal(this, area);
             });
 
         // Add column button
         wrapper.querySelector(".btn-add-col")?.addEventListener("click", () => {
-            const groups = area.headers
-                .map((g, i) => `${i + 1}. ${g.group}`)
-                .join("\n");
             if (area.headers.length === 0) {
                 alert("Belum ada grup kolom!");
                 return;
             }
 
-            const input = prompt(`Pilih nomor grup:\n${groups}`);
-            if (!input) return;
-
-            const groupIdx = parseInt(input) - 1;
-            if (
-                isNaN(groupIdx) ||
-                groupIdx < 0 ||
-                groupIdx >= area.headers.length
-            ) {
-                alert("Nomor tidak valid!");
-                return;
-            }
-
-            const columnName = prompt("Masukkan nama kolom:");
-            if (!columnName) return;
-
-            const isNumeric = confirm(
-                "Kolom berisi angka? (OK = Ya, Cancel = Teks)",
-            );
-            this.addColumnToGroup(area, groupIdx, columnName, isNumeric);
+            openTambahKolomModal(this, area);
         });
 
         // Rename group button
@@ -1647,6 +1616,32 @@ class SurveySpreadsheet {
         this.reinitializeArea(area);
     }
 
+    // Add column group without requiring immediate column addition
+    // Creates a group with one placeholder column that can be edited later
+    addColumnGroupOnly(area, groupName) {
+        const colorKeys = Object.keys(this.groupColors);
+        const colorIdx = area.headers.length % colorKeys.length;
+        const color = colorKeys[colorIdx];
+
+        // Generate a placeholder column key based on group name
+        const placeholderKey = this.generateColumnKey(groupName + "_col1");
+
+        area.headers.push({
+            group: groupName,
+            color: color,
+            columns: [
+                {
+                    key: placeholderKey,
+                    title: "Kolom 1", // Placeholder column name
+                    type: "text",
+                    width: 100,
+                }
+            ],
+        });
+
+        this.reinitializeArea(area);
+    }
+
     // Add column to existing group
     addColumnToGroup(area, groupIndex, columnName, isNumeric = true) {
         if (groupIndex < 0 || groupIndex >= area.headers.length) return;
@@ -1722,34 +1717,50 @@ class SurveySpreadsheet {
 
     // Reinitialize area's spreadsheet
     reinitializeArea(area) {
-        // Get current data
-        const currentArrayData = this.getAreaData(area);
-        const currentObjData = this.convertArrayToData(
-            currentArrayData,
-            area.headers,
-        );
+        try {
+            // Get current data
+            const currentArrayData = this.getAreaData(area);
+            const currentObjData = this.convertArrayToData(
+                currentArrayData,
+                area.headers,
+            );
 
-        // Destroy current
-        if (
-            area.spreadsheetInstance &&
-            typeof area.spreadsheetInstance.destroy === "function"
-        ) {
-            area.spreadsheetInstance.destroy();
-        } else if (
-            area.worksheet &&
-            typeof area.worksheet.destroy === "function"
-        ) {
-            area.worksheet.destroy();
+            // Destroy current spreadsheet
+            if (area.spreadsheetInstance) {
+                if (typeof area.spreadsheetInstance.destroy === "function") {
+                    area.spreadsheetInstance.destroy();
+                }
+                area.spreadsheetInstance = null;
+            }
+
+            if (area.worksheet) {
+                if (typeof area.worksheet.destroy === "function") {
+                    area.worksheet.destroy();
+                }
+                area.worksheet = null;
+            }
+
+            // Completely clear the container to remove all child elements
+            if (area.container) {
+                while (area.container.firstChild) {
+                    area.container.removeChild(area.container.firstChild);
+                }
+            }
+
+            // Small delay to ensure DOM is cleared
+            setTimeout(() => {
+                // Rebuild
+                this.initAreaSpreadsheet(area, currentObjData);
+
+                // Re-apply formulas after reinitialize
+                setTimeout(() => {
+                    this.applyFormulasToAllRows(area);
+                    this.styleFormulaColumns(area);
+                }, 100);
+            }, 50);
+        } catch (e) {
+            console.error("Error reinitializing area:", e);
         }
-
-        // Rebuild
-        this.initAreaSpreadsheet(area, currentObjData);
-
-        // Re-apply formulas after reinitialize
-        setTimeout(() => {
-            this.applyFormulasToAllRows(area);
-            this.styleFormulaColumns(area);
-        }, 100);
     }
 
     // Fallback table if jspreadsheet fails
@@ -2077,6 +2088,191 @@ class SurveySpreadsheet {
     }
 }
 
+// Global variables for modal handling
+let currentSurveyInstance = null;
+let currentAreaForModal = null;
+
+// Modal functions for Tambah Grup
+function openTambahGrupModal(surveyInstance, area) {
+    try {
+        currentSurveyInstance = surveyInstance;
+        currentAreaForModal = area;
+        
+        const modal = document.getElementById('tambahGrupModal');
+        const input = document.getElementById('grupNameInput');
+        
+        if (!modal) {
+            console.error('Modal element tambahGrupModal not found');
+            return;
+        }
+        
+        if (!input) {
+            console.error('Input element grupNameInput not found');
+            return;
+        }
+        
+        input.value = '';
+        input.focus();
+        modal.classList.remove('hidden');
+    } catch (e) {
+        console.error('Error opening Tambah Grup modal:', e);
+    }
+}
+
+function closeTambahGrupModal() {
+    try {
+        const modal = document.getElementById('tambahGrupModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+        currentAreaForModal = null;
+    } catch (e) {
+        console.error('Error closing Tambah Grup modal:', e);
+    }
+}
+
+function saveTambahGrup() {
+    try {
+        if (!currentSurveyInstance || !currentAreaForModal) {
+            alert('Error: Tidak dapat menyimpan grup');
+            return;
+        }
+        
+        const input = document.getElementById('grupNameInput');
+        if (!input) {
+            console.error('Input element not found');
+            alert('Error: Input tidak ditemukan');
+            return;
+        }
+        
+        const grupNames = input.value.trim().split('\n').map(g => g.trim()).filter(g => g !== '');
+        
+        if (grupNames.length === 0) {
+            alert('Silakan masukkan minimal satu nama grup');
+            return;
+        }
+        
+        // Add multiple groups
+        for (const groupName of grupNames) {
+            // Add group without requiring to add a column immediately
+            currentSurveyInstance.addColumnGroupOnly(currentAreaForModal, groupName);
+        }
+        
+        // Wait for spreadsheet to reinitialize before closing modal
+        setTimeout(() => {
+            closeTambahGrupModal();
+        }, 300);
+    } catch (e) {
+        console.error('Error saving grup:', e);
+        alert('Error: ' + e.message);
+    }
+}
+
+// Modal functions for Tambah Kolom
+function openTambahKolomModal(surveyInstance, area) {
+    try {
+        currentSurveyInstance = surveyInstance;
+        currentAreaForModal = area;
+        
+        const modal = document.getElementById('tambahKolomModal');
+        const grupSelect = document.getElementById('grupSelection');
+        
+        if (!modal) {
+            console.error('Modal element tambahKolomModal not found');
+            return;
+        }
+        
+        if (!grupSelect) {
+            console.error('Select element grupSelection not found');
+            return;
+        }
+        
+        // Populate grup options
+        grupSelect.innerHTML = '<option value="">-- Pilih Grup --</option>';
+        if (area && area.headers && area.headers.length > 0) {
+            area.headers.forEach((header, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = header.group;
+                grupSelect.appendChild(option);
+            });
+        }
+        
+        // Reset inputs
+        const kolomInput = document.getElementById('kolomNameInput');
+        const isNumericCheckbox = document.getElementById('kolomIsNumeric');
+        if (kolomInput) kolomInput.value = '';
+        if (isNumericCheckbox) isNumericCheckbox.checked = false;
+        
+        // Focus on dropdown - choose grup first!
+        grupSelect.focus();
+        
+        modal.classList.remove('hidden');
+    } catch (e) {
+        console.error('Error opening Tambah Kolom modal:', e);
+    }
+}
+
+function closeTambahKolomModal() {
+    try {
+        const modal = document.getElementById('tambahKolomModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+        currentAreaForModal = null;
+    } catch (e) {
+        console.error('Error closing Tambah Kolom modal:', e);
+    }
+}
+
+function saveTambahKolom() {
+    try {
+        if (!currentSurveyInstance || !currentAreaForModal) {
+            alert('Error: Tidak dapat menyimpan kolom');
+            return;
+        }
+        
+        const grupSelect = document.getElementById('grupSelection');
+        const kolomInput = document.getElementById('kolomNameInput');
+        const isNumericCheckbox = document.getElementById('kolomIsNumeric');
+        
+        if (!grupSelect || !kolomInput || !isNumericCheckbox) {
+            console.error('Modal elements not found');
+            alert('Error: Beberapa elemen modal tidak ditemukan');
+            return;
+        }
+        
+        const groupIdx = parseInt(grupSelect.value);
+        const columnName = kolomInput.value.trim();
+        const isNumeric = isNumericCheckbox.checked;
+        
+        if (isNaN(groupIdx) || groupIdx < 0) {
+            alert('Silakan pilih grup terlebih dahulu');
+            return;
+        }
+        
+        if (!columnName) {
+            alert('Silakan masukkan nama kolom');
+            return;
+        }
+        
+        currentSurveyInstance.addColumnToGroup(currentAreaForModal, groupIdx, columnName, isNumeric);
+        
+        // Wait for spreadsheet to reinitialize before closing modal
+        setTimeout(() => {
+            closeTambahKolomModal();
+        }, 300);
+    } catch (e) {
+        console.error('Error saving kolom:', e);
+        alert('Error: ' + e.message);
+    }
+}
+
 // Export for global access
 window.SurveySpreadsheet = SurveySpreadsheet;
-export default SurveySpreadsheet;
+window.openTambahGrupModal = openTambahGrupModal;
+window.closeTambahGrupModal = closeTambahGrupModal;
+window.saveTambahGrup = saveTambahGrup;
+window.openTambahKolomModal = openTambahKolomModal;
+window.closeTambahKolomModal = closeTambahKolomModal;
+window.saveTambahKolom = saveTambahKolom;
