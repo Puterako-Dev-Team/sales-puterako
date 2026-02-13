@@ -800,6 +800,7 @@ class RekapController extends Controller
                     'version' => $latestVersion ? $latestVersion->version : null,
                     'version_notes' => $latestVersion ? $latestVersion->notes : null,
                     'supporting_documents' => $supportingDocs,
+                    'rekap_updated_at' => $rekap->updated_at ? $rekap->updated_at->toISOString() : null,
                     'surveys' => $surveys->map(function($survey) {
                         return [
                             'id' => $survey->id,
@@ -809,6 +810,7 @@ class RekapController extends Controller
                             'totals' => $survey->totals,
                             'comments' => $survey->comments,
                             'satuans' => $survey->satuans,
+                            'updated_at' => $survey->updated_at ? $survey->updated_at->toISOString() : null,
                         ];
                     })->values()
                 ];
