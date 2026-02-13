@@ -508,6 +508,11 @@
                             } else {
                                 alert('Semua area survey berhasil disimpan!');
                             }
+                            
+                            // Refresh page after successful save
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
                         } else {
                             throw new Error('Gagal menyimpan');
                         }
